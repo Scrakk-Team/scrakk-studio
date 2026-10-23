@@ -103,10 +103,12 @@ export function ProvidersPanel(): JSX.Element {
                 onClick={() => handleProviderClick(provider.id)}
               >
                 {provider.logo ? (
-                  <img
-                    src={provider.logo}
+                  <span
                     className={styles.providerLogo}
-                    alt=""
+                    style={{
+                      WebkitMaskImage: `url("${provider.logo}")`,
+                      maskImage: `url("${provider.logo}")`
+                    }}
                     aria-hidden="true"
                   />
                 ) : (
