@@ -149,7 +149,8 @@ published are not edited. The file goes per version:
   keeping its own text. Extensions, Terminal, Highlight, Servers, Appearance,
   Info, Legal, Shortcuts and the chat sub-sections (Chat, Skills, Agents,
   Permissions, Tools, Providers) were brought in line. Shortcuts, Skills and
-  Tools also gained the same background container and search input.
+  Tools also gained the same background container; Skills and Tools now have
+  the search input inside it too (Shortcuts already had one).
 
 - **Provider list now matches the LSP list.** Logos (monochrome SVGs from
   models.dev) are gone; the rows use the same flat style as the LSP servers
