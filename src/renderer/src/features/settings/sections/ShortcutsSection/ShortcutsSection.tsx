@@ -213,21 +213,21 @@ export function ShortcutsSection(): JSX.Element {
       ) : null}
 
       <div className={styles.listWrap}>
-      <div className={styles.searchWrap}>
-        <input
-          type="search"
-          className={styles.searchInput}
-          placeholder={t('settings.atajos.buscar')}
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-        />
-      </div>
+        <div className={styles.list}>
+          <div className={styles.searchWrap}>
+            <input
+              type="search"
+              className={styles.searchInput}
+              placeholder={t('settings.atajos.buscar')}
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+            />
+          </div>
 
-        {filtered.length === 0 ? (
-          <p className={styles.empty}>{t('settings.atajos.buscar')}</p>
-        ) : (
-          <div className={styles.list}>
-            {filtered.map((row) => {
+          {filtered.length === 0 ? (
+            <p className={styles.empty}>{t('settings.atajos.buscar')}</p>
+          ) : (
+            filtered.map((row) => {
               const isCapturing = capturing === row.command
               return (
                 <div key={row.command} className={styles.row}>
@@ -272,9 +272,9 @@ export function ShortcutsSection(): JSX.Element {
                   </div>
                 </div>
               )
-            })}
-          </div>
-        )}
+            })
+          )}
+        </div>
       </div>
     </div>
   )
