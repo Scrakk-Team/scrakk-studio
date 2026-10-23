@@ -72,6 +72,7 @@ export function ProvidersPanel(): JSX.Element {
   return (
     <>
       <div className={styles.listWrap}>
+        <div className={styles.list}>
         <div className={styles.searchRow}>
           <input
             className={styles.searchInput}
@@ -82,14 +83,12 @@ export function ProvidersPanel(): JSX.Element {
             aria-label={t('providers.buscar.proveedores')}
           />
         </div>
-
-        <ul className={styles.list}>
         {filtered.map((provider) => {
           const isActive = provider.id === activeProviderId
           const hasKey = hasApiKey(provider.id)
           const isEditing = editingId === provider.id
           return (
-            <li key={provider.id}>
+            <div key={provider.id}>
               <button
                 type="button"
                 className={styles.provider}
@@ -244,13 +243,13 @@ export function ProvidersPanel(): JSX.Element {
                   </p>
                 </div>
               )}
-            </li>
+            </div>
           )
         })}
         {filtered.length === 0 && (
-          <li className={styles.empty}>{t('providers.no.se.encontraron.proveedores.para')}{search}"</li>
+          <div className={styles.empty}>{t('providers.no.se.encontraron.proveedores.para')}{search}"</div>
         )}
-      </ul>
+      </div>
       </div>
     </>
   )
