@@ -117,7 +117,8 @@ published are not edited. The file goes per version:
   description, same position, same typography, **no SVG** — with each section
   keeping its own text. Extensions, Terminal, Highlight, Servers, Appearance,
   Info, Legal, Shortcuts and the chat sub-sections (Chat, Skills, Agents,
-  Permissions, Tools, Providers) were brought in line.
+  Permissions, Tools, Providers) were brought in line. Shortcuts also gained
+  the same background container.
 
 - **Provider list now matches the LSP list.** Logos (monochrome SVGs from
   models.dev) are gone; the rows use the same flat style as the LSP servers
