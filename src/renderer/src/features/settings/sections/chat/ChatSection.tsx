@@ -23,7 +23,10 @@ function goTo(section: SettingsSectionId): void {
 export function ChatSection(): JSX.Element {
   return (
     <div className={styles.section}>
-      <p className={styles.hint}>{t('settings.preferencias.del.chat.con.ia')}</p>
+      <div className={styles.headerText}>
+        <h3>{t('settings.nav.chat')}</h3>
+        <p>{t('settings.preferencias.del.chat.con.ia')}</p>
+      </div>
 
       <div className={styles.intro}>
         <span className={styles.introTitle}>{t('settings.proveedores')}</span>

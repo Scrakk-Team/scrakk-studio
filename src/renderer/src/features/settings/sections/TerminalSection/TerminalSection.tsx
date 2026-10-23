@@ -168,10 +168,10 @@ export function TerminalSection(): JSX.Element {
 
   return (
     <div className={styles.section}>
-      <header className={styles.head}>
+      <div className={styles.headerText}>
         <h3>{t('settings.terminal')}</h3>
         <p>{t('settings.opciones.de.la.terminal')}</p>
-      </header>
+      </div>
 
       <TerminalPreview epoch={previewEpoch} />
 

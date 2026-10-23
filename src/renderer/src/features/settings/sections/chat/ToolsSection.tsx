@@ -101,7 +101,10 @@ export function ToolsSection(): JSX.Element {
 
   return (
     <div className={styles.section}>
-      <p className={styles.hint}>{t('settings.elige.que.herramientas.puede.usar')}</p>
+      <div className={styles.headerText}>
+        <h3>{t('settings.nav.tools')}</h3>
+        <p>{t('settings.elige.que.herramientas.puede.usar')}</p>
+      </div>
 
       {toolCatalog.listFamilies().map((family) => {
         const groups = toolCatalog

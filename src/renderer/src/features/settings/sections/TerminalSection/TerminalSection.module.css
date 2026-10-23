@@ -21,14 +21,14 @@
   min-height: 0;
 }
 
-.head h3 {
+.headerText h3 {
   margin: 0;
   font-size: var(--text-sm);
   font-weight: 600;
   color: var(--color-text);
 }
 
-.head p {
+.headerText p {
   margin: 2px 0 0;
   font-size: var(--text-xs);
   color: var(--color-text-secondary);

@@ -90,7 +90,11 @@ export function InfoSection(): JSX.Element {
 
   return (
     <div className={styles.info}>
-      <p><strong>{t('settings.scrakk.studio')}</strong> {t('settings.acerca.descripcion')}</p>
+      <div className={styles.headerText}>
+        <h3>{t('settings.nav.info')}</h3>
+        <p>{t('settings.acerca.descripcion')}</p>
+      </div>
+      <p><strong>{t('settings.scrakk.studio')}</strong></p>
       <p>{t('settings.creado.por.scrakk.team')}</p>
       <p className={styles.version}>
         v{updates.currentVersion} {t('settings.build')} {typeof __BUILD_ID__ === 'string' ? __BUILD_ID__ : 'dev'}

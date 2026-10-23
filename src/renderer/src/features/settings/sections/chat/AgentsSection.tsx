@@ -238,12 +238,15 @@ export function AgentsSection(): JSX.Element {
 
   return (
     <div className={styles.section}>
-      <p className={styles.hint}>
-        Perfiles de IA: prompt, permisos, herramientas y modelo. Los primarios
-        son el agente activo del chat; los subagentes se invocan con la tool
-        &nbsp;<code className={styles.code}>task</code> o escribiendo
-        &nbsp;<code className={styles.code}>@nombre</code> {t('settings.en.el.input')}
-      </p>
+      <div className={styles.headerText}>
+        <h3>{t('settings.nav.agents')}</h3>
+        <p>
+          Perfiles de IA: prompt, permisos, herramientas y modelo. Los primarios
+          son el agente activo del chat; los subagentes se invocan con la tool
+          &nbsp;<code className={styles.code}>task</code> o escribiendo
+          &nbsp;<code className={styles.code}>@nombre</code> {t('settings.en.el.input')}
+        </p>
+      </div>
 
       <SegmentedTabs
         ariaLabel={t('settings.tipo.de.agente')}

@@ -329,8 +329,10 @@ export function ServersSection({ visible = true }: ServersSectionProps): JSX.Ele
 
   return (
     <div className={styles.section}>
-      <p className={styles.summary}>
-        {aggregate.total === 0 ? (
+      <div className={styles.headerText}>
+        <h3>{t('settings.nav.servers')}</h3>
+        <p className={styles.summary}>
+          {aggregate.total === 0 ? (
           t('settings.no.hay.servers.registrados.para')
         ) : (
           <>
@@ -342,6 +344,7 @@ export function ServersSection({ visible = true }: ServersSectionProps): JSX.Ele
           </>
         )}
       </p>
+      </div>
 
       {loading ? <LoadingBar label={t('settings.cargando.servidores')} /> : null}
 

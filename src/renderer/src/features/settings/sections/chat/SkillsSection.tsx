@@ -29,7 +29,10 @@ export function SkillsSection(): JSX.Element {
 
   return (
     <div className={styles.section}>
-      <p className={styles.hint}>{t('settings.activa.o.desactiva.las.skills')}</p>
+      <div className={styles.headerText}>
+        <h3>{t('settings.nav.skills')}</h3>
+        <p>{t('settings.activa.o.desactiva.las.skills')}</p>
+      </div>
 
       {skills.length === 0 ? (
         <p className={styles.empty}>

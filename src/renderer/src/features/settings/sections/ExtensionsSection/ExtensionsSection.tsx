@@ -313,14 +313,11 @@ export function ExtensionsSection(): JSX.Element {
 
   return (
     <div className={styles.section}>
-      <div className={styles.header}>
-        <ProductIcon id="extensions" size={16} />
-        <div className={styles.headerText}>
-          <h3>{t('settings.extensiones')}</h3>
-          <p>
-            {t('settings.extensiones.del.usuario.instaladas.desde')}
-          </p>
-        </div>
+      <div className={styles.headerText}>
+        <h3>{t('settings.extensiones')}</h3>
+        <p>
+          {t('settings.extensiones.del.usuario.instaladas.desde')}
+        </p>
       </div>
 
       <ul className={styles.list}>
@@ -418,11 +415,9 @@ export function ExtensionsSection(): JSX.Element {
       </div>
 
       {iconThemes.length > 0 && (
-        <div className={styles.header} style={{ marginTop: 16 }}>
-          <div className={styles.headerText}>
-            <h3>{t('settings.iconos.de.archivos')}</h3>
-            <p>{t('settings.el.explorer.y.las.tabs')}</p>
-          </div>
+        <div className={styles.headerText} style={{ marginTop: 16 }}>
+          <h3>{t('settings.iconos.de.archivos')}</h3>
+          <p>{t('settings.el.explorer.y.las.tabs')}</p>
         </div>
       )}
       {iconThemes.length > 0 && (
@@ -446,11 +441,9 @@ export function ExtensionsSection(): JSX.Element {
         </ul>
       )}
 
-      <div className={styles.header} style={{ marginTop: 16 }}>
-        <div className={styles.headerText}>
-          <h3>{t('settings.iconos.de.la.interfaz')}</h3>
-          <p>Botones, tabs y chevrons usan el tema activo (Scrakk = ProIcons).</p>
-        </div>
+      <div className={styles.headerText} style={{ marginTop: 16 }}>
+        <h3>{t('settings.iconos.de.la.interfaz')}</h3>
+        <p>Botones, tabs y chevrons usan el tema activo (Scrakk = ProIcons).</p>
       </div>
       <ul className={styles.list}>
         <li className={styles.row}>

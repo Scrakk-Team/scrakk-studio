@@ -227,7 +227,10 @@ export function PermissionsSection(): JSX.Element {
 
   return (
     <div className={styles.section}>
-      <p className={styles.hint}>{t('settings.cada.regla.permite.pregunta.o')}</p>
+      <div className={styles.headerText}>
+        <h3>{t('settings.nav.permissions')}</h3>
+        <p>{t('settings.cada.regla.permite.pregunta.o')}</p>
+      </div>
 
       {/* Dónde se guardan + modo inicial */}
       <div className={styles.card}>

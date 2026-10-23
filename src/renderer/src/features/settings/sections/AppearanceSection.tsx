@@ -342,6 +342,10 @@ export function AppearanceSection(): JSX.Element {
 
   return (
     <div className={styles.section}>
+      <div className={styles.headerText}>
+        <h3>{t('settings.nav.appearance')}</h3>
+        <p>{t('appearance.hint')}</p>
+      </div>
       <div className={styles.fontBox}>
         <div className={styles.fontHead}>
           <span className={styles.fontName}>{t('appearance.language.label')}</span>

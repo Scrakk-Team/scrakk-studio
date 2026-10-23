@@ -30,7 +30,7 @@
 }
 
 .headerText p {
-  margin: 0;
+  margin: 2px 0 0;
   font-size: var(--text-xs);
   color: var(--color-text-secondary);
   line-height: var(--leading-normal);

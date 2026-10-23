@@ -136,7 +136,10 @@ export function ShortcutsSection(): JSX.Element {
 
   return (
     <div className={styles.section}>
-      <p className={styles.summary}>{t('settings.atajos.hint')}</p>
+      <div className={styles.headerText}>
+        <h3>{t('settings.nav.shortcuts')}</h3>
+        <p>{t('settings.atajos.hint')}</p>
+      </div>
 
       <div className={styles.presetRow}>
         <span className={styles.presetLabel}>{t('settings.atajos.preset')}</span>

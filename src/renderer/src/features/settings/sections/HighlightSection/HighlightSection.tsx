@@ -104,9 +104,10 @@ export function HighlightSection(): JSX.Element {
 
   return (
     <div className={styles.section}>
-      <p className={styles.hint}>
-        {t('settings.la.opcion.aplica.al.editor')}
-      </p>
+      <div className={styles.headerText}>
+        <h3>{t('settings.nav.highlight')}</h3>
+        <p>{t('settings.la.opcion.aplica.al.editor')}</p>
+      </div>
       <div className={styles.grid}>
         {SOURCE_OPTIONS.map((option) => (
           <button

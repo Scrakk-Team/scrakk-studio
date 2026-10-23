@@ -24,7 +24,10 @@ const LINKS: ReadonlyArray<{ label: MessageKey; href: string }> = [
 export function LegalSection(): JSX.Element {
   return (
     <div className={styles.legal}>
-      <p className={styles.intro}>{t('settings.legal.descripcion')}</p>
+      <div className={styles.headerText}>
+        <h3>{t('settings.nav.legal')}</h3>
+        <p>{t('settings.legal.descripcion')}</p>
+      </div>
       <p className={styles.version}>{t('settings.legal.version', { version: LEGAL_VERSION })}</p>
       <ul className={styles.links}>
         {LINKS.map((link) => (
