@@ -106,6 +106,14 @@ published are not edited. The file goes per version:
   character short by then: `#fff` had become `#ffffff`), and the writes are
   throttled to one per frame so dragging stays smooth.
 
+### Explorer (UI)
+- **The lasso auto-scrolls like Windows Explorer.** Dragging a selection
+  rectangle to the top or bottom edge of the file tree now scrolls the tree
+  while you keep dragging, with the speed ramping up the further the pointer
+  goes into the edge strip, so a selection can span more rows than fit on
+  screen without letting go. It stops at the ends and resumes if the pointer
+  comes back into the strip.
+
 ### Command palette (UI)
 - **The shortcuts look like the welcome page's badges.** Every command in the
   palette (and in its tooltip) was showing its keybinding as a **keycap**: a
