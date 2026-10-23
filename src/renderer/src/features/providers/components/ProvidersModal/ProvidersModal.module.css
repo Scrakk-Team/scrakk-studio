@@ -54,24 +54,26 @@
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: 2px;
   margin-top: var(--space-2);
 }
 
 .provider {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
   gap: var(--space-3);
   width: 100%;
-  padding: var(--space-3);
+  padding: var(--space-2) var(--space-3);
   text-align: left;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-input);
-  transition: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  transition: background-color var(--duration-fast) var(--ease-out);
 }
 
 .provider:hover {
-  border-color: var(--color-border-strong);
   background: var(--color-hover);
 }
 

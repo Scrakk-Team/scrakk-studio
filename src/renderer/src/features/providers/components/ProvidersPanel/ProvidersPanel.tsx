@@ -102,20 +102,6 @@ export function ProvidersPanel(): JSX.Element {
                 aria-controls={isEditing ? `config-${provider.id}` : undefined}
                 onClick={() => handleProviderClick(provider.id)}
               >
-                {provider.logo ? (
-                  <span
-                    className={styles.providerLogo}
-                    style={{
-                      WebkitMaskImage: `url("${provider.logo}")`,
-                      maskImage: `url("${provider.logo}")`
-                    }}
-                    aria-hidden="true"
-                  />
-                ) : (
-                  <span className={styles.providerIcon} aria-hidden="true">
-                    <ProductIcon id="server" size={14} />
-                  </span>
-                )}
                 <span className={styles.providerInfo}>
                   <span className={styles.providerTop}>
                     <span className={styles.providerName}>{provider.name}</span>
