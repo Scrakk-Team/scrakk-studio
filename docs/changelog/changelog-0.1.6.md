@@ -119,6 +119,12 @@ published are not edited. The file goes per version:
   Info, Legal, Shortcuts and the chat sub-sections (Chat, Skills, Agents,
   Permissions, Tools, Providers) were brought in line.
 
+- **Provider logos lost their chip background.** They were painted as a
+  monochrome mask over an accent square, which read as a solid background
+  behind every logo. They are now rendered as the image itself (native
+  colours, transparent background), with the accent chip kept only for the
+  fallback icon.
+
 ### Terminal (Windows)
 - **The terminal opens the shell you actually use.** It always came up as
   `cmd.exe`: the shell was resolved from `ComSpec`, which is the legacy command
