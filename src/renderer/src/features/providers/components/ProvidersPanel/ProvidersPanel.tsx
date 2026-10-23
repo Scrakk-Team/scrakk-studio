@@ -71,13 +71,8 @@ export function ProvidersPanel(): JSX.Element {
 
   return (
     <>
-      <p className={styles.intro}>
-        {t('providers.elige.un.proveedor.pega.tu')} <strong>{t('providers.id.del.modelo')}</strong>.
-      </p>
-
       <div className={styles.listWrap}>
         <div className={styles.searchRow}>
-          <ProductIcon id="search" size={14} className={styles.searchIcon} aria-hidden="true" />
           <input
             className={styles.searchInput}
             type="text"
