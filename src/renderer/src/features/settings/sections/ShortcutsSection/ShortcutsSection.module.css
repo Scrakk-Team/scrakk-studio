@@ -76,10 +76,6 @@
 
 /* Sin franja ni sangrado (el sticky con márgenes negativos se veía cortado).
    El campo es igual al buscador de Temas: SIN borde, relleno sobre el fondo. */
-.searchWrap {
-  display: flex;
-}
-
 .searchInput {
   flex: 1;
   min-width: 0;
@@ -103,14 +99,34 @@
 .listWrap {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  flex: 1;
   min-height: 0;
+  position: relative;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--color-surface-raised);
 }
 
 .list {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  padding: var(--space-1);
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+}
+
+.searchWrap {
+  position: sticky;
+  top: calc(-1 * var(--space-1));
+  z-index: 1;
+  display: flex;
+  margin: calc(-1 * var(--space-1)) calc(-1 * var(--space-1)) 0;
+  padding: var(--space-1) var(--space-1) var(--space-2);
+  background: var(--color-surface-raised);
 }
 
 .row {

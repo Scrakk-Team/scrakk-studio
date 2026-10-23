@@ -158,16 +158,6 @@ export function ShortcutsSection(): JSX.Element {
         </LoadingButton>
       </div>
 
-      <div className={styles.searchWrap}>
-        <input
-          type="search"
-          className={styles.searchInput}
-          placeholder={t('settings.atajos.buscar')}
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-        />
-      </div>
-
       {imported ? (
         <div className={styles.notice}>
           <p className={styles.summary}>{t('settings.atajos.importar.hint')}</p>
@@ -223,6 +213,16 @@ export function ShortcutsSection(): JSX.Element {
       ) : null}
 
       <div className={styles.listWrap}>
+      <div className={styles.searchWrap}>
+        <input
+          type="search"
+          className={styles.searchInput}
+          placeholder={t('settings.atajos.buscar')}
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+        />
+      </div>
+
         {filtered.length === 0 ? (
           <p className={styles.empty}>{t('settings.atajos.buscar')}</p>
         ) : (
