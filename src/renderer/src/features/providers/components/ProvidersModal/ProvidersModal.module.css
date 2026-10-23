@@ -26,7 +26,6 @@
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  height: 40px;
   margin: calc(-1 * var(--space-1)) calc(-1 * var(--space-1)) 0;
   padding: var(--space-1) var(--space-1) var(--space-2);
   background: var(--color-surface-raised);
@@ -42,12 +41,15 @@
 .searchInput {
   flex: 1;
   min-width: 0;
-  background: transparent;
+  height: 40px;
+  padding: 0 var(--space-3);
   border: none;
-  outline: none;
-  font-size: var(--text-sm);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
   color: var(--color-text);
-  padding: 0;
+  font-family: inherit;
+  font-size: var(--text-sm);
+  outline: none;
 }
 
 .searchInput::placeholder {
