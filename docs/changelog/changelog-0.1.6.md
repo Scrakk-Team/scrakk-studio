@@ -18,6 +18,14 @@ published are not edited. The file goes per version:
 ## 0.1.6 — A correct grid, a real colour picker and quiet tooltips
 
 ### Editor (Innerta)
+- **The minimap uses the normal cursor and shows the file the right way up.**
+  Hovering it kept the text I-beam (the text hit-test matched because the
+  minimap sits over the text column) and could pop a language hover; it now
+  reports its own hit area so the host restores the arrow and skips the hover.
+  The content blit was also sampling the offscreen texture upside down, so the
+  end of the file appeared at the top and the freshly rasterised rows landed
+  out of view — the visible window is now sampled top-to-bottom like the rest
+  of the pipeline.
 - **The minimap no longer opens half-empty.** Its rows are rasterised lazily
   (a per-frame budget), but on file open the budget went to the editor viewport
   neighbourhood first, so the visible minimap window stayed blank at the top
