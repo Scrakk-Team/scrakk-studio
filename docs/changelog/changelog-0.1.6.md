@@ -18,11 +18,19 @@ published are not edited. The file goes per version:
 ## 0.1.6 — A correct grid, a real colour picker and quiet tooltips
 
 ### Editor (Innerta)
-- **Text rendering reverted to the original stem-darkening shader.** A perceptual
-  "coverage to alpha" experiment made anti-aliased edges collapse on every
-  background (colored tokens read as black), so the text shader is back to the
-  original `stem darkening` path that keeps `rgb = token × coverage` and the
-  `uBgLum` gate; ANSI tokens now follow their theme colors again.
+- **The minimap no longer opens half-empty.** Its rows are rasterised lazily
+  (a per-frame budget), but on file open the budget went to the editor viewport
+  neighbourhood first, so the visible minimap window stayed blank at the top
+  until you scrolled. The visible window is now rendered first, the minimap's
+  own scroll is reset when the content changes, and the host keeps requesting
+  frames while the window still has pending rows — so it fills itself even when
+  the editor sits idle.
+- **Text now uses plain premultiplied anti-aliasing.** Both experiments (the
+  original `pow`-based stem darkening and a "coverage to alpha" perceptual
+  remap) changed the emitted colour or collapsed the edges, so coloured tokens
+  could read as black or look fragmented. The shader now emits exactly
+  `token × coverage` with `coverage` as alpha — every letter follows its theme
+  token again, on light and dark backgrounds alike.
 - **The editor's cell metrics were wrong until you touched the zoom.** The
   layout cache booted with its placeholder values (an 18px row and a 9px column)
   while the font atlas already knew the real ones (a 23px row for the 15px
