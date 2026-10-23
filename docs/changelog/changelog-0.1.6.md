@@ -24,6 +24,10 @@ published are not edited. The file goes per version:
   over 4000 lines now paint the visible text with the base styles immediately
   and run the full highlight on the next frame (and the document string is
   built once, not twice).
+- **Select all no longer jumps to the last line.** `Ctrl+A` correctly selected
+  the whole buffer and put the active cursor at the end, but the generic
+  post-action `EnsureCursorVisible()` then scrolled the view there. Select-all
+  now skips the reveal, so the viewport stays where it was.
 - **The minimap slider eases like Monaco.** On long files the viewport
   rectangle now travels with a cubic curve: it decelerates as it approaches the
   centre of the minimap (staying there while the content keeps scrolling) and
