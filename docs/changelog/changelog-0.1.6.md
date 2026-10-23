@@ -119,11 +119,9 @@ published are not edited. The file goes per version:
   Info, Legal, Shortcuts and the chat sub-sections (Chat, Skills, Agents,
   Permissions, Tools, Providers) were brought in line.
 
-- **Provider logos lost their chip background.** They were painted as a
-  monochrome mask over an accent square, which read as a solid background
-  behind every logo. They are now rendered as the image itself (native
-  colours, transparent background), with the accent chip kept only for the
-  fallback icon.
+- **Provider list now matches the LSP list.** Logos (monochrome SVGs from
+  models.dev) are gone; the rows use the same flat style as the LSP servers
+  (no bordered cards, hover background, consistent spacing).
 
 ### Terminal (Windows)
 - **The terminal opens the shell you actually use.** It always came up as
