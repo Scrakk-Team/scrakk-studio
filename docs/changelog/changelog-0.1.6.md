@@ -278,6 +278,15 @@ published are not edited. The file goes per version:
   changelog.
 
 ### Development
+- **The engine's shortcut registry is data-driven now.** `ShortcutManager`
+  used to hardcode four bindings in its constructor and only understand a
+  single chord. It is now a small registry: the defaults come from a static
+  table, bindings can be added programmatically or loaded from the shortcut
+  JSON, and it supports **multi-chord sequences** (`ctrl+k ctrl+s`) and
+  **contexts** (editor/terminal/global), so the same key can mean different
+  things in different places. `EditorWindow::OnKey` feeds keys through it and
+  consumes pending prefixes; a click cancels them. Copy/paste/cut/select-all
+  keep working exactly as before.
 - **The release pipeline is green again.** Two things were silently blocking
   the builds: the strict i18n gate failed on 33 English keys whose source hash
   had never been recorded (the translations were there, only the bookkeeping
