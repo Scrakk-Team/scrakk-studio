@@ -10,10 +10,15 @@
 import type { JSX } from 'react'
 import { ProvidersPanel } from '@features/providers'
 import styles from './ChatSections.module.css'
+import { t } from '@core/i18n'
 
 export function ProvidersSection(): JSX.Element {
   return (
     <div className={styles.section}>
+      <div className={styles.headerText}>
+        <h3>{t('settings.nav.providers')}</h3>
+        <p>{t('providers.elige.un.proveedor.pega.tu')} {t('providers.id.del.modelo')}.</p>
+      </div>
       <ProvidersPanel />
     </div>
   )

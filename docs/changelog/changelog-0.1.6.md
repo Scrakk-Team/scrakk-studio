@@ -117,7 +117,7 @@ published are not edited. The file goes per version:
   description, same position, same typography, **no SVG** — with each section
   keeping its own text. Extensions, Terminal, Highlight, Servers, Appearance,
   Info, Legal, Shortcuts and the chat sub-sections (Chat, Skills, Agents,
-  Permissions, Tools) were brought in line.
+  Permissions, Tools, Providers) were brought in line.
 
 ### Terminal (Windows)
 - **The terminal opens the shell you actually use.** It always came up as
