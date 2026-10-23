@@ -37,6 +37,8 @@
   "settings.buscar.servidores": "Buscar servidores…",
   "settings.buscar.servidores-2": "Buscar servidores",
   "settings.buscar.skills": "Buscar skills…",
+  "settings.buscar.herramientas": "Buscar herramientas…",
+  "settings.no.hay.herramientas.coinciden": "Sin herramientas que coincidan.",
   "settings.no.hay.skills.coinciden": "Sin skills que coincidan.",
   "settings.cada.archivo.abierto.es.una": ": cada archivo\n            abierto es una sesión dentro de él, con su undo, cursor y scroll.",
   "settings.cada.regla.permite.pregunta.o": "Cada regla permite, pregunta o niega. Si no eliges modos, aplica a todos.",

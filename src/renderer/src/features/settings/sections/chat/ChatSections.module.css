@@ -115,12 +115,11 @@
   padding-left: var(--space-1);
 }
 
-/* La lista de tools va EN HORIZONTAL: tarjetas que se acomodan solas al ancho
-   del panel (2-3 por fila según el espacio). */
+/* La lista de tools va en vertical, con filas planas (mismo estilo que LSP). */
 .toolCards {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
-  gap: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .toolCard {

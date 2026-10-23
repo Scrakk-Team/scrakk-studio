@@ -52,6 +52,8 @@
   "settings.buscar.servidores": "Search servers…",
   "settings.buscar.servidores-2": "Search for servers",
   "settings.buscar.skills": "Search skills…",
+  "settings.buscar.herramientas": "Search tools…",
+  "settings.no.hay.herramientas.coinciden": "No matching tools.",
   "settings.no.hay.skills.coinciden": "No matching skills.",
   "settings.cada.archivo.abierto.es.una": "Each open file is a separate session with its own undo history, cursor, and scroll bar.",
   "settings.cada.regla.permite.pregunta.o": "Each rule allows, asks, or denies. If you do not select a mode, it applies to all.",

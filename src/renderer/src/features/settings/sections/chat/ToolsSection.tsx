@@ -16,7 +16,7 @@
  * aparecen solas.
  */
 
-import { useEffect, useState, type JSX } from 'react'
+import { useEffect, useMemo, useState, type JSX } from 'react'
 import { ProductIcon } from '@services/productIcons/components'
 import { ToggleSwitch } from '@ui'
 import { registry } from '@services/ai/tools'
@@ -30,8 +30,20 @@ type ToolRow = ReturnType<typeof toolSettingsService.getAllTools>[number]
 export function ToolsSection(): JSX.Element {
   const [tools, setTools] = useState<ToolRow[]>(() => toolSettingsService.getAllTools())
   const [version, setVersion] = useState(0)
+  const [query, setQuery] = useState('')
   /** Familias plegadas por el usuario (por id): arriba arrancan todas abiertas. */
   const [collapsed, setCollapsed] = useState<string[]>([])
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!q) return tools
+    return tools.filter(
+      (tool) =>
+        tool.name.toLowerCase().includes(q) ||
+        (tool.meta.label ?? '').toLowerCase().includes(q) ||
+        (tool.meta.description ?? '').toLowerCase().includes(q)
+    )
+  }, [tools, query])
 
   useEffect(() => {
     const reload = (): void => setTools(toolSettingsService.getAllTools())
@@ -54,8 +66,8 @@ export function ToolsSection(): JSX.Element {
     )
 
   const renderTool = (tool: ToolRow): JSX.Element => (
-    <div key={tool.name} className={styles.toolCard}>
-      <div className={styles.toolCardTop}>
+    <div key={tool.name} className={styles.flatRow}>
+      <div className={styles.rowMain}>
         <span className={styles.rowTitle}>
           {tool.meta.label}
           {tool.extensionId ? <span className={styles.badge}>{t('settings.extension')}</span> : null}
@@ -63,18 +75,18 @@ export function ToolsSection(): JSX.Element {
             <span className={`${styles.badge} ${styles.badgeDanger}`}>{t('settings.riesgo.alto')}</span>
           ) : null}
         </span>
-        <ToggleSwitch
-          checked={tool.enabled}
-          onChange={(next) => toolSettingsService.setGloballyEnabled(tool.name, next)}
-          label={`Habilitar ${tool.meta.label}`}
-        />
+        <span className={styles.rowDesc}>{tool.meta.description || tool.name}</span>
       </div>
-      <span className={styles.rowDesc}>{tool.meta.description || tool.name}</span>
+      <ToggleSwitch
+        checked={tool.enabled}
+        onChange={(next) => toolSettingsService.setGloballyEnabled(tool.name, next)}
+        label={`Habilitar ${tool.meta.label}`}
+      />
     </div>
   )
 
   const knownTypes = new Set(toolCatalog.listTypes().map((type) => type.id))
-  const orphans = tools.filter((tool) => !knownTypes.has(typeOf(tool)))
+  const orphans = filtered.filter((tool) => !knownTypes.has(typeOf(tool)))
 
   /** Grupo plegable: encabezado con chevron + contador, y el cuerpo adentro. */
   const renderGroup = (id: string, label: string, count: number, body: JSX.Element[]): JSX.Element => {
@@ -100,16 +112,28 @@ export function ToolsSection(): JSX.Element {
   }
 
   return (
-    <div className={styles.section}>
+    <div className={[styles.section, styles.sectionFill].join(' ')}>
       <div className={styles.headerText}>
         <h3>{t('settings.nav.tools')}</h3>
         <p>{t('settings.elige.que.herramientas.puede.usar')}</p>
       </div>
 
+      <div className={styles.listWrap}>
+        <div className={styles.listScroll}>
+          <div className={styles.searchWrap}>
+            <input
+              type="search"
+              className={styles.searchInput}
+              placeholder={t('settings.buscar.herramientas')}
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+            />
+          </div>
+
       {toolCatalog.listFamilies().map((family) => {
         const groups = toolCatalog
           .listTypes(family.id)
-          .map((type) => ({ type, list: tools.filter((tool) => typeOf(tool) === type.id) }))
+          .map((type) => ({ type, list: filtered.filter((tool) => typeOf(tool) === type.id) }))
           .filter((group) => group.list.length > 0)
         if (groups.length === 0) return null
 
@@ -149,6 +173,12 @@ export function ToolsSection(): JSX.Element {
             [<div key="orphans" className={styles.toolCards}>{orphans.map(renderTool)}</div>]
           )
         : null}
+
+      {filtered.length === 0 ? (
+        <p className={styles.empty}>{t('settings.no.hay.herramientas.coinciden')}</p>
+      ) : null}
+        </div>
+      </div>
     </div>
   )
 }
