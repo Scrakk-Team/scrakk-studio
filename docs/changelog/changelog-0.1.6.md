@@ -122,7 +122,8 @@ published are not edited. The file goes per version:
 - **Provider list now matches the LSP list.** Logos (monochrome SVGs from
   models.dev) are gone; the rows use the same flat style as the LSP servers
   (no bordered cards, hover background, consistent spacing) inside the same
-  background container with rounded corners.
+  background container with rounded corners. The duplicated "choose a provider"
+  text was removed and the search input now matches the LSP one.
 
 ### Terminal (Windows)
 - **The terminal opens the shell you actually use.** It always came up as
