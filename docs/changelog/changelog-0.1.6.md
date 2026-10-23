@@ -24,6 +24,11 @@ published are not edited. The file goes per version:
   over 4000 lines now paint the visible text with the base styles immediately
   and run the full highlight on the next frame (and the document string is
   built once, not twice).
+- **The minimap slider eases like Monaco.** On long files the viewport
+  rectangle now travels with a cubic curve: it decelerates as it approaches the
+  centre of the minimap (staying there while the content keeps scrolling) and
+  accelerates again towards the end, instead of moving at a constant rate and
+  hitting a hard stop at the edges.
 - **The minimap uses the normal cursor and shows the file the right way up.**
   Hovering it kept the text I-beam (the text hit-test matched because the
   minimap sits over the text column) and could pop a language hover; it now
