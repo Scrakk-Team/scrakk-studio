@@ -20,14 +20,18 @@
 /* Mismo buscador que el de Temas (Ajustes → Apariencia): SIN borde, relleno
    sobre el fondo. El borde + `focus-within` se veía como un contorno pesado. */
 .searchRow {
+  position: sticky;
+  top: calc(-1 * var(--space-1));
+  z-index: 1;
   display: flex;
   align-items: center;
   gap: var(--space-2);
   height: 40px;
-  padding: 0 var(--space-3);
-  background: var(--color-bg);
+  margin: calc(-1 * var(--space-1)) calc(-1 * var(--space-1)) 0;
+  padding: var(--space-1) var(--space-1) var(--space-2);
+  background: var(--color-surface-raised);
   border: none;
-  border-radius: var(--radius-md);
+  border-radius: 0;
 }
 
 .searchIcon {
@@ -50,12 +54,29 @@
   color: var(--color-text-muted);
 }
 
+.listWrap {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--color-surface-raised);
+}
+
 .list {
   list-style: none;
   display: flex;
   flex-direction: column;
   gap: 2px;
-  margin-top: var(--space-2);
+  padding: var(--space-1);
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+  margin-top: 0;
 }
 
 .provider {

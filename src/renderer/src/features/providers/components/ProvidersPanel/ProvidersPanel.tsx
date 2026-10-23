@@ -75,19 +75,20 @@ export function ProvidersPanel(): JSX.Element {
         {t('providers.elige.un.proveedor.pega.tu')} <strong>{t('providers.id.del.modelo')}</strong>.
       </p>
 
-      <div className={styles.searchRow}>
-        <ProductIcon id="search" size={14} className={styles.searchIcon} aria-hidden="true" />
-        <input
-          className={styles.searchInput}
-          type="text"
-          value={search}
-          placeholder={`Buscar entre ${providers.length} proveedores…`}
-          onChange={(event) => setSearch(event.target.value)}
-          aria-label={t('providers.buscar.proveedores')}
-        />
-      </div>
+      <div className={styles.listWrap}>
+        <div className={styles.searchRow}>
+          <ProductIcon id="search" size={14} className={styles.searchIcon} aria-hidden="true" />
+          <input
+            className={styles.searchInput}
+            type="text"
+            value={search}
+            placeholder={`Buscar entre ${providers.length} proveedores…`}
+            onChange={(event) => setSearch(event.target.value)}
+            aria-label={t('providers.buscar.proveedores')}
+          />
+        </div>
 
-      <ul className={styles.list}>
+        <ul className={styles.list}>
         {filtered.map((provider) => {
           const isActive = provider.id === activeProviderId
           const hasKey = hasApiKey(provider.id)
@@ -255,6 +256,7 @@ export function ProvidersPanel(): JSX.Element {
           <li className={styles.empty}>{t('providers.no.se.encontraron.proveedores.para')}{search}"</li>
         )}
       </ul>
+      </div>
     </>
   )
 }
