@@ -19,6 +19,11 @@
 import { useCallback, useEffect, useRef, type RefObject } from 'react'
 import { ROW_HEIGHT } from '../constants'
 
+/** Franja de activación del autoscroll (px) desde el borde del contenedor. */
+const AUTO_SCROLL_EDGE = 28
+/** Velocidad máxima del autoscroll (px por frame) al fondo de la franja. */
+const AUTO_SCROLL_MAX = 14
+
 /**
  * Índices de filas que intersectan el rectángulo (matemática pura por
  * altura fija, sin DOM). Exportada para tests.
@@ -98,10 +103,18 @@ export function useSelectionBox({
   const isDragging = useRef(false)
   const dragStart = useRef<{ x: number; y: number } | null>(null)
   const rafRef = useRef<number | null>(null)
-  const lastMousePos = useRef<{ x: number; y: number } | null>(null)
   const pendingPaths = useRef<string[]>([])
   /** Ctrl/Cmd al empezar: la selección se SUMA a la existente. */
   const additiveRef = useRef(false)
+  /**
+   * Autoscroll tipo Explorador de Windows: mientras se arrastra el recuadro,
+   * si el puntero entra en la franja superior/inferior del contenedor, éste
+   * scrollea solo y la selección sigue creciendo. Se guarda la posición en
+   * coordenadas de PANTALLA (no de contenido) para poder recalcular el
+   * rectángulo en cada frame a medida que cambia `scrollTop`.
+   */
+  const lastClient = useRef<{ x: number; y: number } | null>(null)
+  const autoScrollRaf = useRef<number | null>(null)
 
   // Refs "latest": los listeners de window se enganchan UNA vez (estables),
   // pero siempre leen los datos frescos del render actual. Sin esto, el
@@ -187,6 +200,90 @@ export function useSelectionBox({
     [containerRef]
   )
 
+  /**
+   * Aplica el arrastre actual (puntero en coords de pantalla) al rectángulo y
+   * a la selección. Se usa tanto al mover el mouse como en cada frame del
+   * autoscroll (donde el puntero está quieto pero `scrollTop` cambia).
+   */
+  const applyDrag = useCallback(
+    (clientX: number, clientY: number): void => {
+      const el = containerRef.current
+      if (!el || !dragStart.current) return
+      const rect = el.getBoundingClientRect()
+      const cx = clientX - rect.left
+      const cy = clientY - rect.top + el.scrollTop
+      const sx = dragStart.current.x
+      const sy = dragStart.current.y
+
+      const left = Math.min(sx, cx)
+      const top = Math.min(sy, cy)
+      const w = Math.abs(cx - sx)
+      const h = Math.abs(cy - sy)
+
+      const box = boxRef.current
+      if (box) {
+        box.style.left = `${left}px`
+        box.style.top = `${top}px`
+        box.style.width = `${w}px`
+        box.style.height = `${h}px`
+      }
+
+      if (w > 3 || h > 3) {
+        updateSelection({ x: left, y: top, w, h })
+      }
+    },
+    [containerRef, boxRef, updateSelection]
+  )
+
+  /** Detiene el loop de autoscroll (si está activo). */
+  const stopAutoScroll = useCallback((): void => {
+    if (autoScrollRaf.current !== null) {
+      cancelAnimationFrame(autoScrollRaf.current)
+      autoScrollRaf.current = null
+    }
+  }, [])
+
+  /**
+   * Un frame de autoscroll: scrollea el contenedor según cuánto se haya
+   * metido el puntero en la franja del borde y vuelve a aplicar el arrastre.
+   * Sigue pidiendo frames mientras el puntero permanezca en la franja.
+   */
+  const autoScrollTick = useCallback((): void => {
+    autoScrollRaf.current = null
+    const el = containerRef.current
+    const client = lastClient.current
+    if (!isDragging.current || !el || !client) return
+
+    const rect = el.getBoundingClientRect()
+    const localY = client.y - rect.top
+
+    let speed = 0
+    if (localY < AUTO_SCROLL_EDGE) {
+      // Arriba (incluye puntero por encima del contenedor).
+      const depth = Math.min(1, (AUTO_SCROLL_EDGE - localY) / AUTO_SCROLL_EDGE)
+      speed = -depth * AUTO_SCROLL_MAX
+    } else if (localY > rect.height - AUTO_SCROLL_EDGE) {
+      // Abajo (incluye puntero por debajo del contenedor).
+      const depth = Math.min(1, (localY - (rect.height - AUTO_SCROLL_EDGE)) / AUTO_SCROLL_EDGE)
+      speed = depth * AUTO_SCROLL_MAX
+    }
+
+    if (speed === 0) return
+
+    const maxScroll = el.scrollHeight - el.clientHeight
+    const next = Math.max(0, Math.min(maxScroll, el.scrollTop + speed))
+    if (next === el.scrollTop) {
+      // Ya está en el tope (no hay nada que scrollear): parar hasta que el
+      // próximo mousemove vuelva a entrar en la franja.
+      return
+    }
+    el.scrollTop = next
+    applyDrag(client.x, client.y)
+
+    // Mantener el loop mientras haya margen para seguir scrolleando.
+    autoScrollRaf.current = requestAnimationFrame(autoScrollTick)
+  }, [containerRef, applyDrag])
+
   const handleMouseDown = useCallback(
     (event: React.MouseEvent): void => {
       // Lasso en CUALQUIER fondo del árbol (laterales, huecos, bajo las
@@ -204,6 +301,7 @@ export function useSelectionBox({
       event.preventDefault()
       const pos = getRelativePos(event.clientX, event.clientY)
       dragStart.current = pos
+      lastClient.current = { x: event.clientX, y: event.clientY }
       isDragging.current = true
 
       // Ctrl/Cmd = aditivo: NO se limpia lo seleccionado, así el recuadro sirve
@@ -231,45 +329,27 @@ export function useSelectionBox({
     (event: MouseEvent): void => {
       if (!isDragging.current || !dragStart.current) return
 
-      const el = containerRef.current
-      if (!el) return
-      const rect = el.getBoundingClientRect()
-      const pos = {
-        x: event.clientX - rect.left,
-        y: event.clientY - rect.top + el.scrollTop
+      lastClient.current = { x: event.clientX, y: event.clientY }
+
+      // Dibujo throttled a un frame. El autoscroll tiene su propio loop y
+      // reaplica el arrastre cada vez que mueve el scroll (el puntero puede
+      // estar quieto).
+      if (rafRef.current === null) {
+        rafRef.current = requestAnimationFrame(() => {
+          rafRef.current = null
+          const client = lastClient.current
+          if (!isDragging.current || !client) return
+          applyDrag(client.x, client.y)
+        })
       }
-      lastMousePos.current = pos
 
-      if (rafRef.current !== null) return
-      rafRef.current = requestAnimationFrame(() => {
-        rafRef.current = null
-        if (!lastMousePos.current || !dragStart.current) return
-
-        const { x: cx, y: cy } = lastMousePos.current
-        const sx = dragStart.current.x
-        const sy = dragStart.current.y
-
-        const left = Math.min(sx, cx)
-        const top = Math.min(sy, cy)
-        const w = Math.abs(cx - sx)
-        const h = Math.abs(cy - sy)
-
-        // Actualizar box via DOM directo.
-        const box = boxRef.current
-        if (box) {
-          box.style.left = `${left}px`
-          box.style.top = `${top}px`
-          box.style.width = `${w}px`
-          box.style.height = `${h}px`
-        }
-
-        // Actualizar selección si el rectángulo es significativo.
-        if (w > 3 || h > 3) {
-          updateSelection({ x: left, y: top, w, h })
-        }
-      })
+      // Encender el loop de autoscroll si no está corriendo; él mismo se
+      // detiene cuando el puntero sale de la franja.
+      if (autoScrollRaf.current === null) {
+        autoScrollRaf.current = requestAnimationFrame(autoScrollTick)
+      }
     },
-    [containerRef, boxRef, updateSelection]
+    [applyDrag, autoScrollTick]
   )
 
   const handleMouseUp = useCallback((): void => {
@@ -277,7 +357,8 @@ export function useSelectionBox({
 
     isDragging.current = false
     dragStart.current = null
-    lastMousePos.current = null
+    lastClient.current = null
+    stopAutoScroll()
 
     // Ocultar box via DOM directo.
     const box = boxRef.current
@@ -306,7 +387,7 @@ export function useSelectionBox({
       cancelAnimationFrame(rafRef.current)
       rafRef.current = null
     }
-  }, [boxRef, containerRef])
+  }, [boxRef, containerRef, stopAutoScroll])
 
   // Listeners globales estables (con cleanup: StrictMode-safe). Leen los
   // refs latest, así el drag siempre usa el árbol actual.
@@ -316,8 +397,14 @@ export function useSelectionBox({
     return () => {
       window.removeEventListener('mousemove', handleMouseMove)
       window.removeEventListener('mouseup', handleMouseUp)
+      // Desmontaje a mitad del drag: no dejar ningún rAF vivo.
+      stopAutoScroll()
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current)
+        rafRef.current = null
+      }
     }
-  }, [handleMouseMove, handleMouseUp])
+  }, [handleMouseMove, handleMouseUp, stopAutoScroll])
 
   return { handleMouseDown }
 }
