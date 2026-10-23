@@ -121,7 +121,8 @@ published are not edited. The file goes per version:
 
 - **Provider list now matches the LSP list.** Logos (monochrome SVGs from
   models.dev) are gone; the rows use the same flat style as the LSP servers
-  (no bordered cards, hover background, consistent spacing).
+  (no bordered cards, hover background, consistent spacing) inside the same
+  background container with rounded corners.
 
 ### Terminal (Windows)
 - **The terminal opens the shell you actually use.** It always came up as
