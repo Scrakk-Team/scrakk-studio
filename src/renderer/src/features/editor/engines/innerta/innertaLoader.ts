@@ -331,6 +331,20 @@ function wrap(raw: Record<string, unknown>): InnertaModule {
       }
     },
     /**
+     * ¿El puntero está sobre el minimap? `false` si el WASM no lo trae. El
+     * minimap está a la derecha del texto; sin esto el hit-test de texto dice
+     * "hay línea" y el cursor queda en I-beam sobre la miniatura.
+     */
+    isOverMinimap(x, y) {
+      const fn = (_raw as Record<string, unknown>)['_InnertaIsOverMinimap']
+      if (typeof fn !== 'function') return false
+      try {
+        return (fn as (x: number, y: number) => number)(x, y) !== 0
+      } catch {
+        return false
+      }
+    },
+    /**
      * Posición del cursor. Opcional: si el WASM no exporta
      * `_GetInnertaCursor`, retorna `null` (la UI muestra "Ln —, Col —").
      * Cuando el otro repo sume el export, este wiring ya está listo.
@@ -913,6 +927,20 @@ function wrapIsolated(raw: Record<string, unknown>, canvas: HTMLCanvasElement): 
      */
     isOverScrollbar(x, y) {
       const fn = (_raw as Record<string, unknown>)['_InnertaIsOverScrollbar']
+      if (typeof fn !== 'function') return false
+      try {
+        return (fn as (x: number, y: number) => number)(x, y) !== 0
+      } catch {
+        return false
+      }
+    },
+    /**
+     * ¿El puntero está sobre el minimap? `false` si el WASM no lo trae. El
+     * minimap está a la derecha del texto; sin esto el hit-test de texto dice
+     * "hay línea" y el cursor queda en I-beam sobre la miniatura.
+     */
+    isOverMinimap(x, y) {
+      const fn = (_raw as Record<string, unknown>)['_InnertaIsOverMinimap']
       if (typeof fn !== 'function') return false
       try {
         return (fn as (x: number, y: number) => number)(x, y) !== 0

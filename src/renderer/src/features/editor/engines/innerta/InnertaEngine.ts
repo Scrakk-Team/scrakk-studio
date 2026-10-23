@@ -62,6 +62,11 @@ export interface InnertaModule {
    */
   isOverScrollbar?(x: number, y: number): boolean
   /**
+   * WASM: ¿el puntero está sobre el minimap? El host deja el cursor normal
+   * (flecha) en vez del I-beam y no dispara hover de lenguaje. Opcional.
+   */
+  isOverMinimap?(x: number, y: number): boolean
+  /**
    * WASM: posición actual del cursor del editor → { line, col } (0-based).
    * Opcional: si el engine no lo expone (versiones viejas del WASM) devuelve
    * null. Es la contraparte de lectura de `SetInnertaCursor` (C++).

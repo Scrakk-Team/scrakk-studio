@@ -427,7 +427,11 @@ export function attachHostBridge(
     // cursor debe ser la flecha normal, no el I-beam, y no hay hover de
     // lenguaje (el hit-test de texto dice "hay línea" igual).
     const overScrollbar = mod.isOverScrollbar?.(localX, localY) ?? false
-    const overText = !overScrollbar && hit.line >= 0 && (textX === null || localX + 0.5 >= textX)
+    // El minimap también se pinta sobre el área de texto: sobre él el cursor
+    // debe ser la flecha normal, no el I-beam, y no hay hover de lenguaje.
+    const overMinimap = mod.isOverMinimap?.(localX, localY) ?? false
+    const overText =
+      !overScrollbar && !overMinimap && hit.line >= 0 && (textX === null || localX + 0.5 >= textX)
     lastOverText = overText
 
     // Con Ctrl/Cmd apretado el comportamiento es el de un editor: subrayar el
