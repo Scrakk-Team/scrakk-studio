@@ -18,6 +18,12 @@ published are not edited. The file goes per version:
 ## 0.1.6 — A correct grid, a real colour picker and quiet tooltips
 
 ### Editor (Innerta)
+- **Large files paint their text before the highlighter runs.** Opening a long
+  file used to build the whole document string and run tree-sitter over every
+  line before the first frame, so the window sat empty while it worked. Files
+  over 4000 lines now paint the visible text with the base styles immediately
+  and run the full highlight on the next frame (and the document string is
+  built once, not twice).
 - **The minimap uses the normal cursor and shows the file the right way up.**
   Hovering it kept the text I-beam (the text hit-test matched because the
   minimap sits over the text column) and could pop a language hover; it now
