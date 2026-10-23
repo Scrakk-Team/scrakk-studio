@@ -109,6 +109,16 @@ published are not edited. The file goes per version:
   with); typing a custom path does not restart it on every keystroke — that
   change still applies to new terminals, as the row's hint says.
 
+### Settings (UI)
+- **Every section now shares the same title+info header.** Each settings
+  section used to render its heading differently (some with a ProductIcon,
+  some with a `<header>`, some with a bare hint paragraph, some with none at
+  all). They now all use the same `headerText` block — title + short
+  description, same position, same typography, **no SVG** — with each section
+  keeping its own text. Extensions, Terminal, Highlight, Servers, Appearance,
+  Info, Legal, Shortcuts and the chat sub-sections (Chat, Skills, Agents,
+  Permissions, Tools) were brought in line.
+
 ### Terminal (Windows)
 - **The terminal opens the shell you actually use.** It always came up as
   `cmd.exe`: the shell was resolved from `ComSpec`, which is the legacy command
