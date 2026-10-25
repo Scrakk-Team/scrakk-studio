@@ -49,7 +49,7 @@ export function ChatUsageButton(): JSX.Element {
   return (
     <HeaderActionButton
       id="chat.usage"
-      label={t('layout.uso.del.contexto')}
+      label={`${t('layout.uso.del.contexto')} · ${summary.percent}%`}
       shape="circle"
       className={styles.usageButton}
       onClick={open}
