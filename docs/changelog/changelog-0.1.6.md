@@ -28,6 +28,13 @@ published are not edited. The file goes per version:
   the whole buffer and put the active cursor at the end, but the generic
   post-action `EnsureCursorVisible()` then scrolled the view there. Select-all
   now skips the reveal, so the viewport stays where it was.
+- **The minimap is smoother and shows the selection live.** With many lines the
+  per-line glyphs were shrunk below a pixel and read as jagged noise, and the
+  offscreen texture was sampled with `NEAREST`, adding 1px steps on fractional
+  rows. Long files now use colour blocks per token run (the VS Code minimap
+  look) instead of sub-pixel glyphs, the texture is sampled with `LINEAR`, and
+  the current text selection is painted as a translucent band that follows it
+  in real time.
 - **The minimap slider eases like Monaco.** On long files the viewport
   rectangle now travels with a cubic curve: it decelerates as it approaches the
   centre of the minimap (staying there while the content keeps scrolling) and
