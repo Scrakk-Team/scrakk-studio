@@ -119,6 +119,11 @@ published are not edited. The file goes per version:
   throttled to one per frame so dragging stays smooth.
 
 ### Explorer (UI)
+- **Hovering a row no longer re-renders the whole tree.** The rows are
+  memoised, but the panel passed freshly-created callbacks on every render, so
+  the memo could never skip anything and each hover re-rendered every visible
+  row. Those handlers are stable now (and the drag no-op is module-level), so a
+  hover only touches the rows whose active guide actually changes.
 - **The lasso auto-scrolls like Windows Explorer.** Dragging a selection
   rectangle to the top or bottom edge of the file tree now scrolls the tree
   while you keep dragging, with the speed ramping up the further the pointer
