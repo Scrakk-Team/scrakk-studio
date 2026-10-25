@@ -15,6 +15,9 @@
 import type { ChatMessage, ChatUsage } from '@services/chat'
 import type { CatalogModelCost, CatalogModelMeta } from '@shared/modelsDev'
 
+/** Metadatos por id de modelo (models.dev). */
+export type ModelMetaMap = Record<string, CatalogModelMeta> | undefined
+
 /** Estimación gruesa cuando el proveedor no informa tokens. */
 export const CHARS_PER_TOKEN = 4
 
@@ -71,8 +74,12 @@ function conversationText(messages: ChatMessage[]): string {
 
 export function summarizeUsage(
   messages: ChatMessage[],
-  meta: CatalogModelMeta | undefined
+  modelsMeta: ModelMetaMap,
+  fallbackModel?: string
 ): ChatUsageSummary {
+  const metaFor = (model: string | undefined): CatalogModelMeta | undefined =>
+    model ? modelsMeta?.[model] : undefined
+
   let totalPrompt = 0
   let totalCompletion = 0
   let totalCached = 0
@@ -88,9 +95,14 @@ export function summarizeUsage(
     totalCompletion += message.usage.completionTokens
     totalCached += message.usage.cachedTokens ?? 0
     // El coste se guardó al recibir el usage (con el precio del modelo de ESE
-    // mensaje). Si un mensaje viejo no lo tiene, se usa el precio actual.
-    cost += message.usage.cost ?? computeCost(meta?.cost, message.usage) ?? 0
+    // mensaje). Si un mensaje viejo no lo tiene, se usa el precio de su modelo.
+    const messageMeta = metaFor(message.usage.model) ?? metaFor(fallbackModel)
+    cost += message.usage.cost ?? computeCost(messageMeta?.cost, message.usage) ?? 0
   }
+
+  // El contexto se mide contra el modelo de la ÚLTIMA respuesta (puede ser
+  // distinto del activo si el usuario cambió de modelo a mitad de sesión).
+  const activeMeta = metaFor(last?.model) ?? metaFor(fallbackModel)
 
   const estimated = !last
   if (!last) {
@@ -104,13 +116,13 @@ export function summarizeUsage(
     )
     totalPrompt = prompt
     totalCompletion = completion
-    cost = computeCost(meta?.cost, { promptTokens: prompt, completionTokens: completion }) ?? 0
+    cost = computeCost(activeMeta?.cost, { promptTokens: prompt, completionTokens: completion }) ?? 0
   }
 
   const contextTokens = last
     ? last.totalTokens || last.promptTokens + last.completionTokens
     : totalPrompt + totalCompletion
-  const contextLimit = meta?.context && meta.context > 0 ? meta.context : null
+  const contextLimit = activeMeta?.context && activeMeta.context > 0 ? activeMeta.context : null
   const percent =
     contextLimit !== null ? Math.min(100, Math.round((contextTokens / contextLimit) * 100)) : 0
 

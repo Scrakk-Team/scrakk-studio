@@ -25,9 +25,11 @@ export function ChatUsageButton(): JSX.Element {
   const { activeSession } = useChats()
   const { activeProvider, getModel } = useProviders()
   const model = activeProvider ? getModel(activeProvider.id) : ''
-  const meta = activeProvider && model ? activeProvider.modelsMeta?.[model] : undefined
   const messages = activeSession?.messages
-  const summary = useMemo(() => summarizeUsage(messages ?? [], meta), [messages, meta])
+  const summary = useMemo(
+    () => summarizeUsage(messages ?? [], activeProvider?.modelsMeta, model),
+    [messages, activeProvider?.modelsMeta, model]
+  )
 
   const open = (): void => {
     showModal({
