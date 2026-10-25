@@ -16,6 +16,8 @@ export const LLM_IPC = {
   chatStreamChunk: 'llm:chat-stream-chunk',
   chatStreamReasoning: 'llm:chat-stream-reasoning',
   chatStreamToolCalls: 'llm:chat-stream-tool-calls',
+  /** Main → renderer: usage que reportó el proveedor (tokens del request). */
+  chatStreamUsage: 'llm:chat-stream-usage',
   chatStreamDone: 'llm:chat-stream-done',
   chatStreamError: 'llm:chat-stream-error',
   /** Renderer → main: corta el stream del requestId (botón "Detener"). */
@@ -95,6 +97,22 @@ export interface LlmStreamDoneEvent {
   reasoning: string
 }
 
+/** Usage reportado por el proveedor (OpenAI-compatible `usage`). */
+export interface LlmStreamUsage {
+  promptTokens: number
+  completionTokens: number
+  totalTokens: number
+  /** Tokens del prompt servidos desde caché (si el proveedor lo informa). */
+  cachedTokens?: number
+  /** Tokens de razonamiento incluidos en completion (si se informan). */
+  reasoningTokens?: number
+}
+
+export interface LlmStreamUsageEvent {
+  requestId: string
+  usage: LlmStreamUsage
+}
+
 /** Tool calls completas de un stream (si el modelo las emitió). */
 export interface LlmStreamToolCallsEvent {
   requestId: string
@@ -123,6 +141,11 @@ export interface LlmStreamHandlers {
   onReasoning?: (delta: string) => void
   /** Tool calls del stream — llegan antes de onDone si el modelo las emitió. */
   onToolCalls?: (toolCalls: LlmToolCall[]) => void
+  /**
+   * Usage del request (tokens de prompt/completion). Llega en el último chunk
+   * cuando el proveedor lo soporta (`stream_options.include_usage`).
+   */
+  onUsage?: (usage: LlmStreamUsage) => void
   onDone?: () => void
   onError?: (error: string) => void
   /** El usuario presionó "Detener": el stream se cortó sin error. */

@@ -4,6 +4,20 @@
 
 export type ChatRole = 'user' | 'assistant'
 
+/** Tokens/coste de una respuesta (usage del proveedor o estimación local). */
+export interface ChatUsage {
+  promptTokens: number
+  completionTokens: number
+  totalTokens: number
+  cachedTokens?: number
+  reasoningTokens?: number
+  /** Coste en USD calculado con el precio del modelo. */
+  cost?: number
+  /** Modelo que produjo el mensaje (para precio/contexto correctos). */
+  model?: string
+  providerId?: string
+}
+
 export interface ChatMessage {
   id: string
   role: ChatRole
@@ -15,6 +29,8 @@ export interface ChatMessage {
   tool_calls?: ToolCallInfo[]
   /** Results for the tool calls above (indexed by call id). */
   tool_results?: Record<string, ToolResultInfo>
+  /** Uso del modelo para esta respuesta (contexto/coste del chat). */
+  usage?: ChatUsage
 }
 
 export interface ChatReply {

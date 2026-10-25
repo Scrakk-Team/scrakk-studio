@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Licencia completa en LICENSE (Apache License 2.0).
 
-import type { LlmChatMessage, LlmToolCall } from '@shared/llm'
+import type { LlmChatMessage, LlmStreamUsage, LlmToolCall } from '@shared/llm'
 import type { ThinkingMode } from '@shared/thinking'
 import type { ProviderConfig } from '../providers/types'
 import type { ChatMessage, ChatReply, ToolCallInfo, ToolResultInfo } from './types'
@@ -33,6 +33,8 @@ export interface SendMessageInput {
   onReasoning?: (delta: string) => void
   /** Tool calls que el modelo emitió y están por ejecutarse. */
   onToolCalls?: (toolCalls: ToolCallInfo[]) => void
+  /** Usage del request (tokens de prompt/completion) que reporta el proveedor. */
+  onUsage?: (usage: LlmStreamUsage) => void
   /** Resultado de una tool call ejecutada. */
   onToolResult?: (toolCallId: string, result: ToolResultInfo) => void
   /**
@@ -134,6 +136,7 @@ export function createLlmChatService(): ChatService {
                   input.onContent?.(delta)
                 },
                 onReasoning: (delta) => input.onReasoning?.(delta),
+                onUsage: (usage) => input.onUsage?.(usage),
                 onToolCalls: (calls) => {
                   // Dedup por id TAMBIÉN acá (no solo al ejecutar): la card se
                   // dibuja desde este evento, y un proveedor no-conformante

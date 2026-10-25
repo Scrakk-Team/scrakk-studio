@@ -55,6 +55,15 @@ interface RawModel {
   reasoning?: boolean
   reasoning_options?: Array<{ type?: string; values?: string[] }>
   modalities?: { output?: string[] }
+  /** models.dev: ventana de contexto / salida. */
+  limit?: { context?: number; output?: number }
+  /** models.dev: USD por 1M tokens. */
+  cost?: {
+    input?: number
+    output?: number
+    cache_read?: number
+    cache_write?: number
+  }
 }
 
 interface RawProvider {
@@ -115,6 +124,39 @@ function projectReasoning(
   return Object.keys(out).length > 0 ? out : undefined
 }
 
+/** Contexto y precio por modelo (para el anillo y el modal de uso del chat). */
+function projectModelsMeta(
+  models: Record<string, RawModel>,
+  ids: string[]
+): CatalogProviderConfig['modelsMeta'] | undefined {
+  const out: NonNullable<CatalogProviderConfig['modelsMeta']> = Object.create(null)
+  for (const id of ids) {
+    if (!isSafeKey(id)) continue
+    const model = models[id]
+    if (!model) continue
+    const context = Number(model.limit?.context)
+    const output = Number(model.limit?.output)
+    const cost = model.cost
+    const input = Number(cost?.input)
+    const outCost = Number(cost?.output)
+    const meta: NonNullable<CatalogProviderConfig['modelsMeta']>[string] = {}
+    if (Number.isFinite(context) && context > 0) meta.context = context
+    if (Number.isFinite(output) && output > 0) meta.output = output
+    if (Number.isFinite(input) && Number.isFinite(outCost)) {
+      const cacheRead = Number(cost?.cache_read)
+      const cacheWrite = Number(cost?.cache_write)
+      meta.cost = {
+        input,
+        output: outCost,
+        ...(Number.isFinite(cacheRead) ? { cacheRead } : {}),
+        ...(Number.isFinite(cacheWrite) ? { cacheWrite } : {})
+      }
+    }
+    if (Object.keys(meta).length > 0) out[id] = meta
+  }
+  return Object.keys(out).length > 0 ? out : undefined
+}
+
 /** Claves que no pueden venir de un JSON remoto (prototype pollution). */
 function isSafeKey(id: string): boolean {
   return id !== '__proto__' && id !== 'constructor' && id !== 'prototype'
@@ -140,6 +182,7 @@ export function projectCatalog(raw: Record<string, RawProvider>): CatalogProvide
       defaultModel: pickDefaultModel(rawModels, ids),
       models: ids,
       reasoning: projectReasoning(rawModels, ids),
+      modelsMeta: projectModelsMeta(rawModels, ids),
       logo: `${LOGO_BASE}/${id}.svg`,
       headers: PROVIDER_HEADERS[id]
     })

@@ -26,6 +26,8 @@ import {
 import { SkillsPanel } from '../SkillsPanel/SkillsPanel'
 import { isSkillsViewOpen, setSkillsViewOpen, subscribeToSkillsView } from '../SkillsPanel/viewState'
 import { ComposerFooter } from './ComposerFooter'
+import { ChatUsageButton } from './ChatUsageButton'
+import { computeCost } from './chatUsage'
 import {
   beginRun,
   endRun,
@@ -137,9 +139,10 @@ export function ChatPanel(): JSX.Element {
           />
         )
       }
-      // Chat: abrir historial + nuevo chat.
+      // Chat: uso del contexto + abrir historial + nuevo chat.
       return (
         <>
+          <ChatUsageButton key="chat.usage" />
           <HeaderActionButton
             key="chat.history"
             id="chat.history"
@@ -320,6 +323,25 @@ export function ChatPanel(): JSX.Element {
             if (!id) return
             pendingReasoning.set(id, (pendingReasoning.get(id) ?? '') + delta)
             scheduleFlush()
+          },
+          onUsage: (usage) => {
+            const id = currentSegmentId
+            if (!id) return
+            // Precio con el modelo de ESTA respuesta (puede haber cambiado
+            // entre mensajes); se guarda ya calculado en el mensaje.
+            const modelId = activeProvider ? getModel(activeProvider.id) : ''
+            const meta =
+              activeProvider && modelId ? activeProvider.modelsMeta?.[modelId] : undefined
+            const cost = computeCost(meta?.cost, usage)
+            patchSegment(id, (message) => ({
+              ...message,
+              usage: {
+                ...usage,
+                ...(cost !== undefined ? { cost } : {}),
+                model: modelId,
+                providerId: activeProvider?.id
+              }
+            }))
           },
           onContent: (delta) => {
             const id = currentSegmentId

@@ -35,6 +35,23 @@ export interface CatalogModelReasoning {
   effort?: string[]
 }
 
+/** Precios del catálogo, en USD por 1M de tokens. */
+export interface CatalogModelCost {
+  input: number
+  output: number
+  cacheRead?: number
+  cacheWrite?: number
+}
+
+/** Metadatos de un modelo que la UI necesita (contexto y precio). */
+export interface CatalogModelMeta {
+  /** Ventana de contexto en tokens. */
+  context?: number
+  /** Máximo de tokens de salida. */
+  output?: number
+  cost?: CatalogModelCost
+}
+
 /** Proveedor ya proyectado a lo que la app consume. */
 export interface CatalogProviderConfig {
   id: string
@@ -53,6 +70,11 @@ export interface CatalogProviderConfig {
    * `{ 'deepseek-flash': { toggle: true, effort: ['low','high','max'] } }`.
    */
   reasoning?: Record<string, CatalogModelReasoning>
+  /**
+   * Contexto y precio por modelo (`limit.context`, `cost.*` de models.dev).
+   * Solo se incluyen los modelos que declaran alguno de los dos.
+   */
+  modelsMeta?: Record<string, CatalogModelMeta>
   /** Logo SVG (models.dev). */
   logo: string
   /** Headers extra del proveedor (ej. HTTP-Referer de OpenRouter). */

@@ -11,7 +11,8 @@ import {
   type LlmStreamHandlers,
   type LlmStreamRequest,
   type LlmStreamStoppedEvent,
-  type LlmStreamToolCallsEvent
+  type LlmStreamToolCallsEvent,
+  type LlmStreamUsageEvent
 } from '@shared/llm'
 import { FS_IPC, type PickFolderResponse, type PickFileResponse } from '@shared/fs'
 import {
@@ -156,6 +157,9 @@ const api: WindowApi = {
       const onToolCalls = (_event: IpcRendererEvent, payload: LlmStreamToolCallsEvent): void => {
         if (matches(payload)) handlers.onToolCalls?.(payload.toolCalls)
       }
+      const onUsage = (_event: IpcRendererEvent, payload: LlmStreamUsageEvent): void => {
+        if (matches(payload)) handlers.onUsage?.(payload.usage)
+      }
       const onStopped = (_event: IpcRendererEvent, payload: LlmStreamStoppedEvent): void => {
         if (matches(payload)) handlers.onStopped?.()
       }
@@ -166,6 +170,7 @@ const api: WindowApi = {
       ipcRenderer.on(LLM_IPC.chatStreamChunk, onChunk)
       ipcRenderer.on(LLM_IPC.chatStreamReasoning, onReasoning)
       ipcRenderer.on(LLM_IPC.chatStreamToolCalls, onToolCalls)
+      ipcRenderer.on(LLM_IPC.chatStreamUsage, onUsage)
       ipcRenderer.on(LLM_IPC.chatStreamDone, onDone)
       ipcRenderer.on(LLM_IPC.chatStreamStopped, onStopped)
       ipcRenderer.on(LLM_IPC.chatStreamError, onError)
@@ -178,6 +183,7 @@ const api: WindowApi = {
         ipcRenderer.removeListener(LLM_IPC.chatStreamChunk, onChunk)
         ipcRenderer.removeListener(LLM_IPC.chatStreamReasoning, onReasoning)
         ipcRenderer.removeListener(LLM_IPC.chatStreamToolCalls, onToolCalls)
+        ipcRenderer.removeListener(LLM_IPC.chatStreamUsage, onUsage)
         ipcRenderer.removeListener(LLM_IPC.chatStreamDone, onDone)
         ipcRenderer.removeListener(LLM_IPC.chatStreamStopped, onStopped)
         ipcRenderer.removeListener(LLM_IPC.chatStreamError, onError)

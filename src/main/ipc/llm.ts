@@ -33,8 +33,18 @@ interface OpenAiStreamDelta {
   tool_calls?: OpenAiStreamToolCallDelta[]
 }
 
+interface OpenAiStreamUsage {
+  prompt_tokens?: number
+  completion_tokens?: number
+  total_tokens?: number
+  prompt_tokens_details?: { cached_tokens?: number }
+  completion_tokens_details?: { reasoning_tokens?: number }
+}
+
 interface OpenAiStreamChunk {
   choices?: Array<{ delta?: OpenAiStreamDelta }>
+  /** Chunk final (choices vacío) cuando se pide `stream_options.include_usage`. */
+  usage?: OpenAiStreamUsage
 }
 
 /**
@@ -181,6 +191,10 @@ async function runStream(sender: WebContents, request: LlmStreamRequest): Promis
           model,
           messages,
           stream: true,
+          // Pide el `usage` en el último chunk: es la fuente real para el
+          // anillo de contexto y el coste. Los endpoints OpenAI-compatible lo
+          // aceptan (o lo ignoran sin romper el stream).
+          stream_options: { include_usage: true },
           // Schemas de tools: el modelo puede invocarlas (function calling).
           ...(tools && tools.length > 0 ? { tools, tool_choice: 'auto' } : {}),
           ...extraBody
@@ -274,6 +288,27 @@ async function runStream(sender: WebContents, request: LlmStreamRequest): Promis
           chunk = JSON.parse(payload) as OpenAiStreamChunk
         } catch {
           continue
+        }
+        // El chunk de usage llega con `choices: []` (sin delta): se procesa
+        // ANTES del `continue` para no perderlo.
+        if (chunk.usage) {
+          const prompt = Number(chunk.usage.prompt_tokens ?? 0)
+          const completion = Number(chunk.usage.completion_tokens ?? 0)
+          const total = Number(chunk.usage.total_tokens ?? prompt + completion)
+          const cached = Number(chunk.usage.prompt_tokens_details?.cached_tokens ?? 0)
+          const reasoning = Number(chunk.usage.completion_tokens_details?.reasoning_tokens ?? 0)
+          if (Number.isFinite(prompt) && Number.isFinite(completion)) {
+            sendEvent(sender, LLM_IPC.chatStreamUsage, {
+              requestId,
+              usage: {
+                promptTokens: Math.max(0, prompt),
+                completionTokens: Math.max(0, completion),
+                totalTokens: Math.max(0, Number.isFinite(total) ? total : prompt + completion),
+                ...(cached > 0 ? { cachedTokens: cached } : {}),
+                ...(reasoning > 0 ? { reasoningTokens: reasoning } : {})
+              }
+            })
+          }
         }
         const delta = chunk.choices?.[0]?.delta
         if (!delta) continue
