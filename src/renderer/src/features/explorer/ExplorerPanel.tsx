@@ -91,6 +91,9 @@ const LOADING_NODE: FileNode = {
   level: 0
 }
 
+/** Handler de drag no-op ESTABLE (identidad fija): no rompe el `memo` de las filas. */
+const NOOP_DRAG_EVENT = (_event: React.DragEvent, _node: FileNode): void => {}
+
 export function ExplorerPanel({
   rootOverride,
   interactive = true,
@@ -490,6 +493,36 @@ export function ExplorerPanel({
     []
   )
 
+  // Callbacks ESTABLES para las filas. Antes se creaban closures nuevas en
+  // cada render (dentro del map), así que el `memo` de ExplorerRow nunca podía
+  // saltarse ninguna fila: cada hover re-renderizaba TODO el árbol visible.
+  const handleEditValueChange = useCallback((value: string): void => {
+    setEditValue(value)
+    setEditError(null)
+  }, [])
+
+  const handleRowMenu = useCallback(
+    (event: React.MouseEvent, node: FileNode): void => {
+      if (!interactive) return
+      openMenuFor(event, node, false)
+    },
+    [interactive, openMenuFor]
+  )
+
+  const handleRowDoubleClick = useCallback(
+    (node: FileNode): void => {
+      if (!node.isDirectory) openFile(node.path, node.name)
+    },
+    [openFile]
+  )
+
+  const handleRowCommitEdit = useCallback(
+    (node: FileNode): void => {
+      if (node.path === renamingPath) void commitRename()
+    },
+    [renamingPath, commitRename]
+  )
+
   const copyPath = useCallback(async (path: string): Promise<void> => {
     try {
       await navigator.clipboard.writeText(path)
@@ -711,24 +744,17 @@ export function ExplorerPanel({
         interactive={interactive}
         hideDots={!interactive}
         rowActions={rowActions}
-        onEditValueChange={(value) => {
-          setEditValue(value)
-          setEditError(null)
-        }}
+        onEditValueChange={handleEditValueChange}
         onSelect={handleSelect}
         onToggle={workspace.toggleFolder}
-        onContextMenu={interactive ? (event, n) => openMenuFor(event, n, false) : noopRowEvent}
-        onOpenMenu={interactive ? (event, n) => openMenuFor(event, n, false) : noopRowEvent}
-        onDoubleClick={(n) => {
-          if (!n.isDirectory) openFile(n.path, n.name)
-        }}
-        onCommitEdit={() => {
-          if (isEditing) void commitRename()
-        }}
+        onContextMenu={handleRowMenu}
+        onOpenMenu={handleRowMenu}
+        onDoubleClick={handleRowDoubleClick}
+        onCommitEdit={handleRowCommitEdit}
         onCancelEdit={cancelEdit}
-        onDragStart={interactive ? handleDragStart : noopDragEvent}
-        onDragOver={interactive ? handleDragOver : noopDragEvent}
-        onDrop={interactive ? handleDrop : noopDragEvent}
+        onDragStart={interactive ? handleDragStart : NOOP_DRAG_EVENT}
+        onDragOver={interactive ? handleDragOver : NOOP_DRAG_EVENT}
+        onDrop={interactive ? handleDrop : NOOP_DRAG_EVENT}
         onDragEnd={handleDragEnd}
       />
     )
@@ -745,8 +771,6 @@ export function ExplorerPanel({
   }, [workspace.rootPath, hoverPath, selection.lastSelected])
 
   // No-ops tipados para modo solo lectura (las filas exigen handlers).
-  const noopRowEvent = (_event: React.MouseEvent, _node: FileNode): void => {}
-  const noopDragEvent = (_event: React.DragEvent, _node: FileNode): void => {}
 
   // Sin workspace: estado vacío con acción de abrir carpeta.
   if (!workspace.rootPath) {
