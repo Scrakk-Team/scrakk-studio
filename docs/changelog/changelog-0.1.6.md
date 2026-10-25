@@ -32,9 +32,9 @@ published are not edited. The file goes per version:
   per-line glyphs were shrunk below a pixel and read as jagged noise, and the
   offscreen texture was sampled with `NEAREST`, adding 1px steps on fractional
   rows. Long files now use colour blocks per token run (the VS Code minimap
-  look) instead of sub-pixel glyphs, the texture is sampled with `LINEAR`, and
-  the current text selection is painted as a translucent band that follows it
-  in real time.
+  look) instead of sub-pixel glyphs, and the texture is sampled with `LINEAR`.
+  The text selection is now mirrored in real time as the **exact per-line
+  column span** (aligned with the text blocks), not a full-width band.
 - **The minimap slider eases like Monaco.** On long files the viewport
   rectangle now travels with a cubic curve: it decelerates as it approaches the
   centre of the minimap (staying there while the content keeps scrolling) and
