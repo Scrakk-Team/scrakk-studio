@@ -255,6 +255,19 @@ published are not edited. The file goes per version:
   …), so UI that has to paint a color the terminal would paint does not keep a
   second, drifting copy.
 
+### Chat (UI)
+- **A context ring in the chat header.** It fills with the tokens of the last
+  request over the model's context window (from models.dev), and it is fed by
+  the real `usage` the provider reports (`stream_options.include_usage`); if a
+  provider does not report it, it falls back to a local 4-chars-per-token
+  estimate. The model's `limit.context` and `cost` are now projected from the
+  models.dev catalog into the renderer.
+- **Clicking the ring opens the usage modal.** It is a custom modal from the
+  global modal API (not a hardcoded panel) and shows the context consumed, the
+  cost consumed (USD, using the model's input/output/cache prices), input,
+  output and cached tokens, the response count and the provider/model. The
+  cost is computed per response with the pricing of the model that produced it.
+
 ### Social (UI)
 - **The composer goes back to its compact height when the panel grows.** The
   textarea only refit itself when the text changed, so opening the panel at its
