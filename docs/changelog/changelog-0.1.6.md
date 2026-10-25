@@ -18,6 +18,11 @@ published are not edited. The file goes per version:
 ## 0.1.6 — A correct grid, a real colour picker and quiet tooltips
 
 ### Editor (Innerta)
+- **`.tsx` and `.scss` files get their colours back.** The `tsx`
+  `highlights.scm` carried a Helix-only three-argument `#set!` predicate and
+  `scss` had a predicate written as `(match?…)` instead of `(#match?…)`. Our
+  query engine rejected the whole file on the first bad predicate, so the
+  grammar loaded but produced **zero** colour tokens. Both queries compile now.
 - **Large files paint their text before the highlighter runs.** Opening a long
   file used to build the whole document string and run tree-sitter over every
   line before the first frame, so the window sat empty while it worked. Files
