@@ -37,8 +37,9 @@ published are not edited. The file goes per version:
   column span** (aligned with the text blocks), not a full-width band. Both the
   content and the selection now reach the widget's right edge (the old 4px
   reservation read as a vertical stripe cutting the minimap), and the selection
-  is composited above the viewport slider (with the cursor/accent colour, so it
-  stays visible on dark themes) and no longer pulses while you drag.
+  is rasterised into the minimap's offscreen texture (with the cursor/accent
+  colour, so it stays visible on dark themes) instead of being composited as a
+  per-frame overlay, so it can no longer pulse while you drag.
 - **The minimap slider eases like Monaco.** On long files the viewport
   rectangle now travels with a cubic curve: it decelerates as it approaches the
   centre of the minimap (staying there while the content keeps scrolling) and
