@@ -35,12 +35,12 @@
 
 /* ── Modal de uso ─────────────────────────────────────────────────────── */
 
+/* Popover estrecho y VERTICAL (como el historial de notificaciones). */
 .modal {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
-  min-width: 320px;
-  padding: var(--space-1) 0 var(--space-2);
+  gap: var(--space-3);
+  padding: var(--space-1) 0 0;
 }
 
 .head {
@@ -61,79 +61,58 @@
 }
 
 .value {
-  font-size: var(--text-lg);
-  font-weight: 600;
-  color: var(--color-text);
-  font-variant-numeric: tabular-nums;
-}
-
-.meta {
-  font-size: var(--text-xs);
-  color: var(--color-text-secondary);
-}
-
-.grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-2) var(--space-3);
-  margin: 0;
-}
-
-.item {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
-}
-
-.label {
-  margin: 0;
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--color-text-muted);
-}
-
-.number {
-  margin: 0;
   font-size: var(--text-sm);
   font-weight: 600;
   color: var(--color-text);
   font-variant-numeric: tabular-nums;
 }
 
-.model {
+.meta {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+}
+
+/* Filas planas, una por dato: más vertical y compacto que una grilla. */
+.grid {
   display: flex;
-  align-items: center;
-  gap: var(--space-2);
+  flex-direction: column;
+  margin: 0;
+}
+
+.item {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: 6px 0;
+  border: none;
+  border-bottom: 1px solid var(--color-border);
+  background: transparent;
+}
+
+.item:last-child {
+  border-bottom: none;
+}
+
+.label {
+  margin: 0;
   font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+}
+
+.number {
+  margin: 0;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.model {
+  display: block;
+  font-size: 11px;
   color: var(--color-text-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--space-2);
-}
-
-.close {
-  padding: 6px var(--space-4);
-  border: none;
-  border-radius: var(--radius-md);
-  background: var(--color-accent);
-  color: var(--color-on-accent);
-  font-family: inherit;
-  font-size: var(--text-xs);
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.close:hover {
-  background: var(--color-accent-hover);
 }

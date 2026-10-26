@@ -12,7 +12,6 @@ interface ChatUsageModalProps {
   summary: ChatUsageSummary
   provider: string
   model: string
-  close: () => void
 }
 
 const number = new Intl.NumberFormat()
@@ -22,7 +21,7 @@ const money = new Intl.NumberFormat(undefined, { style: 'currency', currency: 'U
  * Contenido del modal de uso. NO se pinta por su cuenta: lo abre el sistema
  * global de modales (`showModal`) desde el anillo del header del chat.
  */
-export function ChatUsageModal({ summary, provider, model, close }: ChatUsageModalProps): JSX.Element {
+export function ChatUsageModal({ summary, provider, model }: ChatUsageModalProps): JSX.Element {
   const limit = summary.contextLimit
   const meta = [
     `${summary.percent}%`,
@@ -36,7 +35,7 @@ export function ChatUsageModal({ summary, provider, model, close }: ChatUsageMod
     <div className={styles.modal}>
       <div className={styles.head}>
         <div className={styles.headRing}>
-          <ChatUsageRing percent={summary.percent} size={64} stroke={6} />
+          <ChatUsageRing percent={summary.percent} size={44} stroke={4} />
         </div>
         <div className={styles.headText}>
           <span className={styles.value}>{number.format(summary.contextTokens)} tokens</span>
@@ -76,11 +75,6 @@ export function ChatUsageModal({ summary, provider, model, close }: ChatUsageMod
         {model || '—'}
       </span>
 
-      <div className={styles.footer}>
-        <button type="button" className={styles.close} onClick={close}>
-          {t('layout.cerrar')}
-        </button>
-      </div>
     </div>
   )
 }

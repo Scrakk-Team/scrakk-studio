@@ -2,11 +2,11 @@
 // SPDX-License-Identifier: Apache-2.0
 // Licencia completa en LICENSE (Apache License 2.0).
 
-import { useMemo, type JSX } from 'react'
+import { useMemo, type JSX, type MouseEvent } from 'react'
 import { useChats } from '@features/chat'
 import { useProviders } from '@features/providers'
 import { HeaderActionButton } from '@features/layout'
-import { showModal } from '@services/modals'
+import { showAnchoredModal } from '@services/modals'
 import { t } from '@core/i18n'
 import { ChatUsageModal } from './ChatUsageModal'
 import { ChatUsageRing } from './ChatUsageRing'
@@ -18,8 +18,9 @@ import styles from './ChatUsage.module.css'
  * y a los providers, así que se rellena en vivo mientras el modelo responde
  * sin que `ChatPanel` tenga que re-registrar sus acciones en cada token.
  *
- * Al clickear abre un modal del SISTEMA GLOBAL (`showModal`), no un modal
- * local hardcodeado.
+ * Al clickear abre un popover ANCLADO del SISTEMA GLOBAL (`showAnchoredModal`),
+ * sin overlay y pegado al botón (como el historial de notificaciones), no un
+ * modal centrado hardcodeado.
  */
 export function ChatUsageButton(): JSX.Element {
   const { activeSession } = useChats()
@@ -31,17 +32,19 @@ export function ChatUsageButton(): JSX.Element {
     [messages, activeProvider?.modelsMeta, model]
   )
 
-  const open = (): void => {
-    showModal({
+  const open = (event: MouseEvent<HTMLButtonElement>): void => {
+    // Popover anclado al botón, SIN overlay y pegado a la esquina (igual que
+    // el historial de notificaciones), no un modal centrado a pantalla completa.
+    const rect = event.currentTarget.getBoundingClientRect()
+    showAnchoredModal({
+      key: 'chat.usage',
       title: t('layout.uso.del.contexto'),
-      size: 'sm',
-      render: (ctx) => (
-        <ChatUsageModal
-          summary={summary}
-          provider={activeProvider?.name ?? ''}
-          model={model}
-          close={ctx.close}
-        />
+      anchor: { x: rect.left, y: rect.top, width: rect.width, height: rect.height },
+      width: 280,
+      placement: 'below',
+      align: 'end',
+      render: () => (
+        <ChatUsageModal summary={summary} provider={activeProvider?.name ?? ''} model={model} />
       )
     })
   }
