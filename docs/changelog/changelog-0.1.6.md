@@ -267,10 +267,11 @@ published are not edited. The file goes per version:
 - **Clicking the ring opens a compact usage popover.** It is an anchored panel
   from the global modal API (same primitive as the notifications and workspaces
   histories) — no full-screen overlay, no centred dialog — pinned below the
-  ring and laid out as a short vertical list. It shows the context consumed,
-  the cost consumed (USD, using the model's input/output/cache prices), input,
-  output and cached tokens, the response count and the provider/model. The
-  cost is computed per response with the pricing of the model that produced it.
+  ring and laid out as a short vertical list. It opens **collapsed** to just the
+  ring and the context, with a chevron that expands the rest (cost consumed in
+  USD using the model's input/output/cache prices, input/output/cached tokens,
+  response count and provider/model). The cost is computed per response with
+  the pricing of the model that produced it.
 
 ### Social (UI)
 - **The composer goes back to its compact height when the panel grows.** The
