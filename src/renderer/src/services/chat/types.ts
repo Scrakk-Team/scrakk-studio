@@ -33,6 +33,8 @@ export interface ChatMessage {
   usage?: ChatUsage
   /** Modo de aprobación activo cuando se generó esta respuesta. */
   mode?: string
+  /** Modelo que produjo esta respuesta (se congela al arrancar la ronda). */
+  model?: string
   /** Duración de la ronda en ms (desde que arrancó hasta que terminó el stream). */
   durationMs?: number
 }

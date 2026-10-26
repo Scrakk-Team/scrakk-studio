@@ -47,6 +47,7 @@
   "chat.regenerar.respuesta": "Regenerate response",
   "chat.riesgo": "Risk:",
   "chat.siempre.aprobar": "Always approve",
+  "chat.sin.modelo": "No model",
   "chat.subagente": "Subagent",
   "chat.subagentes": "Subagents",
   "chat.thinking": "Thinking",

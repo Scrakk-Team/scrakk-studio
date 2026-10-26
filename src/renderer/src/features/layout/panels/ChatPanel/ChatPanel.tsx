@@ -285,9 +285,11 @@ export function ChatPanel(): JSX.Element {
           role: 'assistant',
           content: '',
           timestamp: Date.now(),
-          // El modo se congela al arrancar la ronda: si el usuario lo cambia
-          // a mitad de respuesta, el footer sigue mostrando con cuál se hizo.
-          mode: getModeId()
+          // El modo y el modelo se congelan al arrancar la ronda: si el usuario
+          // los cambia a mitad de respuesta, el footer sigue mostrando con
+          // cuáles se hizo (y el modelo aparece incluso si la ronda falla).
+          mode: getModeId(),
+          model: activeProvider ? getModel(activeProvider.id) : ''
         })
       }
 
@@ -407,7 +409,11 @@ export function ChatPanel(): JSX.Element {
             id: crypto.randomUUID(),
             role: 'assistant',
             content: `⚠ ${message}`,
-            timestamp: Date.now()
+            timestamp: Date.now(),
+            // La ronda ni siquiera arrancó, pero el footer debe decir con qué
+            // modelo se intentó (y con cuál modo).
+            mode: getModeId(),
+            model: activeProvider ? getModel(activeProvider.id) : ''
           })
         }
       } finally {

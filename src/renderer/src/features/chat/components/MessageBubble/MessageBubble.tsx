@@ -166,12 +166,21 @@ export const MessageBubble = memo(function MessageBubble({
     }
   }
 
-  // Footer de la IA: modo con el que se generó · duración · tokens/s.
+  // Footer de la IA: modo · modelo · duración · tokens/s.
+  const metaModel = message.model?.trim() || message.usage?.model?.trim() || ''
+  const hasMeta =
+    message.mode !== undefined ||
+    message.model !== undefined ||
+    message.durationMs !== undefined ||
+    message.usage !== undefined
   const meta =
-    isUser
+    isUser || !hasMeta
       ? ''
       : [
           message.mode ? getModeLabel(message.mode) : null,
+          // El modelo se muestra SIEMPRE (también si la respuesta falló); si
+          // no había ninguno seleccionado, se dice explícitamente.
+          metaModel || t('chat.sin.modelo'),
           message.durationMs !== undefined ? formatDuration(message.durationMs) : null,
           message.usage
             ? formatThroughput(message.usage.completionTokens, message.durationMs)
