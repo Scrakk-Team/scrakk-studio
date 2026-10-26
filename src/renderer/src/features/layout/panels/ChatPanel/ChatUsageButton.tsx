@@ -5,7 +5,6 @@
 import { useMemo, type JSX, type MouseEvent } from 'react'
 import { useChats } from '@features/chat'
 import { useProviders } from '@features/providers'
-import { HeaderActionButton } from '@features/layout'
 import { showAnchoredModal } from '@services/modals'
 import { t } from '@core/i18n'
 import { ChatUsageModal } from './ChatUsageModal'
@@ -41,7 +40,8 @@ export function ChatUsageButton(): JSX.Element {
       title: t('layout.uso.del.contexto'),
       anchor: { x: rect.left, y: rect.top, width: rect.width, height: rect.height },
       width: 280,
-      placement: 'below',
+      // El botón vive en el footer: el panel abre hacia ARRIBA del input.
+      placement: 'above',
       align: 'end',
       render: () => (
         <ChatUsageModal summary={summary} provider={activeProvider?.name ?? ''} model={model} />
@@ -49,15 +49,18 @@ export function ChatUsageButton(): JSX.Element {
     })
   }
 
+  const label = `${t('layout.uso.del.contexto')} · ${summary.percent}%`
   return (
-    <HeaderActionButton
-      id="chat.usage"
-      label={`${t('layout.uso.del.contexto')} · ${summary.percent}%`}
-      shape="circle"
+    <button
+      type="button"
       className={styles.usageButton}
+      title={label}
+      aria-label={label}
+      aria-haspopup="dialog"
+      onPointerDown={(event) => event.stopPropagation()}
       onClick={open}
     >
       <ChatUsageRing percent={summary.percent} />
-    </HeaderActionButton>
+    </button>
   )
 }

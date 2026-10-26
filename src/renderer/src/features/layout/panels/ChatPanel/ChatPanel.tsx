@@ -26,7 +26,6 @@ import {
 import { SkillsPanel } from '../SkillsPanel/SkillsPanel'
 import { isSkillsViewOpen, setSkillsViewOpen, subscribeToSkillsView } from '../SkillsPanel/viewState'
 import { ComposerFooter } from './ComposerFooter'
-import { ChatUsageButton } from './ChatUsageButton'
 import { computeCost } from './chatUsage'
 import {
   beginRun,
@@ -139,10 +138,9 @@ export function ChatPanel(): JSX.Element {
           />
         )
       }
-      // Chat: uso del contexto + abrir historial + nuevo chat.
+      // Chat: abrir historial + nuevo chat.
       return (
         <>
-          <ChatUsageButton key="chat.usage" />
           <HeaderActionButton
             key="chat.history"
             id="chat.history"

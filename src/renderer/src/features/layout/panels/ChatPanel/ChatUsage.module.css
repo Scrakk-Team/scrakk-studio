@@ -4,10 +4,24 @@
  * Licencia completa en LICENSE (Apache License 2.0).
  */
 
-/* Botón del header con el anillo de contexto. */
+/* Botón del footer (al lado del modo de pensamiento) con el anillo. */
 .usageButton {
   display: grid;
   place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-capsule, 999px);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: background-color var(--duration-fast, 120ms) var(--ease-out, ease-out);
+}
+
+.usageButton:hover {
+  background: var(--color-hover);
+  color: var(--color-text);
 }
 
 .ring {

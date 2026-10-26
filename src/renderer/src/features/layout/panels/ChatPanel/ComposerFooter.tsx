@@ -25,6 +25,7 @@ import { skillRegistry } from '@services/skills'
 import { toggleSkillsView } from '../SkillsPanel/viewState'
 import { SkillsButton } from './SkillsButton'
 import { VariantsButton } from './VariantsButton'
+import { ChatUsageButton } from './ChatUsageButton'
 import styles from './ChatPanel.module.css'
 
 import { t } from '@core/i18n'
@@ -125,6 +126,11 @@ export const ComposerFooter = memo(function ComposerFooter({ variant }: { varian
       ) : null}
 
       <div className={styles.composerFooterSpacer} aria-hidden="true" />
+
+      {/* Uso del contexto: a la izquierda del modo de pensamiento. */}
+      <div className={styles.footerSlot}>
+        <ChatUsageButton />
+      </div>
 
       {showVariants ? (
         <div className={styles.footerSlot}>
