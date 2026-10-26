@@ -34,7 +34,14 @@ const HIDE_SKILLS = 400
 const HIDE_VARIANTS = 350
 const HIDE_MODEL = 300
 
-export const ComposerFooter = memo(function ComposerFooter({ variant }: { variant: string }): JSX.Element {
+export const ComposerFooter = memo(function ComposerFooter({
+  variant,
+  showUsage = true
+}: {
+  variant: string
+  /** El anillo de contexto sólo tiene sentido cuando el chat ya tiene mensajes. */
+  showUsage?: boolean
+}): JSX.Element {
   const footerRef = useRef<HTMLDivElement>(null)
   const [width, setWidth] = useState(0)
   const [anchor, setAnchor] = useState<{ x: number; y: number } | null>(null)
@@ -127,10 +134,13 @@ export const ComposerFooter = memo(function ComposerFooter({ variant }: { varian
 
       <div className={styles.composerFooterSpacer} aria-hidden="true" />
 
-      {/* Uso del contexto: a la izquierda del modo de pensamiento. */}
-      <div className={styles.footerSlot}>
-        <ChatUsageButton />
-      </div>
+      {/* Uso del contexto: a la izquierda del modo de pensamiento. En un chat
+          vacío no se muestra (no hay contexto que medir todavía). */}
+      {showUsage ? (
+        <div className={styles.footerSlot}>
+          <ChatUsageButton />
+        </div>
+      ) : null}
 
       {showVariants ? (
         <div className={styles.footerSlot}>

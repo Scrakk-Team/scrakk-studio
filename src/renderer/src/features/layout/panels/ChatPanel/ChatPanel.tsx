@@ -581,7 +581,7 @@ export function ChatPanel(): JSX.Element {
             <EffortSparks active={effortMaxed} />
             <ChatInput onSend={handleSend} busy={isBusy} onStop={handleStop} state={subagentViewOpen ? 'locked' : 'active'} />
           </div>
-          <ComposerFooter variant={activeVariant} />
+          <ComposerFooter variant={activeVariant} showUsage={messages.length > 0} />
         </div>
       </div>
     ) : (
@@ -606,7 +606,7 @@ export function ChatPanel(): JSX.Element {
             <EffortSparks active={effortMaxed} />
             <ChatInput onSend={handleSend} busy={isBusy} onStop={handleStop} state={subagentViewOpen ? 'locked' : 'active'} />
           </div>
-          <ComposerFooter variant={activeVariant} />
+          <ComposerFooter variant={activeVariant} showUsage={messages.length > 0} />
         </div>
       </>
     )
