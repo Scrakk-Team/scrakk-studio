@@ -40,9 +40,10 @@ export function ChatUsageButton(): JSX.Element {
       title: t('layout.uso.del.contexto'),
       anchor: { x: rect.left, y: rect.top, width: rect.width, height: rect.height },
       width: 280,
-      // El botón vive en el footer: el panel abre hacia ARRIBA del input.
+      // El botón vive en el footer: el panel abre hacia ARRIBA del input y
+      // CENTRADO respecto al botón (no pegado a su izquierda).
       placement: 'above',
-      align: 'end',
+      align: 'center',
       // Sin barra de título del host: colapsado se ve SOLO el anillo + el
       // contexto, con el chevron para desplegar el resto.
       hideHeader: true,
