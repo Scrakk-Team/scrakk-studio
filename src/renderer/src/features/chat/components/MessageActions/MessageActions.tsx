@@ -4,7 +4,9 @@
 
 import { IconButton } from '@ui'
 import { ProductIcon } from '@services/productIcons/components'
-import { useEffect, useRef, useState, type JSX } from 'react'
+import { showContextMenu } from '@features/editor/engines/innerta/menuHost'
+import type { ContextMenuItem } from '@ui'
+import { useEffect, useRef, useState, type JSX, type MouseEvent } from 'react'
 import styles from './MessageActions.module.css'
 
 import { t } from '@core/i18n'
@@ -12,6 +14,8 @@ import { t } from '@core/i18n'
 interface MessageActionsProps {
   /** Contenido del mensaje a copiar. */
   content: string
+  /** Línea de metadatos (modo · duración · tok/s) a la izquierda de la barra. */
+  meta?: string
   /** Si viene, se muestra el botón "Regenerar" (última respuesta de la IA). */
   onRegenerate?: () => void
   /**
@@ -25,6 +29,8 @@ interface MessageActionsProps {
    * arranca su respuesta.
    */
   onJumpTo?: () => void
+  /** Muestra el botón de tres puntos con el menú contextual (copiar/regenerar). */
+  showMenu?: boolean
 }
 
 /**
@@ -36,9 +42,11 @@ interface MessageActionsProps {
  */
 export function MessageActions({
   content,
+  meta,
   onRegenerate,
   onEdit,
-  onJumpTo
+  onJumpTo,
+  showMenu = false
 }: MessageActionsProps): JSX.Element {
   const [copied, setCopied] = useState(false)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -57,8 +65,31 @@ export function MessageActions({
     timerRef.current = setTimeout(() => setCopied(false), 1200)
   }
 
+  // Menú global de la app (el mismo que el resto de superficies): copiar y,
+  // cuando la respuesta es la última, regenerar.
+  const openMenu = (event: MouseEvent<HTMLButtonElement>): void => {
+    const rect = event.currentTarget.getBoundingClientRect()
+    const items: ContextMenuItem[] = [
+      {
+        label: t('chat.copiar.mensaje'),
+        icon: <ProductIcon id="copy" size={14} />,
+        onClick: handleCopy
+      }
+    ]
+    if (onRegenerate) {
+      items.push({
+        label: t('chat.regenerar.respuesta'),
+        icon: <ProductIcon id="refresh" size={14} />,
+        onClick: onRegenerate
+      })
+    }
+    showContextMenu(rect.left, rect.bottom + 4, items)
+  }
+
   return (
     <div className={styles.actions}>
+      {meta ? <span className={styles.meta}>{meta}</span> : null}
+
       <IconButton
         shape="rounded"
         size="sm"
@@ -102,6 +133,18 @@ export function MessageActions({
           onClick={onRegenerate}
         >
           <ProductIcon id="refresh" size={14} />
+        </IconButton>
+      ) : null}
+
+      {showMenu ? (
+        <IconButton
+          shape="rounded"
+          size="sm"
+          className={styles.nudge}
+          label={t('chat.mas.acciones')}
+          onClick={openMenu}
+        >
+          <ProductIcon id="more" size={14} />
         </IconButton>
       ) : null}
     </div>

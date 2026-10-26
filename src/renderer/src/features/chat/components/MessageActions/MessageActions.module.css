@@ -26,3 +26,17 @@
 .nudge {
   transform: translateX(5px);
 }
+
+/* Metadatos del footer de la IA: modo · duración · tok/s. Van a la izquierda
+   de los botones, en el mismo tono apagado que el resto de datos secundarios. */
+.meta {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1;
+  white-space: nowrap;
+  user-select: none;
+  margin-right: 2px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

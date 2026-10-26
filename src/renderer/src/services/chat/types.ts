@@ -31,6 +31,10 @@ export interface ChatMessage {
   tool_results?: Record<string, ToolResultInfo>
   /** Uso del modelo para esta respuesta (contexto/coste del chat). */
   usage?: ChatUsage
+  /** Modo de aprobación activo cuando se generó esta respuesta. */
+  mode?: string
+  /** Duración de la ronda en ms (desde que arrancó hasta que terminó el stream). */
+  durationMs?: number
 }
 
 export interface ChatReply {

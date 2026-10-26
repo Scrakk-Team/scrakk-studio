@@ -5,6 +5,7 @@
 import { createLlmChatService, type ChatMessage, type ChatService, type ChatInsertPayload } from '@services/chat'
 import { isSlashInput, slashCommands } from '@services/slash-commands'
 import { agentRegistry, subagentSessions } from '@services/ai/agents'
+import { getModeId } from '@services/ai/prompts/modes'
 import { spawnSubagentChat } from '@features/chat/agents'
 import type { ToolCallInfo, ToolResultInfo } from '@services/chat/types'
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type JSX } from 'react'
@@ -230,6 +231,8 @@ export function ChatPanel(): JSX.Element {
         results: Record<string, ToolResultInfo>
       }
       const segments = new Map<string, SegmentTools>()
+      // Inicio de cada ronda, para la duración que se muestra en el footer.
+      const segmentStartedAt = new Map<string, number>()
 
       // Deltas del stream agrupados por frame: un `setState` por TOKEN
       // re-renderiza todo el panel; agrupando, como mucho uno por frame.
@@ -276,11 +279,15 @@ export function ChatPanel(): JSX.Element {
         const id = crypto.randomUUID()
         currentSegmentId = id
         segments.set(id, { calls: [], results: {} })
+        segmentStartedAt.set(id, Date.now())
         appendMessage(targetId, {
           id,
           role: 'assistant',
           content: '',
-          timestamp: Date.now()
+          timestamp: Date.now(),
+          // El modo se congela al arrancar la ronda: si el usuario lo cambia
+          // a mitad de respuesta, el footer sigue mostrando con cuál se hizo.
+          mode: getModeId()
         })
       }
 
@@ -289,6 +296,21 @@ export function ChatPanel(): JSX.Element {
         updater: (message: ChatMessage) => ChatMessage
       ): void => {
         updateMessage(targetId, segmentId, updater)
+      }
+
+      /**
+       * Cierra la cuenta de tiempo de una ronda. Se llama al terminar el
+       * stream de esa ronda (usage/tool calls), NO al arrancar la siguiente:
+       * así la ejecución de las tools no se le suma a la respuesta.
+       */
+      const finalizeSegment = (segmentId: string): void => {
+        const startedAt = segmentStartedAt.get(segmentId)
+        if (startedAt === undefined) return
+        segmentStartedAt.delete(segmentId)
+        const durationMs = Math.max(0, Date.now() - startedAt)
+        patchSegment(segmentId, (message) =>
+          message.durationMs !== undefined ? message : { ...message, durationMs }
+        )
       }
 
       const syncToolState = (segmentId: string): void => {
@@ -340,6 +362,9 @@ export function ChatPanel(): JSX.Element {
                 providerId: activeProvider?.id
               }
             }))
+            // El usage del proveedor llega al final de la ronda: es el mejor
+            // punto para cerrar la duración.
+            finalizeSegment(id)
           },
           onContent: (delta) => {
             const id = currentSegmentId
@@ -351,6 +376,8 @@ export function ChatPanel(): JSX.Element {
             const id = currentSegmentId
             if (!id) return
             flushNow()
+            // La ronda terminó (sin usage, p. ej. proveedor que no lo manda).
+            finalizeSegment(id)
             const state = segments.get(id)
             if (!state) return
             state.calls = [...calls]
@@ -386,6 +413,8 @@ export function ChatPanel(): JSX.Element {
       } finally {
         // El último delta pudo quedar en el buffer: se vuelca antes de cerrar.
         flushNow()
+        // Ronda final sin usage (o detenida): su tiempo termina acá.
+        if (currentSegmentId) finalizeSegment(currentSegmentId)
         endRun(targetId, controller)
       }
     },

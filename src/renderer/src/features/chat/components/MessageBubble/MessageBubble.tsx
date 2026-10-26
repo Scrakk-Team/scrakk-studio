@@ -4,6 +4,7 @@
 
 import type { ChatMessage } from '@services/chat'
 import { ProductIcon } from '@services/productIcons/components'
+import { getModeLabel } from '@services/ai/prompts/modes'
 import { memo, useEffect, useRef, useState, type JSX, type KeyboardEvent } from 'react'
 import { Markdown } from '../Markdown/Markdown'
 import { MessageActions } from '../MessageActions/MessageActions'
@@ -38,6 +39,30 @@ function useThrottled(value: string, ms: number): string {
     return () => window.clearTimeout(handle)
   }, [value, ms, out])
   return out
+}
+
+/** Duración en el mismo formato que OpenCode (`9.6s`, `1m 5s`). */
+function formatDuration(ms: number): string {
+  if (ms < 1000) return `${Math.round(ms)}ms`
+  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`
+  if (ms < 3600000) {
+    const minutes = Math.floor(ms / 60000)
+    const seconds = Math.floor((ms % 60000) / 1000)
+    return `${minutes}m ${seconds}s`
+  }
+  const hours = Math.floor(ms / 3600000)
+  const minutes = Math.floor((ms % 3600000) / 60000)
+  return `${hours}h ${minutes}m`
+}
+
+/**
+ * Tokens por segundo, como OpenCode: tokens de SALIDA / duración de la ronda.
+ * La duración va de `time.created` a `time.completed` (sin contar las tools,
+ * que corren después de que la ronda cerró).
+ */
+function formatThroughput(tokens: number, ms: number | undefined): string | null {
+  if (!ms || ms <= 0 || tokens <= 0) return null
+  return `${(tokens / (ms / 1000)).toFixed(1)} tok/s`
 }
 
 interface MessageBubbleProps {
@@ -141,16 +166,32 @@ export const MessageBubble = memo(function MessageBubble({
     }
   }
 
+  // Footer de la IA: modo con el que se generó · duración · tokens/s.
+  const meta =
+    isUser
+      ? ''
+      : [
+          message.mode ? getModeLabel(message.mode) : null,
+          message.durationMs !== undefined ? formatDuration(message.durationMs) : null,
+          message.usage
+            ? formatThroughput(message.usage.completionTokens, message.durationMs)
+            : null
+        ]
+          .filter((part): part is string => Boolean(part))
+          .join(' · ')
+
   // La barra se arma una sola vez y cada rol la coloca: en el mensaje del
   // usuario va DENTRO de la burbuja; en la respuesta de la IA, debajo.
   const actions = showActions ? (
     <MessageActions
       content={message.content}
+      meta={isUser ? undefined : meta || undefined}
       onRegenerate={onRegenerate}
       // Sólo el mensaje del USUARIO se edita (y reenvía). La respuesta de la
       // IA se lee y se copia: reescribirla no es una acción del chat.
       onEdit={isUser && canEdit && onEditSave ? startEdit : undefined}
       onJumpTo={onJumpTo}
+      showMenu={!isUser}
     />
   ) : null
 
