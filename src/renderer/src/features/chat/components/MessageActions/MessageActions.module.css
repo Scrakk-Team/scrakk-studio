@@ -11,6 +11,10 @@
   align-items: center;
   /* Misma separación que los chats del panel derecho (lista con gap 2px). */
   gap: 2px;
+  /* En un panel angosto la fila (métricas + menú) no debe desbordar: el texto
+     de las métricas se recorta con elipsis. */
+  max-width: 100%;
+  min-width: 0;
   /* El aire de arriba es por variable: debajo de la respuesta va el default,
      pero dentro de la burbuja del usuario se achica — ahí cada píxel es alto
      de burbuja, y en un mensaje corto se nota. */
