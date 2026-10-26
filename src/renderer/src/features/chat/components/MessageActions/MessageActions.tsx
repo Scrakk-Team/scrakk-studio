@@ -88,7 +88,11 @@ export function MessageActions({
 
   return (
     <div className={styles.actions}>
-      {meta ? <span className={styles.meta}>{meta}</span> : null}
+      {meta ? (
+        <span className={styles.meta} title={meta}>
+          {meta}
+        </span>
+      ) : null}
 
       {/* En la respuesta de la IA las acciones viven en el menú de tres
           puntos (fila limpia: métricas · ⋯). En el mensaje del usuario van
