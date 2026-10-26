@@ -12955,6 +12955,142 @@
       "needsReview": false,
       "at": "2026-10-21T11:54:21.135Z",
       "approvedAt": "2026-10-21T11:54:21.135Z"
+    },
+    "chat.mas.acciones": {
+      "src": "78eb2e0551731bd4",
+      "area": "chat",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-10-26T01:11:45.136Z",
+      "approvedAt": "2026-10-26T01:11:45.136Z"
+    },
+    "chat.sin.modelo": {
+      "src": "380ca3b546a7d8ad",
+      "area": "chat",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-10-26T01:11:45.136Z",
+      "approvedAt": "2026-10-26T01:11:45.136Z"
+    },
+    "layout.contexto.consumido": {
+      "src": "8309f4ce75d5262c",
+      "area": "layout",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-10-26T01:11:45.136Z",
+      "approvedAt": "2026-10-26T01:11:45.136Z"
+    },
+    "layout.estimado": {
+      "src": "9cf2e615ce01d285",
+      "area": "layout",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-10-26T01:11:45.136Z",
+      "approvedAt": "2026-10-26T01:11:45.136Z"
+    },
+    "layout.mostrar.mas": {
+      "src": "5c18768bc2710b24",
+      "area": "layout",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-10-26T01:11:45.136Z",
+      "approvedAt": "2026-10-26T01:11:45.136Z"
+    },
+    "layout.mostrar.menos": {
+      "src": "677b6ee8c1b5c1d9",
+      "area": "layout",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-10-26T01:11:45.136Z",
+      "approvedAt": "2026-10-26T01:11:45.136Z"
+    },
+    "layout.precio.consumido": {
+      "src": "5c46a83982ad4776",
+      "area": "layout",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-10-26T01:11:45.136Z",
+      "approvedAt": "2026-10-26T01:11:45.136Z"
+    },
+    "layout.reportado.por.el.proveedor": {
+      "src": "0f70faebad2c3342",
+      "area": "layout",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-10-26T01:11:45.136Z",
+      "approvedAt": "2026-10-26T01:11:45.136Z"
+    },
+    "layout.respuestas": {
+      "src": "cb87829226fbd7e9",
+      "area": "layout",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-10-26T01:11:45.136Z",
+      "approvedAt": "2026-10-26T01:11:45.136Z"
+    },
+    "layout.tokens.de.entrada": {
+      "src": "f466ef544d96d271",
+      "area": "layout",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-10-26T01:11:45.136Z",
+      "approvedAt": "2026-10-26T01:11:45.136Z"
+    },
+    "layout.tokens.de.salida": {
+      "src": "6937c4070b73ae07",
+      "area": "layout",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-10-26T01:11:45.136Z",
+      "approvedAt": "2026-10-26T01:11:45.136Z"
+    },
+    "layout.tokens.en.cache": {
+      "src": "5f7a37ff05c87beb",
+      "area": "layout",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-10-26T01:11:45.136Z",
+      "approvedAt": "2026-10-26T01:11:45.136Z"
+    },
+    "layout.uso.del.contexto": {
+      "src": "ae8bf726dac5c2d3",
+      "area": "layout",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-10-26T01:11:45.136Z",
+      "approvedAt": "2026-10-26T01:11:45.136Z"
+    },
+    "settings.buscar.skills": {
+      "src": "6884506768e99c3b",
+      "area": "settings",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-10-26T01:11:45.136Z",
+      "approvedAt": "2026-10-26T01:11:45.136Z"
+    },
+    "settings.buscar.herramientas": {
+      "src": "524e3fc219423a43",
+      "area": "settings",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-10-26T01:11:45.136Z",
+      "approvedAt": "2026-10-26T01:11:45.136Z"
+    },
+    "settings.no.hay.herramientas.coinciden": {
+      "src": "287572174ebf9d8d",
+      "area": "settings",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-10-26T01:11:45.136Z",
+      "approvedAt": "2026-10-26T01:11:45.136Z"
+    },
+    "settings.no.hay.skills.coinciden": {
+      "src": "9b72070b9e40bfe9",
+      "area": "settings",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-10-26T01:11:45.136Z",
+      "approvedAt": "2026-10-26T01:11:45.136Z"
     }
   },
   "version": 1
