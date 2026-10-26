@@ -86,11 +86,14 @@ export function summarizeUsage(
   let cost = 0
   let responses = 0
   let last: ChatUsage | undefined
+  let lastIndex = -1
 
-  for (const message of messages) {
+  for (let index = 0; index < messages.length; index += 1) {
+    const message = messages[index]
     if (message.role !== 'assistant' || !message.usage) continue
     responses += 1
     last = message.usage
+    lastIndex = index
     totalPrompt += message.usage.promptTokens
     totalCompletion += message.usage.completionTokens
     totalCached += message.usage.cachedTokens ?? 0
@@ -119,9 +122,17 @@ export function summarizeUsage(
     cost = computeCost(activeMeta?.cost, { promptTokens: prompt, completionTokens: completion }) ?? 0
   }
 
-  const contextTokens = last
-    ? last.totalTokens || last.promptTokens + last.completionTokens
-    : totalPrompt + totalCompletion
+  // Contexto del CHAT COMPLETO, no solo de la última respuesta:
+  //  - estimación del texto de TODOS los mensajes,
+  //  - y, si hay usage real, su prompt + completion + lo que vino después
+  //    (mensajes sin usage). Se toma el mayor de los dos para no subestimar.
+  const whole = estimateTokens(conversationText(messages))
+  const fromUsage =
+    last !== undefined && lastIndex >= 0
+      ? (last.promptTokens + last.completionTokens) +
+        estimateTokens(conversationText(messages.slice(lastIndex + 1)))
+      : 0
+  const contextTokens = Math.max(whole, fromUsage)
   const contextLimit = activeMeta?.context && activeMeta.context > 0 ? activeMeta.context : null
   const percent =
     contextLimit !== null ? Math.min(100, Math.round((contextTokens / contextLimit) * 100)) : 0
