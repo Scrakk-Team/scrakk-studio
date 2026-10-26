@@ -90,51 +90,58 @@ export function MessageActions({
     <div className={styles.actions}>
       {meta ? <span className={styles.meta}>{meta}</span> : null}
 
-      <IconButton
-        shape="rounded"
-        size="sm"
-        className={styles.nudge}
-        label={copied ? t('chat.copiado-2') : t('chat.copiar.mensaje')}
-        onClick={handleCopy}
-      >
-        <ProductIcon id={copied ? 'check' : 'copy'} size={14} />
-      </IconButton>
+      {/* En la respuesta de la IA las acciones viven en el menú de tres
+          puntos (fila limpia: métricas · ⋯). En el mensaje del usuario van
+          inline, como siempre. */}
+      {showMenu ? null : (
+        <>
+          <IconButton
+            shape="rounded"
+            size="sm"
+            className={styles.nudge}
+            label={copied ? t('chat.copiado-2') : t('chat.copiar.mensaje')}
+            onClick={handleCopy}
+          >
+            <ProductIcon id={copied ? 'check' : 'copy'} size={14} />
+          </IconButton>
 
-      {onEdit ? (
-        <IconButton
-          shape="rounded"
-          size="sm"
-          className={styles.nudge}
-          label={t('chat.editar.mensaje')}
-          onClick={onEdit}
-        >
-          <ProductIcon id="pencil" size={14} />
-        </IconButton>
-      ) : null}
+          {onEdit ? (
+            <IconButton
+              shape="rounded"
+              size="sm"
+              className={styles.nudge}
+              label={t('chat.editar.mensaje')}
+              onClick={onEdit}
+            >
+              <ProductIcon id="pencil" size={14} />
+            </IconButton>
+          ) : null}
 
-      {onJumpTo ? (
-        <IconButton
-          shape="rounded"
-          size="sm"
-          className={styles.nudge}
-          label={t('chat.volver.al.mensaje')}
-          onClick={onJumpTo}
-        >
-          <ProductIcon id="arrow-up" size={14} />
-        </IconButton>
-      ) : null}
+          {onJumpTo ? (
+            <IconButton
+              shape="rounded"
+              size="sm"
+              className={styles.nudge}
+              label={t('chat.volver.al.mensaje')}
+              onClick={onJumpTo}
+            >
+              <ProductIcon id="arrow-up" size={14} />
+            </IconButton>
+          ) : null}
 
-      {onRegenerate ? (
-        <IconButton
-          shape="rounded"
-          size="sm"
-          className={styles.nudge}
-          label={t('chat.regenerar.respuesta')}
-          onClick={onRegenerate}
-        >
-          <ProductIcon id="refresh" size={14} />
-        </IconButton>
-      ) : null}
+          {onRegenerate ? (
+            <IconButton
+              shape="rounded"
+              size="sm"
+              className={styles.nudge}
+              label={t('chat.regenerar.respuesta')}
+              onClick={onRegenerate}
+            >
+              <ProductIcon id="refresh" size={14} />
+            </IconButton>
+          ) : null}
+        </>
+      )}
 
       {showMenu ? (
         <IconButton
