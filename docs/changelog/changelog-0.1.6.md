@@ -256,7 +256,9 @@ published are not edited. The file goes per version:
   second, drifting copy.
 
 ### Chat (UI)
-- **A context ring in the chat header.** It fills with the tokens of the last
+- **A context ring next to the thinking-mode button.** It sits in the composer
+  footer, just left of the model's thinking mode (below the input), and fills
+  with the tokens of the last
   request over the model's context window (from models.dev), and it is fed by
   the real `usage` the provider reports (`stream_options.include_usage`); if a
   provider does not report it, it falls back to a local 4-chars-per-token
