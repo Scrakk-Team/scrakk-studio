@@ -263,7 +263,8 @@ published are not edited. The file goes per version:
   the real `usage` the provider reports (`stream_options.include_usage`); if a
   provider does not report it, it falls back to a local 4-chars-per-token
   estimate. The model's `limit.context` and `cost` are now projected from the
-  models.dev catalog into the renderer.
+  models.dev catalog into the renderer. The ring only appears once the chat has
+  messages: on a brand-new chat there is no context to measure yet.
 - **Clicking the ring opens a compact usage popover.** It is an anchored panel
   from the global modal API (same primitive as the notifications and workspaces
   histories) — no full-screen overlay, no centred dialog — pinned below the
