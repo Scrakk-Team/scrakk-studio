@@ -262,9 +262,11 @@ published are not edited. The file goes per version:
   provider does not report it, it falls back to a local 4-chars-per-token
   estimate. The model's `limit.context` and `cost` are now projected from the
   models.dev catalog into the renderer.
-- **Clicking the ring opens the usage modal.** It is a custom modal from the
-  global modal API (not a hardcoded panel) and shows the context consumed, the
-  cost consumed (USD, using the model's input/output/cache prices), input,
+- **Clicking the ring opens a compact usage popover.** It is an anchored panel
+  from the global modal API (same primitive as the notifications and workspaces
+  histories) — no full-screen overlay, no centred dialog — pinned below the
+  ring and laid out as a short vertical list. It shows the context consumed,
+  the cost consumed (USD, using the model's input/output/cache prices), input,
   output and cached tokens, the response count and the provider/model. The
   cost is computed per response with the pricing of the model that produced it.
 
