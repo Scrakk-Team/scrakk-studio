@@ -272,6 +272,13 @@ published are not edited. The file goes per version:
   USD using the model's input/output/cache prices, input/output/cached tokens,
   response count and provider/model). The cost is computed per response with
   the pricing of the model that produced it.
+- **Each AI response now ends with its own metrics footer.** Next to the
+  copy/retry buttons, a muted line reads `{mode} · {duration} · {tokens/s}`
+  (e.g. `Default · 9.6s · 69.1 tok/s`), measured the way OpenCode does it: the
+  duration runs from the start of the round to the end of its stream (tool
+  execution is not counted) and throughput is the output tokens over that
+  duration. A three-dot button opens the app's global context menu with
+  **Copy** and **Regenerate**.
 
 ### Social (UI)
 - **The composer goes back to its compact height when the panel grows.** The
