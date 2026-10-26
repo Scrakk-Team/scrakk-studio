@@ -273,12 +273,14 @@ published are not edited. The file goes per version:
   response count and provider/model). The cost is computed per response with
   the pricing of the model that produced it.
 - **Each AI response now ends with its own metrics footer.** A muted line
-  reads `{mode} · {duration} · {tokens/s}` (e.g. `Default · 9.6s · 69.1
-  tok/s`) followed by a three-dot button that opens the app's global context
-  menu with **Copy** and **Regenerate**. The metrics are measured the way
-  OpenCode does it: the duration runs from the start of the round to the end
-  of its stream (tool execution is not counted) and throughput is the output
-  tokens over that duration.
+  reads `{mode} · {model} · {duration} · {tokens/s}` (e.g. `Predeterminado ·
+  deepseek-flash · 9.6s · 69.1 tok/s`) followed by a three-dot button that
+  opens the app's global context menu with **Copy** and **Regenerate**. The
+  model is frozen when the round starts, so it is still shown when the
+  response fails; if none was selected it reads **Sin modelo**. The metrics are
+  measured the way OpenCode does it: the duration runs from the start of the
+  round to the end of its stream (tool execution is not counted) and
+  throughput is the output tokens over that duration.
 
 ### Social (UI)
 - **The composer goes back to its compact height when the panel grows.** The
