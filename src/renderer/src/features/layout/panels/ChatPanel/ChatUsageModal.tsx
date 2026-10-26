@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // Licencia completa en LICENSE (Apache License 2.0).
 
-import type { JSX } from 'react'
+import { useState, type JSX } from 'react'
+import { ProductIcon } from '@services/productIcons/components'
 import { t } from '@core/i18n'
 import { ChatUsageRing } from './ChatUsageRing'
 import type { ChatUsageSummary } from './chatUsage'
@@ -22,6 +23,9 @@ const money = new Intl.NumberFormat(undefined, { style: 'currency', currency: 'U
  * global de modales (`showModal`) desde el anillo del header del chat.
  */
 export function ChatUsageModal({ summary, provider, model }: ChatUsageModalProps): JSX.Element {
+  // Arranca colapsado: solo el anillo + el contexto. El chevron despliega el
+  // resto (precio, tokens, respuestas, modelo).
+  const [expanded, setExpanded] = useState(false)
   const limit = summary.contextLimit
   const meta = [
     `${summary.percent}%`,
@@ -41,40 +45,58 @@ export function ChatUsageModal({ summary, provider, model }: ChatUsageModalProps
           <span className={styles.value}>{number.format(summary.contextTokens)} tokens</span>
           <span className={styles.meta}>{meta}</span>
         </div>
+        <button
+          type="button"
+          className={styles.expandButton}
+          aria-expanded={expanded}
+          aria-label={expanded ? t('layout.mostrar.menos') : t('layout.mostrar.mas')}
+          title={expanded ? t('layout.mostrar.menos') : t('layout.mostrar.mas')}
+          onClick={() => setExpanded((value) => !value)}
+        >
+          <ProductIcon
+            id="chevron-down"
+            size={13}
+            aria-hidden="true"
+            className={expanded ? styles.chevronOpen : undefined}
+          />
+        </button>
       </div>
 
-      <dl className={styles.grid}>
-        <div className={styles.item}>
-          <dt className={styles.label}>{t('layout.contexto.consumido')}</dt>
-          <dd className={styles.number}>{number.format(summary.contextTokens)}</dd>
-        </div>
-        <div className={styles.item}>
-          <dt className={styles.label}>{t('layout.precio.consumido')}</dt>
-          <dd className={styles.number}>{money.format(summary.cost)}</dd>
-        </div>
-        <div className={styles.item}>
-          <dt className={styles.label}>{t('layout.tokens.de.entrada')}</dt>
-          <dd className={styles.number}>{number.format(summary.totalPrompt)}</dd>
-        </div>
-        <div className={styles.item}>
-          <dt className={styles.label}>{t('layout.tokens.de.salida')}</dt>
-          <dd className={styles.number}>{number.format(summary.totalCompletion)}</dd>
-        </div>
-        <div className={styles.item}>
-          <dt className={styles.label}>{t('layout.tokens.en.cache')}</dt>
-          <dd className={styles.number}>{number.format(summary.totalCached)}</dd>
-        </div>
-        <div className={styles.item}>
-          <dt className={styles.label}>{t('layout.respuestas')}</dt>
-          <dd className={styles.number}>{number.format(summary.responses)}</dd>
-        </div>
-      </dl>
+      {expanded ? (
+        <>
+          <dl className={styles.grid}>
+            <div className={styles.item}>
+              <dt className={styles.label}>{t('layout.contexto.consumido')}</dt>
+              <dd className={styles.number}>{number.format(summary.contextTokens)}</dd>
+            </div>
+            <div className={styles.item}>
+              <dt className={styles.label}>{t('layout.precio.consumido')}</dt>
+              <dd className={styles.number}>{money.format(summary.cost)}</dd>
+            </div>
+            <div className={styles.item}>
+              <dt className={styles.label}>{t('layout.tokens.de.entrada')}</dt>
+              <dd className={styles.number}>{number.format(summary.totalPrompt)}</dd>
+            </div>
+            <div className={styles.item}>
+              <dt className={styles.label}>{t('layout.tokens.de.salida')}</dt>
+              <dd className={styles.number}>{number.format(summary.totalCompletion)}</dd>
+            </div>
+            <div className={styles.item}>
+              <dt className={styles.label}>{t('layout.tokens.en.cache')}</dt>
+              <dd className={styles.number}>{number.format(summary.totalCached)}</dd>
+            </div>
+            <div className={styles.item}>
+              <dt className={styles.label}>{t('layout.respuestas')}</dt>
+              <dd className={styles.number}>{number.format(summary.responses)}</dd>
+            </div>
+          </dl>
 
-      <span className={styles.model}>
-        {t('layout.modelo')}: {provider ? `${provider} · ` : ''}
-        {model || '—'}
-      </span>
-
+          <span className={styles.model}>
+            {t('layout.modelo')}: {provider ? `${provider} · ` : ''}
+            {model || '—'}
+          </span>
+        </>
+      ) : null}
     </div>
   )
 }

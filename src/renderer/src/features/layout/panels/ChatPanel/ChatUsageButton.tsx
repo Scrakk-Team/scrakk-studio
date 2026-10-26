@@ -43,6 +43,9 @@ export function ChatUsageButton(): JSX.Element {
       // El botón vive en el footer: el panel abre hacia ARRIBA del input.
       placement: 'above',
       align: 'end',
+      // Sin barra de título del host: colapsado se ve SOLO el anillo + el
+      // contexto, con el chevron para desplegar el resto.
+      hideHeader: true,
       render: () => (
         <ChatUsageModal summary={summary} provider={activeProvider?.name ?? ''} model={model} />
       )

@@ -87,6 +87,36 @@
   color: var(--color-text-secondary);
 }
 
+/* Chevron para desplegar el resto de la info (colapsado por defecto). */
+.expandButton {
+  margin-left: auto;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-capsule, 999px);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: background-color var(--duration-fast, 120ms) var(--ease-out, ease-out);
+}
+
+.expandButton:hover {
+  background: var(--color-hover);
+  color: var(--color-text);
+}
+
+.expandButton :global(svg) {
+  transition: transform var(--duration-fast, 120ms) var(--ease-out, ease-out);
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
 /* Filas planas, una por dato: más vertical y compacto que una grilla. */
 .grid {
   display: flex;
