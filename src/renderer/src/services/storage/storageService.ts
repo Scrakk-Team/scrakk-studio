@@ -196,7 +196,9 @@ function isValidChatSessions(value: unknown): value is ChatSessionsData {
       typeof (session as { title?: unknown }).title === 'string' &&
       Array.isArray((session as { messages?: unknown }).messages) &&
       typeof (session as { createdAt?: unknown }).createdAt === 'number' &&
-      typeof (session as { updatedAt?: unknown }).updatedAt === 'number'
+      typeof (session as { updatedAt?: unknown }).updatedAt === 'number' &&
+      ((session as { projectId?: unknown }).projectId === undefined ||
+        typeof (session as { projectId?: unknown }).projectId === 'string')
   )
 }
 

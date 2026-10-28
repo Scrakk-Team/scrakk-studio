@@ -56,6 +56,7 @@ export function ChatPanel(): JSX.Element {
   const [service] = useState<ChatService>(() => createLlmChatService())
   const {
     activeSession,
+    projectId,
     createSession,
     appendMessage,
     updateMessage,
@@ -579,7 +580,13 @@ export function ChatPanel(): JSX.Element {
           <div className={styles.inputGlow} data-max={effortMaxed ? '' : undefined}>
             <ModeGlow />
             <EffortSparks active={effortMaxed} />
-            <ChatInput onSend={handleSend} busy={isBusy} onStop={handleStop} state={subagentViewOpen ? 'locked' : 'active'} />
+            <ChatInput
+              key={`nuevo:${projectId ?? 'resolviendo'}`}
+              onSend={handleSend}
+              busy={isBusy}
+              onStop={handleStop}
+              state={subagentViewOpen ? 'locked' : 'active'}
+            />
           </div>
           <ComposerFooter variant={activeVariant} showUsage={messages.length > 0} />
         </div>

@@ -175,6 +175,11 @@ export interface StoredChatSession {
   messages: ChatMessage[]
   createdAt: number
   updatedAt: number
+  /**
+   * Identidad del proyecto dueño de la sesión (`<root>/.scrakk/history/id.json`).
+   * Ausente en sesiones viejas, que se migran al proyecto activo al hidratar.
+   */
+  projectId?: string
 }
 
 export type ChatSessionsData = StoredChatSession[]

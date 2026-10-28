@@ -17,3 +17,17 @@ export {
   _resetWorkspacesForTests,
   type WorkspacesListener
 } from './history'
+
+export {
+  NO_PROJECT_ID,
+  cachedProjectId,
+  ensureProjectId,
+  parseProjectId,
+  _resetProjectIdsForTests
+} from './projectId'
+
+export {
+  filterSessionsByProject,
+  migrateLegacySessions,
+  type ProjectScoped
+} from './chatScope'

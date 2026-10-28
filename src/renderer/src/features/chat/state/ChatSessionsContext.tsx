@@ -19,6 +19,13 @@ import {
   getPersistedChatActiveSession,
   persistChatActiveSession
 } from '@services/storage'
+import { scrakkProjectRoot } from '@services/scrakk'
+import {
+  cachedProjectId,
+  ensureProjectId,
+  filterSessionsByProject,
+  migrateLegacySessions
+} from '@services/workspaces'
 
 import { t } from '@core/i18n'
 export interface ChatSession {
@@ -27,10 +34,20 @@ export interface ChatSession {
   messages: ChatMessage[]
   createdAt: number
   updatedAt: number
+  /** Id del proyecto dueño (`<root>/.scrakk/history/id.json`). */
+  projectId?: string
+}
+
+/** Compara raíces ignorando espacios y slashes finales. */
+function sameRoot(a: string | null, b: string | null): boolean {
+  const clean = (value: string | null): string => (value ?? '').trim().replace(/[/\\]+$/, '')
+  return clean(a) === clean(b)
 }
 
 interface ChatsContextValue {
   sessions: ChatSession[]
+  /** Id del proyecto activo (`NO_PROJECT_ID` si no hay carpeta abierta). */
+  projectId: string | null
   activeSessionId: string | null
   activeSession: ChatSession | null
   /** Crea una sesión nueva, la deja activa y devuelve su id. */
@@ -65,13 +82,87 @@ export function ChatsProvider({ children }: { children: ReactNode }) {
   const [activeSessionId, setActiveSessionId] = useState<string | null>(() =>
     getPersistedChatActiveSession()
   )
+  /**
+   * Id del proyecto activo (o `NO_PROJECT_ID`). `null` = resolviéndose tras
+   * un cambio de workspace: no se muestra el historial del proyecto anterior.
+   */
+  const [scope, setScope] = useState<string | null>(() => cachedProjectId(scrakkProjectRoot()))
 
   // Refs espejo para el flush de beforeunload (lee el valor actual sin
   // re-suscribir el listener en cada render).
   const sessionsRef = useRef(sessions)
   const activeSessionIdRef = useRef(activeSessionId)
+  const scopeRef = useRef<string | null>(scope)
+  const rootRef = useRef<string | null>(scrakkProjectRoot())
   sessionsRef.current = sessions
   activeSessionIdRef.current = activeSessionId
+  scopeRef.current = scope
+
+  // Historial por proyecto: cada sesión queda atada al id de su proyecto.
+  // Al cambiar de workspace se oculta el chat anterior al instante y se
+  // resuelve la identidad del nuevo (`.scrakk/history/id.json`). El chat
+  // nuevo arranca vacío: no se arrastra la conversación de la otra carpeta.
+  useEffect(() => {
+    let disposed = false
+    let request = 0
+
+    const resolve = (root: string | null): void => {
+      const ticket = ++request
+      void ensureProjectId(root).then((next) => {
+        if (disposed || ticket !== request) return
+
+        // Migración única del historial previo (sesiones sin projectId):
+        // pertenecen al proyecto que estaba abierto al actualizar.
+        setSessions((prev) => {
+          const migrated = migrateLegacySessions(prev, next)
+          return migrated.changed ? migrated.sessions : prev
+        })
+
+        const changed = scopeRef.current !== next
+        if (changed) {
+          scopeRef.current = next
+          setScope(next)
+        }
+
+        // La sesión activa solo se conserva si es del proyecto resuelto (o si
+        // todavía no tiene id, porque se acaba de crear durante el cambio).
+        // Nunca mostrar una conversación de otra carpeta.
+        const activeId = activeSessionIdRef.current
+        const active = activeId
+          ? sessionsRef.current.find((candidate) => candidate.id === activeId)
+          : null
+        if (active && active.projectId !== undefined && active.projectId !== next) {
+          setActiveSessionId(null)
+        }
+      })
+    }
+
+    resolve(rootRef.current)
+
+    const onWorkspaceChanged = (event: Event): void => {
+      const detail = (event as CustomEvent<{ path?: string }>).detail
+      const nextRoot =
+        typeof detail?.path === 'string' && detail.path.trim().length > 0
+          ? detail.path
+          : scrakkProjectRoot()
+      const previousRoot = rootRef.current
+      rootRef.current = nextRoot
+      if (sameRoot(previousRoot, nextRoot)) return
+
+      // Ocultar YA el historial del proyecto anterior. La identidad del nuevo
+      // se resuelve enseguida y el chat queda en blanco.
+      scopeRef.current = null
+      setScope(null)
+      setActiveSessionId(null)
+      resolve(nextRoot)
+    }
+
+    window.addEventListener('workspace-changed', onWorkspaceChanged)
+    return () => {
+      disposed = true
+      window.removeEventListener('workspace-changed', onWorkspaceChanged)
+    }
+  }, [])
 
   // Persistencia diferida a idle: serializar TODO el historial es caro, así
   // que se hace cuando el hilo está libre (no durante el stream). El timeout
@@ -127,7 +218,10 @@ export function ChatsProvider({ children }: { children: ReactNode }) {
       title: t('chat.nuevo.chat'),
       messages: [],
       createdAt: Date.now(),
-      updatedAt: Date.now()
+      updatedAt: Date.now(),
+      // Si todavía se está resolviendo el proyecto queda sin id y la
+      // migración lo asigna al terminar.
+      projectId: scopeRef.current ?? undefined
     }
     setSessions((prev) => [session, ...prev])
     setActiveSessionId(session.id)
@@ -135,6 +229,12 @@ export function ChatsProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const selectSession = useCallback((id: string) => {
+    const activeScope = scopeRef.current
+    if (activeScope === null) return
+    const target = sessionsRef.current.find((session) => session.id === id)
+    if (!target) return
+    // Nunca abrir una sesión de otro proyecto desde el historial.
+    if (target.projectId !== undefined && target.projectId !== activeScope) return
     setActiveSessionId(id)
   }, [])
 
@@ -191,23 +291,41 @@ export function ChatsProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const deleteSession = useCallback((sessionId: string): void => {
+    const activeScope = scopeRef.current
     const remaining = sessionsRef.current
       .filter((session) => session.id !== sessionId)
+      // Elegir el siguiente chat dentro del proyecto activo (o del scope
+      // global si todavía no hay proyecto).
+      .filter(
+        (session) =>
+          activeScope === null ||
+          session.projectId === activeScope ||
+          session.projectId === undefined
+      )
       .sort((a, b) => b.updatedAt - a.updatedAt)
     setSessions((prev) => prev.filter((session) => session.id !== sessionId))
     if (activeSessionIdRef.current === sessionId) {
-      setActiveSessionId(remaining[0]?.id ?? null)
+      setActiveSessionId(activeScope === null ? null : (remaining[0]?.id ?? null))
     }
   }, [])
 
-  const activeSession = useMemo(
-    () => sessions.find((session) => session.id === activeSessionId) ?? null,
-    [sessions, activeSessionId]
+  /** Solo las sesiones del proyecto activo: el historial es independiente. */
+  const visibleSessions = useMemo(
+    () => (scope ? filterSessionsByProject(sessions, scope) : []),
+    [sessions, scope]
   )
+
+  const activeSession = useMemo(() => {
+    if (!scope) return null
+    const session = sessions.find((candidate) => candidate.id === activeSessionId)
+    if (!session) return null
+    return session.projectId === scope ? session : null
+  }, [sessions, activeSessionId, scope])
 
   const value = useMemo(
     () => ({
-      sessions,
+      sessions: visibleSessions,
+      projectId: scope,
       activeSessionId,
       activeSession,
       createSession,
@@ -218,7 +336,8 @@ export function ChatsProvider({ children }: { children: ReactNode }) {
       deleteSession
     }),
     [
-      sessions,
+      visibleSessions,
+      scope,
       activeSessionId,
       activeSession,
       createSession,
