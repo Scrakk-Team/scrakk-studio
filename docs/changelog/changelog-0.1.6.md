@@ -289,6 +289,15 @@ published are not edited. The file goes per version:
   project that was open at upgrade time, and switching workspaces starts a
   fresh chat in the new project instead of carrying the previous conversation
   over. Chats opened without a workspace use a separate no-project scope.
+- **New chats get their title from the AI on the first turn.** The
+  `history_title` tool had a one-line description identical to its guidance, so
+  the model simply answered and left the session named after the first user
+  message. The tool now carries explicit timing — call it exactly once at the
+  start of a new conversation, in the first response, with a short title in the
+  user's language — and the first-turn system prompt includes a dedicated
+  `<conversation_title>` block only while the tool is enabled. Later turns omit
+  the block, so the instruction is not repeated and the title is not requested
+  again. The tool list is now rendered from a single read of the active tools.
 
 ### Social (UI)
 - **The composer goes back to its compact height when the panel grows.** The
