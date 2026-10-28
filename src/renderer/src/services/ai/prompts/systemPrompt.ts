@@ -13,6 +13,7 @@
 
 import { renderToolCallFormat, renderToolsList, TOOL_CALLING_GUIDE } from './tools'
 import { getModeId, getModeLabel, getPromptForMode } from './modes'
+import { getEnabledToolDefinitions } from '../tools'
 
 const ACTION_SAFETY = `<action_safety>
 Weigh each action by how easily it can be undone and how far its effects reach. Local, reversible work such as editing files and running tests is fine to do freely. Before executing any actions that are hard to reverse, reach shared external systems, or are otherwise risky or destructive, check with the user first.
@@ -40,6 +41,15 @@ const FORMATTING = `<formatting>
 Your text output is rendered as GitHub-flavored markdown (CommonMark). Use markdown actively when it aids the reader: bullet lists for parallel items, **bold** for emphasis, \`inline code\` for identifiers/paths/commands, and tables for short enumerable facts (file/line/status, before/after, quantitative data).
 </formatting>`
 
+/**
+ * Instrucción dinámica de la primera ronda: el título nace con la primera
+ * respuesta, no cuando el usuario lo pide. Solo se inyecta si la tool
+ * `history_title` está habilitada para esta sesión.
+ */
+const CONVERSATION_TITLE = `<conversation_title>
+This is the first turn of a new conversation. Call history_title exactly once in this first response, before or alongside your answer, with a short, specific title (3-7 words) in the user's language. Describe the task or topic, not a greeting; do not ask for permission; do not wrap the title in quotes. If the tool is not available, ignore this instruction.
+</conversation_title>`
+
 /** User info block (patrón de Scrakk CLI: OS + workspace + fecha). */
 function buildUserInfo(): string {
   const platform = navigator.platform || navigator.userAgent || 'unknown'
@@ -63,11 +73,18 @@ function buildUserInfo(): string {
 }
 
 /** Construye el system prompt completo (identidad + safety + tools + formato). */
-export function buildSystemPrompt(sessionId: string | null = null): string {
+export function buildSystemPrompt(
+  sessionId: string | null = null,
+  isNewConversation = false
+): string {
   // Prompt del modo activo (patrón scrakk: cada modo define su prompt y se
   // re-construye en cada request, así el cambio de modo se aplica al toque).
   const modeId = getModeId()
   const modePrompt = getPromptForMode(modeId)
+  // Una sola lectura de las tools activas: decide el bloque de título y
+  // alimenta la lista del prompt (antes se recalculaba dentro de tools.ts).
+  const toolDefs = getEnabledToolDefinitions(sessionId)
+  const hasTitleTool = toolDefs.some((def) => def.function.name === 'history_title')
 
   const parts: string[] = [
     'You are Scrakk Studio, an interactive chat assistant that helps users with software engineering tasks. Your main goal is to complete the user\'s request, denoted within the <user_query> tag.',
@@ -82,13 +99,19 @@ export function buildSystemPrompt(sessionId: string | null = null): string {
     )
   }
 
+  // Primera ronda: el título se genera con la primera respuesta. En turnos
+  // posteriores no se repite la instrucción (evita tool calls redundantes).
+  if (isNewConversation && hasTitleTool) {
+    parts.push('', CONVERSATION_TITLE)
+  }
+
   parts.push(
     '',
     '<tool_calling>',
     TOOL_CALLING_GUIDE,
     '</tool_calling>',
     '',
-    `<available_tools>\n${renderToolCallFormat()}\n\n${renderToolsList(sessionId)}\n</available_tools>`,
+    `<available_tools>\n${renderToolCallFormat()}\n\n${renderToolsList(sessionId, toolDefs)}\n</available_tools>`,
     '',
     OUTPUT_EFFICIENCY,
     '',

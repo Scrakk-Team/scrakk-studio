@@ -87,7 +87,9 @@ export function createLlmChatService(): ChatService {
         // El array de mensajes crece con cada ronda de tools: system +
         // historial + user + assistant(tool_calls) + tool results + …
         const messages: LlmChatMessage[] = [
-          ...buildSystemMessages(input.sessionId ?? null),
+          // Primera ronda = sin historial: habilita la instrucción dinámica
+          // para que la IA ponga título a la conversación con su respuesta.
+          ...buildSystemMessages(input.sessionId ?? null, history.length === 0),
           ...history.map((message) => ({ role: message.role, content: message.content })),
           { role: 'user', content }
         ]

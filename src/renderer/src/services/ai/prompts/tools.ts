@@ -10,6 +10,7 @@
  */
 
 import { getEnabledToolDefinitions, registry } from '../tools'
+import type { ToolDefinition } from '../tools/types'
 
 type JsonSchema = Record<string, unknown>
 
@@ -31,8 +32,10 @@ function formatParam(name: string, schema: JsonSchema | undefined, required: boo
 }
 
 /** Renderiza la lista completa de tools habilitadas, con sus parámetros. */
-export function renderToolsList(sessionId: string | null = null): string {
-  const defs = getEnabledToolDefinitions(sessionId)
+export function renderToolsList(
+  sessionId: string | null = null,
+  defs: ToolDefinition[] = getEnabledToolDefinitions(sessionId)
+): string {
   if (defs.length === 0) return '(no hay tools disponibles)'
 
   const lines: string[] = []

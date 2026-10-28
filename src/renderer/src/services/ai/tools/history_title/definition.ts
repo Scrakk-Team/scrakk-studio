@@ -7,11 +7,17 @@ export const definition: ToolDefinition = {
   type: 'function',
   function: {
     name: 'history_title',
-    description: 'Set the title of the current chat conversation.',
+    description:
+      'Set the title of the current chat conversation. Call this once at the very ' +
+      'start of a new conversation, as soon as the first user message makes the ' +
+      'topic clear.',
     parameters: {
       type: 'object',
       properties: {
-        title: { type: 'string', description: 'Title for the conversation' }
+        title: {
+          type: 'string',
+          description: "Short, specific title (3-7 words) in the user's language"
+        }
       },
       required: ['title']
     }

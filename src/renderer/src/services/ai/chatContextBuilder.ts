@@ -16,8 +16,11 @@ import { buildSystemPrompt } from './prompts/systemPrompt'
  * Devuelve los mensajes de sistema a prefijar en el request de chat.
  * Hoy es solo el system prompt; puede crecer (contexto de archivos, etc.).
  */
-export function buildSystemMessages(sessionId: string | null = null): LlmChatMessage[] {
-  return [{ role: 'system', content: buildSystemPrompt(sessionId) }]
+export function buildSystemMessages(
+  sessionId: string | null = null,
+  isNewConversation = false
+): LlmChatMessage[] {
+  return [{ role: 'system', content: buildSystemPrompt(sessionId, isNewConversation) }]
 }
 
 /**
