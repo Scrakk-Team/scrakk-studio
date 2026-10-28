@@ -282,6 +282,13 @@ published are not edited. The file goes per version:
   measured the way OpenCode does it: the duration runs from the start of the
   round to the end of its stream (tool execution is not counted) and
   throughput is the output tokens over that duration.
+- **Each project keeps its own chat history.** Sessions are tagged with the
+  project identity stored in `<project>/.scrakk/history/id.json` (a UUID
+  generated on first use if the file is missing). The history panel only lists
+  sessions from the active project, legacy sessions are migrated to the
+  project that was open at upgrade time, and switching workspaces starts a
+  fresh chat in the new project instead of carrying the previous conversation
+  over. Chats opened without a workspace use a separate no-project scope.
 
 ### Social (UI)
 - **The composer goes back to its compact height when the panel grows.** The
