@@ -69,6 +69,12 @@ export const STORAGE_KEYS = {
 
 export type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS]
 
+/**
+ * Las claves por proyecto (`project.<id>.<scope>`) son dinámicas: no caben en
+ * el mapa estático de arriba. Las construye `services/storage/projectStorage.ts`
+ * con el id de `<root>/.scrakk/history/id.json`.
+ */
+
 // ── Formas de cada clave ────────────────────────────────────────────────────
 
 /** Tab persistida de un slot (solo lo serializable; icon/label por kind se re-resuelven). */

@@ -41,6 +41,44 @@ export function isWithin(child: string, dir: string): boolean {
   return child === normalized || child.startsWith(`${normalized}/`) || child.startsWith(`${normalized}\\`)
 }
 
+/**
+ * Ruta relativa a `root` con separadores `/` (para persistir estado portable:
+ * el id del proyecto sigue a la carpeta si se mueve). La raíz misma → `''`.
+ * Devuelve `null` si `path` no vive dentro de `root`.
+ */
+export function relativeToRoot(root: string, path: string): string | null {
+  if (!root) return null
+  const cleanRoot = root.replace(/[\\/]+$/, '') || root
+  if (path === root || path === cleanRoot) return ''
+  // Raíz de filesystem POSIX: no tiene prefijo repetido.
+  if (cleanRoot === '/' && path.startsWith('/')) {
+    return path.slice(1).replace(/\\/g, '/')
+  }
+  if (path.startsWith(`${cleanRoot}/`)) {
+    return path.slice(cleanRoot.length + 1).replace(/\\/g, '/')
+  }
+  if (path.startsWith(`${cleanRoot}\\`)) {
+    return path.slice(cleanRoot.length + 1).replace(/\\/g, '/')
+  }
+  return null
+}
+
+/**
+ * Resuelve una ruta relativa guardada contra `root`. Rechaza rutas absolutas
+ * y segmentos `..`, porque el storage puede haberse editado a mano.
+ */
+export function resolveFromRoot(root: string, relative: string): string | null {
+  if (!relative) return null
+  if (relative.startsWith('/') || relative.startsWith('\\') || /^[A-Za-z]:/.test(relative)) {
+    return null
+  }
+  const segments = relative.split(/[/\\]/)
+  if (segments.some((segment) => segment === '' || segment === '.' || segment === '..')) {
+    return null
+  }
+  return joinPath(root, segments.join('/'))
+}
+
 /** Para input inline de rename: selecciona el nombre hasta la extensión. */
 export function selectBasenameRange(input: HTMLInputElement, name: string): void {
   const dot = name.lastIndexOf('.')

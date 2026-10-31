@@ -77,7 +77,7 @@ describe('expansión en lote de ancestros (rendimiento)', () => {
     expect(ws).toContain('ensureExpandedMany: (dirPaths: Iterable<string>) => void')
     expect(ws).toMatch(/const ensureExpandedMany = useCallback/)
     // Un solo bump para todas las carpetas nuevas.
-    expect(ws).toMatch(/if \(changed\) bump\(\)/)
+    expect(ws).toMatch(/if \(changed\) \{\n\s*bump\(\)/)
     expect(ws).toMatch(/^    ensureExpandedMany,$/m)
   })
 

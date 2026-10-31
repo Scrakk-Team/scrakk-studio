@@ -19,10 +19,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReaddirEntry } from '@shared/fs'
 import { BATCH_SIZE } from '../constants'
-import { joinPath, parentPathOf } from '../utils/fileUtils'
+import { joinPath, parentPathOf, relativeToRoot, resolveFromRoot } from '../utils/fileUtils'
 
 import { t } from '@core/i18n'
 import { api } from '@services/api'
+import {
+  getPersistedProjectExplorerExpanded,
+  persistProjectExplorerExpanded
+} from '@services/storage'
+import { cachedProjectId, ensureProjectId } from '@services/workspaces/projectId'
+
 export interface FileNode {
   name: string
   /** Ruta absoluta. */
@@ -134,12 +140,33 @@ export function useWorkspaceState(rootOverride?: string): WorkspaceApi {
   const loadingRef = useRef(new Set<string>())
   const expandedRef = useRef(new Set<string>())
   const watchedRef = useRef(new Set<string>())
+  /** Id del proyecto de la raíz actual (null hasta resolverlo / en vistas spawn). */
+  const projectIdRef = useRef<string | null>(null)
   /** Descartar lecturas obsoletas (cambio de raíz / refresh). */
   const generationRef = useRef(0)
   const [treeVersion, setTreeVersion] = useState(0)
   const [isLoadingRoot, setIsLoadingRoot] = useState(false)
 
   const bump = useCallback(() => setTreeVersion((v) => v + 1), [])
+
+  /**
+   * Guarda las carpetas expandidas del proyecto actual como rutas RELATIVAS.
+   * El id es el mismo del chat (`.scrakk/history/id.json`), así que el estado
+   * sigue al proyecto aunque la carpeta se mueva. Solo el explorer principal
+   * escribe: las vistas spawn (Git, etc.) tienen su propio árbol y no deben
+   * pisar el estado del explorador.
+   */
+  const persistExpanded = useCallback((): void => {
+    if (rootOverride || !rootPath) return
+    const projectId = projectIdRef.current
+    if (!projectId) return
+    const relative: string[] = []
+    for (const path of expandedRef.current) {
+      const rel = relativeToRoot(rootPath, path)
+      if (rel) relative.push(rel)
+    }
+    persistProjectExplorerExpanded(projectId, relative)
+  }, [rootOverride, rootPath])
 
   // ── Watcher: vigilar/desvigilar un directorio ──────────────────────────
   const ensureWatched = useCallback((dirPath: string): void => {
@@ -213,6 +240,39 @@ export function useWorkspaceState(rootOverride?: string): WorkspaceApi {
     [bump, insertInBatches, ensureWatched]
   )
 
+  /**
+   * Re-expande las carpetas guardadas de un proyecto. Las rutas del storage
+   * son relativas a la raíz; se resuelven y se cargan en lazy, igual que un
+   * toggle normal.
+   */
+  const restoreExpanded = useCallback(
+    (relativePaths: readonly string[]): void => {
+      if (!rootPath || relativePaths.length === 0) return
+      const absolute: string[] = []
+      for (const relative of relativePaths) {
+        const path = resolveFromRoot(rootPath, relative)
+        if (!path || path === rootPath) continue
+        absolute.push(path)
+      }
+      let changed = false
+      for (const path of absolute) {
+        if (expandedRef.current.has(path)) continue
+        expandedRef.current.add(path)
+        changed = true
+      }
+      if (!changed) return
+      bump()
+      for (const path of absolute) {
+        if (!loadedRef.current.has(path) && !loadingRef.current.has(path)) {
+          void loadDir(path, 0)
+        } else {
+          ensureWatched(path)
+        }
+      }
+    },
+    [rootPath, bump, loadDir, ensureWatched]
+  )
+
   const loadRoot = useCallback(
     async (path: string): Promise<void> => {
       const generation = generationRef.current
@@ -270,11 +330,32 @@ export function useWorkspaceState(rootOverride?: string): WorkspaceApi {
   useEffect(() => {
     if (!rootPath) return
     generationRef.current++
+    const generation = generationRef.current
     unwatchAll()
     cacheRef.current.clear()
     loadedRef.current.clear()
     expandedRef.current.clear()
     loadingRef.current.clear()
+
+    // Restaurar el estado del proyecto. La caché síncrona permite pintar sin
+    // esperar al filesystem; ensureProjectId revalida contra id.json.
+    if (rootOverride) {
+      projectIdRef.current = null
+    } else {
+      const cachedId = cachedProjectId(rootPath)
+      projectIdRef.current = cachedId
+      if (cachedId) restoreExpanded(getPersistedProjectExplorerExpanded(cachedId))
+      void ensureProjectId(rootPath).then((projectId) => {
+        if (generation !== generationRef.current) return
+        const previous = projectIdRef.current
+        projectIdRef.current = projectId
+        if (previous !== projectId) {
+          restoreExpanded(getPersistedProjectExplorerExpanded(projectId))
+          persistExpanded()
+        }
+      })
+    }
+
     void loadRoot(rootPath)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rootPath])
@@ -309,8 +390,9 @@ export function useWorkspaceState(rootOverride?: string): WorkspaceApi {
         }
       }
       bump()
+      persistExpanded()
     },
-    [bump, loadDir, unwatch, ensureWatched]
+    [bump, loadDir, unwatch, ensureWatched, persistExpanded]
   )
 
   /**
@@ -322,6 +404,7 @@ export function useWorkspaceState(rootOverride?: string): WorkspaceApi {
       if (!expandedRef.current.has(dirPath)) {
         expandedRef.current.add(dirPath)
         bump()
+        persistExpanded()
       }
       if (!loadedRef.current.has(dirPath) && !loadingRef.current.has(dirPath)) {
         void loadDir(dirPath, 0)
@@ -329,7 +412,7 @@ export function useWorkspaceState(rootOverride?: string): WorkspaceApi {
         ensureWatched(dirPath)
       }
     },
-    [bump, loadDir, ensureWatched]
+    [bump, loadDir, ensureWatched, persistExpanded]
   )
 
   /**
@@ -348,7 +431,10 @@ export function useWorkspaceState(rootOverride?: string): WorkspaceApi {
         expandedRef.current.add(dirPath)
         changed = true
       }
-      if (changed) bump()
+      if (changed) {
+        bump()
+        persistExpanded()
+      }
       for (const dirPath of dirPaths) {
         if (!loadedRef.current.has(dirPath) && !loadingRef.current.has(dirPath)) {
           void loadDir(dirPath, 0)
@@ -357,7 +443,7 @@ export function useWorkspaceState(rootOverride?: string): WorkspaceApi {
         }
       }
     },
-    [bump, loadDir, ensureWatched]
+    [bump, loadDir, ensureWatched, persistExpanded]
   )
 
   const refresh = useCallback((): void => {
@@ -374,7 +460,8 @@ export function useWorkspaceState(rootOverride?: string): WorkspaceApi {
     unwatchAll()
     expandedRef.current.clear()
     bump()
-  }, [bump, unwatchAll])
+    persistExpanded()
+  }, [bump, unwatchAll, persistExpanded])
 
   const openFolder = useCallback(async (): Promise<{ ok: boolean; error?: string }> => {
     const res = await api.fs.pickFolder()
@@ -433,13 +520,14 @@ export function useWorkspaceState(rootOverride?: string): WorkspaceApi {
       if (res.success) {
         cacheRef.current.delete(path)
         loadedRef.current.delete(path)
-        expandedRef.current.delete(path)
+        const wasExpanded = expandedRef.current.delete(path)
         unwatch(path)
+        if (wasExpanded) persistExpanded()
         refreshNode(parent)
       }
       return { ok: res.success, error: res.error }
     },
-    [refreshNode, unwatch]
+    [refreshNode, unwatch, persistExpanded]
   )
 
   const moveInto = useCallback(

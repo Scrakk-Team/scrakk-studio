@@ -61,4 +61,12 @@ export {
   getPersistedChatActiveSession,
   persistChatActiveSession,
 } from './storageService'
+export {
+  PROJECT_STORAGE_SCOPES,
+  projectStorageKey,
+  getPersistedProjectExplorerExpanded,
+  persistProjectExplorerExpanded,
+  type ExplorerExpandedPaths,
+  type ProjectStorageScope
+} from './projectStorage'
 export type { EditorGrammarEngine, EditorHighlightSource } from './schema'
