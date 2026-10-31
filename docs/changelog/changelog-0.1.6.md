@@ -135,6 +135,15 @@ published are not edited. The file goes per version:
   goes into the edge strip, so a selection can span more rows than fit on
   screen without letting go. It stops at the ends and resumes if the pointer
   comes back into the strip.
+- **Each project remembers which folders were expanded in the explorer.**
+  Switching projects used to start every tree fully collapsed, losing the
+  folders you had opened. The expanded set is now stored under the project
+  identity from `<root>/.scrakk/history/id.json` (the same id the chat uses), in
+  its own `scrakk:project.<id>.explorer.expanded` localStorage entry, so two
+  projects never share state. Paths are saved relative to the project root, so
+  moving the project folder keeps its explorer state. Only the main explorer
+  writes it; spawned explorer views (Git changes, search results, etc.) keep
+  their own in-memory trees.
 
 ### Command palette (UI)
 - **The shortcuts look like the welcome page's badges.** Every command in the
