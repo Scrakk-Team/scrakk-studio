@@ -120,7 +120,7 @@ export const StreamingMarkdown = memo(function StreamingMarkdown({
       {blocks.map((block, index) => (
         <MarkdownContent key={index} content={block} />
       ))}
-      {tail ? <MarkdownContent content={tail} /> : null}
+      {tail ? <div className={styles.streamTail}>{tail}</div> : null}
     </div>
   )
 })

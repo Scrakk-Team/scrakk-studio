@@ -22,6 +22,15 @@
   color: var(--color-text);
 }
 
+/* Cola viva del stream: texto plano, sin react-markdown/Prism por frame.
+   Mantiene los saltos de línea y se convierte en markdown real cuando el
+   bloque se cierra. */
+.streamTail {
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  max-width: 100%;
+}
+
 /* ── Párrafos (div custom, sin márgenes: el gap del contenedor separa) ── */
 .p {
   margin: 0;
