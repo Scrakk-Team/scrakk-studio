@@ -349,11 +349,12 @@ published are not edited. The file goes per version:
   large file contents during bursts.
 - **Streaming markdown is incremental and timer-free.** The 150 ms throttle is
   gone: the message is split into closed blocks (blank lines outside fenced
-  code) that are memoised and parsed once, while only the live tail is parsed
-  on each frame. `CodeBlock` now receives the fence meta as a string instead of
-  a fresh hast node, so its `memo` actually skips unchanged blocks and Prism no
-  longer re-tokenises every code block on every update. The markdown itself also
-  no longer uses `useDeferredValue`, so text updates in the same frame as the
+  code) that are memoised and parsed once, while the live tail is painted as
+  plain text on each frame and becomes real markdown when its block closes.
+  `CodeBlock` now receives the fence meta as a string instead of a fresh hast
+  node, so its `memo` actually skips unchanged blocks and Prism no longer
+  re-tokenises every code block on every update. The markdown itself also no
+  longer uses `useDeferredValue`, so text updates in the same frame as the
   stream.
 - **The context ring no longer rebuilds the whole conversation text every
   frame.** The fallback estimation now sums character counts instead of
