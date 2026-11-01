@@ -12,7 +12,7 @@
  * no se edita. La metadata va en filas arriba.
  */
 
-import { useEffect, useRef, type JSX } from 'react'
+import { useEffect, useRef, useState, type JSX } from 'react'
 import type { EditorEngine } from '@features/editor/engine'
 import {
   ToolModalCode,
@@ -21,7 +21,9 @@ import {
   ToolModalSection,
   type ToolModalContext
 } from '@services/ai/tool-shell'
+import { api } from '@services/api'
 import { t } from '@core/i18n'
+import { resolvePath } from '../../utils'
 import styles from './ReadFileModal.module.css'
 
 interface ReadFilePayload {
@@ -50,13 +52,77 @@ export function ReadFileModal({ args, result, status }: ToolModalContext): JSX.E
   const running = status === 'running' || status === 'streaming' || status === 'pending'
   const path = typeof args.path === 'string' ? args.path : ''
   const payload = parsePayload(result)
-  const content = typeof payload?.content === 'string' ? payload.content : null
+  const targetPath = path || (typeof payload?.path === 'string' ? payload.path : '')
+  const workspaceRoot = (() => {
+    try {
+      return localStorage.getItem('scrakk-studio:root-path') ?? ''
+    } catch {
+      return ''
+    }
+  })()
+  const fullPath = targetPath ? resolvePath(targetPath, workspaceRoot) : ''
+  const startLine =
+    typeof args.start_line === 'number' && Number.isFinite(args.start_line)
+      ? Math.max(1, Math.floor(args.start_line))
+      : undefined
+  const endLine =
+    typeof args.end_line === 'number' && Number.isFinite(args.end_line)
+      ? Math.max(1, Math.floor(args.end_line))
+      : undefined
+
+  const [fileContent, setFileContent] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [readError, setReadError] = useState<string | null>(null)
+
+  // El contenido NO viaja con la card: se lee recién ahora, al abrir el modal.
+  // Así el archivo no queda en el estado de React ni en la persistencia.
+  useEffect(() => {
+    if (!fullPath) {
+      setFileContent(null)
+      setLoading(false)
+      setReadError(null)
+      return undefined
+    }
+    let cancelled = false
+    setLoading(true)
+    setReadError(null)
+    void api.fs
+      .readFile(fullPath)
+      .then((response) => {
+        if (cancelled) return
+        if (!response.success || response.content === undefined) {
+          setFileContent(null)
+          setReadError(response.error ?? t('chat.tool.sin.salida'))
+          return
+        }
+        let text = response.content
+        if (startLine !== undefined || endLine !== undefined) {
+          const lines = text.split('\n')
+          const from = Math.max(0, (startLine ?? 1) - 1)
+          const to = Math.min(lines.length, endLine ?? lines.length)
+          text = lines.slice(from, Math.max(from, to)).join('\n')
+        }
+        setFileContent(text)
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setFileContent(null)
+          setReadError(error instanceof Error ? error.message : String(error))
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [fullPath, startLine, endLine])
 
   // Sesión de Innerta AISLADA por modal (su WASM + canvas), en sólo lectura.
   // Import DINÁMICO: el motor (y su WASM) no se carga hasta abrir el modal, así
   // el barrel de tools no arrastra el editor.
   useEffect(() => {
-    if (content === null) return undefined
+    if (fileContent === null) return undefined
     const host = hostRef.current
     if (!host) return undefined
 
@@ -68,7 +134,7 @@ export function ReadFileModal({ args, result, status }: ToolModalContext): JSX.E
       if (cancelled) return
       engine = createIsolatedEditorEngine()
       engine.attach(host)
-      engine.loadFile(path || 'archivo', content)
+      engine.loadFile(fullPath || 'archivo', fileContent)
       // Sólo lectura: bloquea tipeo, borrado, pegado, cortado y undo/redo.
       engine.setReadOnly?.(true)
       // `loadFile` enfoca el canvas; acá no queremos robarle el foco al chat.
@@ -82,15 +148,24 @@ export function ReadFileModal({ args, result, status }: ToolModalContext): JSX.E
       if (raf) cancelAnimationFrame(raf)
       engine?.destroy?.()
     }
-  }, [content, path])
+  }, [fileContent, fullPath])
 
-  // Error de la tool o salida no-JSON: se vuelca tal cual.
-  if (content === null) {
+  if (loading) {
+    return <ToolModalEmpty>{t('chat.tool.cargando.contenido')}</ToolModalEmpty>
+  }
+  if (readError) {
+    return (
+      <ToolModalSection title={targetPath || undefined}>
+        <ToolModalCode>{readError}</ToolModalCode>
+      </ToolModalSection>
+    )
+  }
+  if (fileContent === null) {
     if (running && !result) {
       return <ToolModalEmpty>{t('chat.tool.todavia.corriendo')}</ToolModalEmpty>
     }
     return (
-      <ToolModalSection title={path || undefined}>
+      <ToolModalSection title={targetPath || undefined}>
         <ToolModalCode>{result ?? t('chat.tool.sin.salida')}</ToolModalCode>
       </ToolModalSection>
     )
@@ -102,13 +177,13 @@ export function ReadFileModal({ args, result, status }: ToolModalContext): JSX.E
   const lines =
     typeof payload?.total_lines === 'number'
       ? payload.total_lines
-      : content.split('\n').length
+      : fileContent.split('\n').length
 
   return (
     <>
       <ToolModalMeta
         items={[
-          { label: t('chat.tool.ruta'), value: path || payload?.path || '' },
+          { label: t('chat.tool.ruta'), value: targetPath },
           { label: t('chat.tool.lineas'), value: String(lines) },
           ...(payload?.original_line_ending
             ? [{ label: t('chat.tool.estado'), value: payload.original_line_ending }]

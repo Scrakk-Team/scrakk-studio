@@ -9,6 +9,7 @@ import type { ChatMessage, ChatReply, ToolCallInfo, ToolResultInfo } from './typ
 import { buildSystemMessages } from '../ai/chatContextBuilder'
 import { getEnabledToolDefinitions } from '../ai/tools'
 import { executeTools } from '../ai/toolExecutor'
+import { previewToolResult } from './toolResultPreview'
 
 import { t } from '@core/i18n'
 import { api } from '@services/api'
@@ -226,6 +227,8 @@ export function createLlmChatService(): ChatService {
                 result: { tool_call_id: string; content: string }
                 execution: {
                   success: boolean
+                  /** Resultado completo; solo el modelo lo consume. */
+                  content: string
                   blocked?: boolean
                   runId?: string
                   filePath?: string
@@ -247,10 +250,13 @@ export function createLlmChatService(): ChatService {
                     role: 'tool' as const,
                     content: `Internal dispatch error: ${dispatchError instanceof Error ? dispatchError.message : String(dispatchError)}`
                   },
-                  execution: { success: false }
+                  execution: { success: false, content: '' }
                 }))
               }
 
+              const nameById = new Map(
+                deduped.map((call) => [call.id, call.function.name] as const)
+              )
               for (const { result: toolResult, execution } of executions) {
                 messages.push({
                   role: 'tool',
@@ -258,7 +264,13 @@ export function createLlmChatService(): ChatService {
                   content: toolResult.content
                 })
                 input.onToolResult?.(toolResult.tool_call_id, {
-                  content: toolResult.content,
+                  // El modelo ya recibió el contenido completo arriba. A la UI
+                  // solo va metadata + muestra: el archivo entero en el estado
+                  // de React (y en la persistencia) era el pico de CPU al leer.
+                  content: previewToolResult(
+                    nameById.get(toolResult.tool_call_id) ?? '',
+                    execution.content
+                  ),
                   success: execution.success,
                   blocked: execution.blocked,
                   runId: execution.runId,

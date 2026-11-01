@@ -64,7 +64,7 @@ export async function execute(args: Record<string, unknown>, ctx: ToolContext): 
         original_line_ending: originalLineEnding,
         had_bom: hadBom,
         normalization_warnings: warnings,
-      }, null, 2)
+      })
     }
   } catch (error) {
     return { success: false, content: `ERROR reading file: ${args.path}\n\n${error}` }

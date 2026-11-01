@@ -808,6 +808,14 @@
       "at": "2026-10-04T00:00:00.000Z",
       "approvedAt": "2026-10-04T00:00:00.000Z"
     },
+    "chat.tool.cargando.contenido": {
+      "src": "cbf6e99a4ba60555",
+      "area": "chat",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-10-31T00:00:00.000Z",
+      "approvedAt": "2026-10-31T00:00:00.000Z"
+    },
     "chat.tool.corriendo": {
       "src": "7f2c23d1fc5a7b81",
       "area": "chat",

@@ -60,6 +60,7 @@
   "chat.tool.completado": "Completed",
   "chat.tool.consulta": "Query",
   "chat.tool.contenido": "Content",
+  "chat.tool.cargando.contenido": "Loading content…",
   "chat.tool.corriendo": "Running…",
   "chat.tool.descripcion": "Description",
   "chat.tool.destino": "Destination",

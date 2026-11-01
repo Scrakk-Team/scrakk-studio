@@ -18,7 +18,7 @@ export async function execute(args: Record<string, unknown>, ctx: ToolContext): 
         results[path] = { success: false, error: response.error || 'File not found' }
       }
     }
-    return { success: true, content: JSON.stringify(results, null, 2) }
+    return { success: true, content: JSON.stringify(results) }
   } catch (error) {
     return { success: false, content: `Error reading files: ${error}` }
   }

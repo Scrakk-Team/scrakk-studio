@@ -299,7 +299,7 @@ async function executeMultipleTools(
 
     return {
       success: !hasError,
-      content: JSON.stringify({ results, aborted: hasError }, null, 2),
+      content: JSON.stringify({ results, aborted: hasError }),
       state: ToolCallStatus.Success,
     }
   } catch (e) {
