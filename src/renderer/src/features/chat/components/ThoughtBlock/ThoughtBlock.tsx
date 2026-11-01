@@ -3,7 +3,7 @@
 // Licencia completa en LICENSE (Apache License 2.0).
 
 import { ProductIcon } from '@services/productIcons/components'
-import { memo, useEffect, useMemo, useRef, useState, type JSX } from 'react'
+import { memo, useDeferredValue, useEffect, useMemo, useRef, useState, type JSX } from 'react'
 import { ThinkingState } from '../ThinkingState/ThinkingState'
 import styles from './ThoughtBlock.module.css'
 
@@ -48,7 +48,10 @@ export const ThoughtBlock = memo(function ThoughtBlock({ reasoning, thinking }: 
 
   // Abierto mientras piensa; al terminar se pliega (el usuario lo despliega).
   const isExpanded = expanded || thinking
-  const sentences = useMemo(() => splitSentences(reasoning), [reasoning])
+  // El razonamiento puede ser largo: el split de oraciones se hace sobre el
+  // valor diferido para que React descarte pasadas intermedias del stream.
+  const deferredReasoning = useDeferredValue(reasoning)
+  const sentences = useMemo(() => splitSentences(deferredReasoning), [deferredReasoning])
 
   return (
     <div className={styles.tr}>

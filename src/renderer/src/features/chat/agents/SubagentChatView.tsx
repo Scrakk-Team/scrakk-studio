@@ -26,7 +26,16 @@ interface SubagentChatViewProps {
 
 export function SubagentChatView({ sessionId, texts, onClose }: SubagentChatViewProps): JSX.Element {
   const [version, setVersion] = useState(0)
-  useEffect(() => subagentSessions.subscribe(() => setVersion((v) => v + 1)), [])
+  useEffect(
+    () =>
+      subagentSessions.subscribe((changedId) => {
+        // Ignorar deltas de otros subagentes: con varios task corriendo, este
+        // modal solo debe redibujarse cuando cambia SU sesión.
+        if (changedId !== sessionId) return
+        setVersion((v) => v + 1)
+      }),
+    [sessionId]
+  )
   void version
 
   const session = subagentSessions.get(sessionId)

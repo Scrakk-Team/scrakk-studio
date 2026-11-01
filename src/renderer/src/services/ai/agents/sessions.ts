@@ -33,26 +33,33 @@ export interface StartSessionOptions {
   signal?: AbortSignal
 }
 
-type Listener = () => void
+type Listener = (sessionId?: string) => void
 
 interface Delta {
   content: string
   reasoning: string
 }
 
-function scheduleFrame(cb: () => void): number | null {
-  if (typeof requestAnimationFrame !== 'function') {
+const STREAM_FLUSH_MS = 50
+
+/**
+ * Un solo flush por ventana de 50 ms para TODOS los subagentes. Con muchos
+ * `task` corriendo, un setState por frame por cada uno saturaba el hilo y el
+ * editor (canvas) dejaba de responder. 20 fps de texto siguen viéndose en vivo.
+ */
+function scheduleFrame(cb: () => void): ReturnType<typeof setTimeout> | null {
+  if (typeof setTimeout !== 'function') {
     cb()
     return null
   }
-  return requestAnimationFrame(cb)
+  return setTimeout(cb, STREAM_FLUSH_MS)
 }
 
 class SubagentSessionStore {
   private sessions = new Map<string, SubagentSession>()
   private listeners = new Set<Listener>()
   private pending = new Map<string, Delta>()
-  private rafHandle: number | null = null
+  private rafHandle: ReturnType<typeof setTimeout> | null = null
   private viewOpen = false
   private waiters = new Map<string, Array<(session: SubagentSession) => void>>()
 
@@ -103,10 +110,10 @@ class SubagentSessionStore {
     this.emit()
   }
 
-  private emit(): void {
+  private emit(sessionId?: string): void {
     for (const listener of [...this.listeners]) {
       try {
-        listener()
+        listener(sessionId)
       } catch {
         // Un suscriptor roto no debe tumbar a los demás.
       }
@@ -117,7 +124,7 @@ class SubagentSessionStore {
     const current = this.sessions.get(id)
     if (!current) return
     this.sessions.set(id, updater(current))
-    this.emit()
+    this.emit(id)
   }
 
   private pushMessage(sessionId: string, message: ChatMessage): void {
@@ -152,8 +159,8 @@ class SubagentSessionStore {
   }
 
   private flushNow(): void {
-    if (this.rafHandle !== null && typeof cancelAnimationFrame === 'function') {
-      cancelAnimationFrame(this.rafHandle)
+    if (this.rafHandle !== null && typeof clearTimeout === 'function') {
+      clearTimeout(this.rafHandle)
     }
     this.rafHandle = null
     if (this.pending.size === 0) return

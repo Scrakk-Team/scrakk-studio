@@ -23,17 +23,27 @@ interface TaskCardProps {
 }
 
 export function TaskCard({ args, status, execution }: TaskCardProps): JSX.Element | null {
-  // Re-render cuando cambian las sesiones (para enganchar el runId en vivo).
+  // Re-render cuando cambia ESTA sesión (o mientras todavía no se conoce el
+  // runId, para engancharlo en vivo). El store emite el id: con muchos
+  // subagentes, una task no se redibuja por los deltas de las otras.
   const [version, setVersion] = useState(0)
-  useEffect(() => subagentSessions.subscribe(() => setVersion((v) => v + 1)), [])
+  const toolCallId = execution?.toolCallId
+  const resolvedRunId =
+    execution?.runId ?? (toolCallId ? sessionIdForToolCall(toolCallId) : undefined)
+  useEffect(
+    () =>
+      subagentSessions.subscribe((changedId) => {
+        if (resolvedRunId && changedId !== resolvedRunId) return
+        setVersion((v) => v + 1)
+      }),
+    [resolvedRunId]
+  )
   void version
 
   const id = typeof args.subagent_type === 'string' ? args.subagent_type : ''
   const prompt = typeof args.prompt === 'string' ? args.prompt : ''
   const label = agentRegistry.getSubagent(id)?.label ?? id
-  const runId =
-    execution?.runId ??
-    (execution?.toolCallId ? sessionIdForToolCall(execution.toolCallId) : undefined)
+  const runId = resolvedRunId
   const session = runId ? subagentSessions.get(runId) : undefined
 
   const open = (): void => {

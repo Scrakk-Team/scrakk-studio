@@ -8,7 +8,7 @@ import { agentRegistry, subagentSessions } from '@services/ai/agents'
 import { getModeId } from '@services/ai/prompts/modes'
 import { spawnSubagentChat } from '@features/chat/agents'
 import type { ToolCallInfo, ToolResultInfo } from '@services/chat/types'
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type JSX } from 'react'
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore, startTransition, type JSX } from 'react'
 import { useProviders } from '@features/providers'
 import { useChats, ModeGlow, ChatModeBar } from '@features/chat'
 import { HeaderActionButton, usePanelTitleOptional } from '@features/layout'
@@ -40,6 +40,8 @@ import {
 import styles from './ChatPanel.module.css'
 
 import { t } from '@core/i18n'
+/** Un solo setState cada 50 ms mientras streamea (20 fps de texto en vivo). */
+const STREAM_FLUSH_MS = 50
 /**
  * Panel de chat: usa las sesiones reales del ChatsProvider (el historial
  * refleja lo que pasa aquí) y delega el "backend" al módulo services. El LLM
@@ -72,7 +74,15 @@ export function ChatPanel(): JSX.Element {
   // (estás "dentro" del subagente).
   const [subagentViewOpen, setSubagentViewOpen] = useState(() => subagentSessions.isViewOpen())
   useEffect(
-    () => subagentSessions.subscribe(() => setSubagentViewOpen(subagentSessions.isViewOpen())),
+    () =>
+      subagentSessions.subscribe(() => {
+        // Los deltas de cada subagente también emiten; solo el cambio del
+        // booleano debe re-renderizar este panel.
+        setSubagentViewOpen((previous) => {
+          const next = subagentSessions.isViewOpen()
+          return previous === next ? previous : next
+        })
+      }),
     []
   )
 
@@ -235,8 +245,9 @@ export function ChatPanel(): JSX.Element {
       // Inicio de cada ronda, para la duración que se muestra en el footer.
       const segmentStartedAt = new Map<string, number>()
 
-      // Deltas del stream agrupados por frame: un `setState` por TOKEN
-      // re-renderiza todo el panel; agrupando, como mucho uno por frame.
+      // Deltas del stream agrupados por ventana: un `setState` por TOKEN
+      // re-renderiza todo el panel. Con un flush cada 50 ms el texto sigue
+      // viéndose en vivo y el hilo queda libre para el editor (canvas).
       const pendingContent = new Map<string, string>()
       const pendingReasoning = new Map<string, string>()
       let flushHandle: number | null = null
@@ -261,13 +272,13 @@ export function ChatPanel(): JSX.Element {
 
       const scheduleFlush = (): void => {
         if (flushHandle !== null) return
-        flushHandle = requestAnimationFrame(flushDeltas)
+        flushHandle = window.setTimeout(flushDeltas, STREAM_FLUSH_MS)
       }
 
       /** Vuelca lo pendiente YA (fin de ronda, tools, fin del stream). */
       const flushNow = (): void => {
         if (flushHandle !== null) {
-          cancelAnimationFrame(flushHandle)
+          window.clearTimeout(flushHandle)
           flushHandle = null
         }
         flushDeltas()
@@ -298,7 +309,10 @@ export function ChatPanel(): JSX.Element {
         segmentId: string,
         updater: (message: ChatMessage) => ChatMessage
       ): void => {
-        updateMessage(targetId, segmentId, updater)
+        // Baja prioridad: si el usuario está escribiendo/moviendo el editor,
+        // React atiende primero esa interacción y descarta pasadas viejas del
+        // stream en vez de bloquear el hilo por cada delta.
+        startTransition(() => updateMessage(targetId, segmentId, updater))
       }
 
       /**
@@ -326,6 +340,33 @@ export function ChatPanel(): JSX.Element {
         }))
       }
 
+      /**
+       * Los resultados de N tools llegan seguidos desde el servicio. Un
+       * `updateMessage` por cada uno re-renderiza el panel N veces; acá se
+       * agrupan en un solo flush de macrotarea.
+       */
+      let toolSyncHandle: number | null = null
+      let toolSyncSegmentId: string | null = null
+      const flushToolSync = (): void => {
+        if (toolSyncHandle !== null) {
+          window.clearTimeout(toolSyncHandle)
+          toolSyncHandle = null
+        }
+        const target = toolSyncSegmentId
+        toolSyncSegmentId = null
+        if (target) syncToolState(target)
+      }
+      const scheduleToolSync = (segmentId: string): void => {
+        toolSyncSegmentId = segmentId
+        if (toolSyncHandle !== null) return
+        toolSyncHandle = window.setTimeout(() => {
+          toolSyncHandle = null
+          const target = toolSyncSegmentId
+          toolSyncSegmentId = null
+          if (target) syncToolState(target)
+        }, 0)
+      }
+
       try {
         await service.sendMessage({
           provider: activeProvider,
@@ -340,7 +381,10 @@ export function ChatPanel(): JSX.Element {
           // Botón "Detener": el servicio corta el stream y resuelve con lo
           // parcial (sin error), así la respuesta quedada no se pisa.
           signal: controller.signal,
-          onRoundStart: () => startSegment(),
+          onRoundStart: () => {
+            flushToolSync()
+            startSegment()
+          },
           onReasoning: (delta) => {
             const id = currentSegmentId
             if (!id) return
@@ -383,7 +427,22 @@ export function ChatPanel(): JSX.Element {
             finalizeSegment(id)
             const state = segments.get(id)
             if (!state) return
-            state.calls = [...calls]
+            // El main reenvía TODAS las calls cada ~50 ms con los argumentos
+            // creciendo. Reusar las instancias que no cambiaron deja que el
+            // memo de cada ToolRow salte: solo se redibuja la tool que está
+            // emitiendo argumentos, no las otras N.
+            const previousById = new Map(state.calls.map((call) => [call.id, call]))
+            state.calls = calls.map((call) => {
+              const previous = previousById.get(call.id)
+              if (
+                previous &&
+                previous.function.name === call.function.name &&
+                previous.function.arguments === call.function.arguments
+              ) {
+                return previous
+              }
+              return call
+            })
             syncToolState(id)
           },
           onToolResult: (toolCallId, result) => {
@@ -393,7 +452,7 @@ export function ChatPanel(): JSX.Element {
             const state = segments.get(id)
             if (!state) return
             state.results[toolCallId] = result
-            syncToolState(id)
+            scheduleToolSync(id)
           }
         })
       } catch (error) {
@@ -420,6 +479,7 @@ export function ChatPanel(): JSX.Element {
       } finally {
         // El último delta pudo quedar en el buffer: se vuelca antes de cerrar.
         flushNow()
+        flushToolSync()
         // Ronda final sin usage (o detenida): su tiempo termina acá.
         if (currentSegmentId) finalizeSegment(currentSegmentId)
         endRun(targetId, controller)
