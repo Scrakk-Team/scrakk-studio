@@ -347,6 +347,18 @@ published are not edited. The file goes per version:
   stays visible but stops competing with the editor canvas. The tool executor
   also stopped `console.log`-ging every argument and result, which serialised
   large file contents during bursts.
+- **Streaming markdown is incremental and timer-free.** The 150 ms throttle is
+  gone: the message is split into closed blocks (blank lines outside fenced
+  code) that are memoised and parsed once, while only the live tail is parsed
+  on each frame. `CodeBlock` now receives the fence meta as a string instead of
+  a fresh hast node, so its `memo` actually skips unchanged blocks and Prism no
+  longer re-tokenises every code block on every update. The markdown itself also
+  no longer uses `useDeferredValue`, so text updates in the same frame as the
+  stream.
+- **The context ring no longer rebuilds the whole conversation text every
+  frame.** The fallback estimation now sums character counts instead of
+  concatenating all message content, reasoning and tool results into temporary
+  strings (twice or three times per call).
 - **A partial subagent tool call no longer appears as a second card.** Some
   gateways re-emit the same `task` under a new id with only
   `{"subagent_type":"explorer"}`, so the chat painted the complete card and a
