@@ -95,6 +95,20 @@ published are not edited. The file goes per version:
   metrics are re-synced with it, so the rows stay aligned instead of keeping
   the previous font's height.
 
+### Breadcrumbs (UI)
+- **The breadcrumb now shows where you are in the code, not only the file
+  path.** Above the editor, after `root > folders > file`, it appends the
+  tree-sitter symbol chain that contains the cursor (`Button > render`). The
+  chain comes from `tags.scm` (`dynamicSyntax`), updates live as the cursor
+  moves, and stays path-only when the cursor is outside every symbol or the
+  language has no dynamic parser. Each symbol segment opens an anchored
+  dropdown with its siblings; picking one moves the cursor in the same editor.
+  The dropdown reuses the Explorer row through `ExplorerItemsView`, so it has
+  the same height, hover, selection, ellipsis and icon layout as the file tree
+  instead of a hardcoded look. Only the focused editor gets symbols: the cursor
+  bus now carries the file path, so an inactive tab or split cannot borrow
+  another editor's cursor.
+
 ### Editor (color picker)
 - **The color picker is the frontend's now.** The engine used to paint the
   little colour square next to every colour literal **and** the whole picker
