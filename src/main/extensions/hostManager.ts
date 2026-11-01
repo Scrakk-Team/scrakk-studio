@@ -357,6 +357,8 @@ function defaultSpawn(entryPath: string, options: HostSpawnOptions = { execArgv:
 
 export class ExtensionHostManager {
   private readonly sessions = new Map<string, HostSession>()
+  /** Serializa ensures por extensión: dos montajes no crean dos hosts. */
+  private readonly ensureChains = new Map<string, Promise<void>>()
   private readonly spawn: HostSpawner
   private readonly renderer: RendererInvoker
   private readonly sink: HostEventSink
@@ -562,8 +564,31 @@ export class ExtensionHostManager {
   /**
    * Asegura un host para la extensión: lo lanza, negocia `init` y espera
    * `ready`. Idempotente: si ya hay uno sano, devuelve el mismo.
+   *
+   * Los llamados se SERIALIZAN por extensión. Sin esto, dos `ensure` que
+   * llegan antes de que la sesión se publique (StrictMode, layout, doble
+   * montaje) pasaban los dos el chequeo de `sessions` y lanzaban dos procesos.
    */
   async ensureHost(request: HostActivationRequest): Promise<void> {
+    const previous = this.ensureChains.get(request.extensionId) ?? Promise.resolve()
+    let release!: () => void
+    const current = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    this.ensureChains.set(request.extensionId, current)
+    await previous.catch(() => undefined)
+    try {
+      await this.ensureHostUnlocked(request)
+    } finally {
+      release()
+      if (this.ensureChains.get(request.extensionId) === current) {
+        this.ensureChains.delete(request.extensionId)
+      }
+    }
+  }
+
+  /** Cuerpo de `ensureHost`, ya serializado por extensión. */
+  private async ensureHostUnlocked(request: HostActivationRequest): Promise<void> {
     const existing = this.sessions.get(request.extensionId)
     if (existing && !existing.disposed) {
       // El jail del fs y los permisos se evalúan por pedido, así que un
@@ -587,12 +612,23 @@ export class ExtensionHostManager {
     // `_loadExtensionContext`), y sin ellas una extensión real no arranca.
     const extras = await this.activationParams(request)
 
+    // La promesa de `ready` existe ANTES de publicar la sesión en el mapa.
+    // Si dos `ensureHost` se solapan, el segundo encuentra la sesión y espera
+    // esta promesa pendiente; nunca la `Promise.resolve()` inicial (que dejaba
+    // pasar `activate` antes del `init`).
+    let resolveReady!: () => void
+    let rejectReady!: (error: unknown) => void
+    const ready = new Promise<void>((resolve, reject) => {
+      resolveReady = resolve
+      rejectReady = reject
+    })
+
     const session: HostSession = {
       id: request.extensionId,
       peer,
       child: undefined as unknown as HostProcessLike,
       request,
-      ready: Promise.resolve(),
+      ready,
       activated: false,
       views: new Map(),
       panels: new Map(),
@@ -644,36 +680,41 @@ export class ExtensionHostManager {
       })
     })
 
-    session.ready = (async () => {
-      await greeted
-      const result = await peer.request<{ protocolVersion: number }>('init', {
-        extensionId: request.extensionId,
-        extensionPath: request.extensionPath,
-        entry: request.entry,
-        workspaceRoots: request.workspaceRoots,
-        permissions: request.permissions,
-        mode: request.mode,
-        configurationDefaults: request.configurationDefaults ?? {},
-        // Estado del editor al momento de arrancar: la extensión ve los
-        // documentos abiertos desde `activate()`, no en el primer cambio.
-        documents: this.documentSeed(session),
-        // Storage + estado + paquete: `context` del ExtensionContext listo.
-        storage: extras.storage,
-        globalState: extras.globalState,
-        workspaceState: extras.workspaceState,
-        configurationValues: extras.configurationValues,
-        packageJSON: extras.packageJSON,
-        esm: extras.esm,
-        env: extras.env
-      })
-      if (result.protocolVersion !== HOST_PROTOCOL_VERSION) {
-        throw new Error(
-          `el host habla el protocolo ${result.protocolVersion} y el IDE espera ${HOST_PROTOCOL_VERSION}`
-        )
+    void (async () => {
+      try {
+        await greeted
+        const result = await peer.request<{ protocolVersion: number }>('init', {
+          extensionId: request.extensionId,
+          extensionPath: request.extensionPath,
+          entry: request.entry,
+          workspaceRoots: request.workspaceRoots,
+          permissions: request.permissions,
+          mode: request.mode,
+          configurationDefaults: request.configurationDefaults ?? {},
+          // Estado del editor al momento de arrancar: la extensión ve los
+          // documentos abiertos desde `activate()`, no en el primer cambio.
+          documents: this.documentSeed(session),
+          // Storage + estado + paquete: `context` del ExtensionContext listo.
+          storage: extras.storage,
+          globalState: extras.globalState,
+          workspaceState: extras.workspaceState,
+          configurationValues: extras.configurationValues,
+          packageJSON: extras.packageJSON,
+          esm: extras.esm,
+          env: extras.env
+        })
+        if (result.protocolVersion !== HOST_PROTOCOL_VERSION) {
+          throw new Error(
+            `el host habla el protocolo ${result.protocolVersion} y el IDE espera ${HOST_PROTOCOL_VERSION}`
+          )
+        }
+        resolveReady()
+      } catch (error) {
+        rejectReady(error)
       }
     })()
 
-    await session.ready
+    await ready
   }
 
   /**
