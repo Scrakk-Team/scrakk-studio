@@ -398,6 +398,21 @@ published are not edited. The file goes per version:
   and `execute_command` now send bounded previews to the chat state instead of
   the full output, and directory listings are capped.
 
+- **Reasoning no longer re-renders the whole thought on every token.** The
+  "Thinking" block used to split the entire accumulated reasoning and reconcile
+  every sentence on each frame, with `useDeferredValue` adding a second pass.
+  It now keeps an incremental sentence buffer, renders only the tail plus the
+  last 40 sentences, and auto-scrolls with a `ResizeObserver` instead of reading
+  `scrollHeight` per token. `ThinkingState` and the 3×3 orb are memoised, and the
+  thinking shimmer animates opacity instead of a paint-heavy
+  `background-position` gradient.
+- **The chat stops doing storage and layout reads every frame.** The effort
+  variants (which read and parse `localStorage`) are memoised on
+  provider/model/variant instead of running on every render, the context ring
+  caches its summary unless the last message's content/usage changes, and the
+  message list tracks "at bottom" from scroll events instead of measuring
+  `scrollHeight`/`clientHeight` on every stream frame.
+
 ### Social (UI)
 - **The composer goes back to its compact height when the panel grows.** The
   textarea only refit itself when the text changed, so opening the panel at its
