@@ -419,6 +419,18 @@ published are not edited. The file goes per version:
   at 0.1.4: `docs.scrakk.art` now serves the 0.1.5 docs, including the full
   changelog.
 
+### Extensions (host)
+- **Overlapping extension-host starts no longer activate before `init`.** The
+  session was published in the manager with a placeholder
+  `ready: Promise.resolve()` and the real init promise was assigned later. A
+  second `ensureHost` arriving in that window saw the session, awaited the
+  already-resolved placeholder and proceeded to `activate` while `init` was
+  still running. The session now publishes a pending ready gate from the first
+  moment it enters the map; the init path resolves or rejects that gate, so
+  every concurrent ensure waits for the real handshake. Ensures are also
+  serialized per extension, so two calls that arrive before the session is
+  published cannot spawn two hosts.
+
 ### Development
 - **The engine's shortcut registry is data-driven now.** `ShortcutManager`
   used to hardcode four bindings in its constructor and only understand a
