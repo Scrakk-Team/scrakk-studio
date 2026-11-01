@@ -27,12 +27,30 @@ import {
   type EditorCursor
 } from '@features/editor/cursorBus'
 
+function normalizePath(path: string): string {
+  return path.replace(/\\/g, '/').replace(/\/+$/, '')
+}
+
+function samePath(a: string, b: string): boolean {
+  if (a === b) return true
+  const left = normalizePath(a)
+  const right = normalizePath(b)
+  if (left === right) return true
+  // Windows: la misma ruta puede diferir solo en mayúsculas.
+  return (
+    /^[A-Za-z]:\//.test(left) &&
+    /^[A-Za-z]:\//.test(right) &&
+    left.toLowerCase() === right.toLowerCase()
+  )
+}
+
 function belongsTo(cursor: EditorCursor | null, path: string): boolean {
   if (!cursor) return false
   // Los engines nuevos mandan su path. El fallback cubre un evento viejo o
   // un bridge que todavía no lo empujó: solo vale si es la tab activa global.
-  if (cursor.path !== undefined) return cursor.path === path
-  return getEditorFiles().activePath === path
+  if (cursor.path !== undefined) return samePath(cursor.path, path)
+  const active = getEditorFiles().activePath
+  return active !== null && samePath(active, path)
 }
 
 export interface EditorSymbolsState {

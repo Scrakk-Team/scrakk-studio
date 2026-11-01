@@ -113,6 +113,21 @@ describe('store de sintaxis dinámica', () => {
     unsubscribe()
   })
 
+  it('encuentra el archivo aunque Windows cambie separadores o mayúsculas', () => {
+    publishDynamicSyntax('C:\\work\\A.ts', {
+      languageId: 'typescript',
+      extensionId: 'demo.ts',
+      symbols: [],
+      folds: [],
+      locals: [],
+      textObjects: [],
+      appliedCategories: [],
+      at: 1
+    })
+    expect(getDynamicSyntax('c:/work/a.ts')?.languageId).toBe('typescript')
+    expect(getDynamicSyntax('C:\\work\\a.ts')?.languageId).toBe('typescript')
+  })
+
   it('cerrar el archivo tira sus datos (un outline viejo es peor que vacío)', () => {
     publishDynamicSyntax('/a.ts', {
       languageId: 'typescript',

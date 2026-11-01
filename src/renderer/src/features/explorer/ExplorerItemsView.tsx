@@ -20,6 +20,7 @@ import {
 } from 'react'
 import { ExplorerRow } from './components/ExplorerRow'
 import type { FileNode } from './hooks/useWorkspaceState'
+import { ROW_HEIGHT } from './constants'
 import styles from './Explorer.module.css'
 
 import { t } from '@core/i18n'
@@ -71,7 +72,10 @@ export function ExplorerItemsView<T>({
   const rows = useMemo(() => items.map((item) => ({ item, node: toNode(item) })), [items])
 
   return (
-    <div className={styles.itemsView}>
+    <div
+      className={styles.itemsView}
+      style={{ height: Math.min(Math.max(items.length, 1) * ROW_HEIGHT + 8, 320) }}
+    >
       <div
         className={styles.tree}
         role="tree"

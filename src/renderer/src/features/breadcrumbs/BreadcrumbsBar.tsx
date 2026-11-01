@@ -87,12 +87,21 @@ export function BreadcrumbsBar({
   const editorActive = useActivePath()
   const openDirRef = useRef<string | null>(null)
   const openSymbolRef = useRef<string | null>(null)
+  const barRef = useRef<HTMLElement | null>(null)
 
   const root = rootProp !== undefined ? rootProp : workspaceRoot
   const activePath = pathProp !== undefined ? pathProp : editorActive
   const segments: CrumbSegment[] = buildSegments(root, activePath)
   const { symbols, line } = useEditorSymbols(activePath)
   const symbolCrumbs = useMemo(() => buildSymbolCrumbs(symbols, line), [symbols, line])
+
+  // La ruta puede ser más ancha que la barra: al aparecer símbolos, mantener
+  // visible el final (el símbolo actual), que es lo que cambia con el cursor.
+  useEffect(() => {
+    const bar = barRef.current
+    if (!bar || symbolCrumbs.length === 0) return
+    bar.scrollLeft = bar.scrollWidth
+  }, [symbolCrumbs])
 
   const openLevel = useCallback(
     (event: ReactMouseEvent<HTMLButtonElement>, segment: CrumbSegment): void => {
@@ -216,7 +225,7 @@ export function BreadcrumbsBar({
   if (segments.length === 0) return null
 
   return (
-    <nav className={styles.bar} aria-label={t('features.ruta.del.archivo')}>
+    <nav ref={barRef} className={styles.bar} aria-label={t('features.ruta.del.archivo')}>
       {segments.map((segment, index) => (
         <span key={`${segment.path}-${index}`} className={styles.crumb}>
           {index > 0 ? (

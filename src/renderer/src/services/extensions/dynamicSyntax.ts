@@ -133,7 +133,24 @@ export function publishDynamicSyntax(path: string, entry: DynamicSyntaxEntry): v
 /** Lo del archivo, o `null` si su lenguaje no tiene parser dinámico. */
 export function getDynamicSyntax(path: string | null | undefined): DynamicSyntaxEntry | null {
   if (!path) return null
-  return entries.get(path) ?? null
+  const exact = entries.get(path)
+  if (exact) return exact
+  // Windows puede entregar la misma ruta con distinto separador o mayúsculas
+  // (tab restaurada vs. engine). El path exacto manda; si no, se compara
+  // normalizado en vez de devolver "no hay árbol" y borrar el breadcrumb.
+  const normalized = path.replace(/\\/g, '/').replace(/\/+$/, '')
+  for (const [key, entry] of entries) {
+    const candidate = key.replace(/\\/g, '/').replace(/\/+$/, '')
+    if (candidate === normalized) return entry
+    if (
+      /^[A-Za-z]:\//.test(candidate) &&
+      /^[A-Za-z]:\//.test(normalized) &&
+      candidate.toLowerCase() === normalized.toLowerCase()
+    ) {
+      return entry
+    }
+  }
+  return null
 }
 
 /** El archivo se cerró: se tira lo suyo. */
