@@ -413,6 +413,15 @@ published are not edited. The file goes per version:
   message list tracks "at bottom" from scroll events instead of measuring
   `scrollHeight`/`clientHeight` on every stream frame.
 
+- **Live chat tokens no longer travel through the global session state.** Each
+  round now accumulates content, reasoning, tools and usage in an external
+  per-session store; only the live assistant bubble subscribes to it. The
+  committed history, `ChatPanel`, `MessageList`, `ChatUsageButton` and the
+  persistence debounce stay unchanged until the round closes, when the message
+  is committed once. This removes the per-frame session/message cloning,
+  context invalidations, forced list work and `startTransition` churn that were
+  starving the editor canvas.
+
 ### Social (UI)
 - **The composer goes back to its compact height when the panel grows.** The
   textarea only refit itself when the text changed, so opening the panel at its
