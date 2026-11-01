@@ -251,6 +251,18 @@ export function attachHostBridge(
   // Path de ESTE engine — setPath() lo actualiza (NO es global).
   let activePath: string | null = null
   let disposed = false
+  /**
+   * Empuja el cursor con el dueño del archivo. Sin el path, cualquier
+   * breadcrumb de cualquier tab/split creería que el cursor es suyo.
+   */
+  const pushCursor = (cursor: { line: number; col: number } | null): void => {
+    if (!cursor) return
+    setEditorCursor({
+      line: cursor.line,
+      col: cursor.col,
+      ...(activePath ? { path: activePath } : {})
+    })
+  }
   // Alta en el registro de engines vivos: es lo que permite que el outline,
   // “ir a la definición” y el plegado encuentren al editor de un archivo.
   const entry: LiveEngineEntry = { getModule, path: null }
@@ -498,7 +510,7 @@ export function attachHostBridge(
     }
     if (!mod || typeof mod.getCursor !== 'function') return
     const cursor = mod.getCursor()
-    if (cursor) setEditorCursor(cursor)
+    if (cursor) pushCursor(cursor)
   }
 
   const onContext = (event: MouseEvent): void => {
@@ -540,7 +552,7 @@ export function attachHostBridge(
         case InnertaHostEvent.CursorChanged: {
           if (!Number.isFinite(a) || !Number.isFinite(b)) return
           if (a < 0 || b < 0) return
-          setEditorCursor({ line: a, col: b })
+          pushCursor({ line: a, col: b })
           break
         }
         case InnertaHostEvent.RevisionChanged: {
@@ -563,7 +575,7 @@ export function attachHostBridge(
       const mod = getModule()
       if (disposed || !mod || typeof mod.getCursor !== 'function') return
       const cursor = mod.getCursor()
-      if (cursor) setEditorCursor(cursor)
+      if (cursor) pushCursor(cursor)
     },
     dispose(): void {
       if (disposed) return

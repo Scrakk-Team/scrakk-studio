@@ -139,6 +139,29 @@ the changed ancestors auto-expand (`ancestorDirs` + `ensureExpandedMany`).
 />
 ```
 
+## Custom rows
+
+`ExplorerItemsView` reuses the same `ExplorerRow` for lists that do not come
+from the filesystem. The consumer supplies already-resolved items (id, name,
+icon, tooltip and opaque `data`) and receives the picked item:
+
+```tsx
+<ExplorerItemsView
+  items={symbols.map((symbol) => ({
+    id: `${symbol.line}:${symbol.name}`,
+    name: symbol.name,
+    icon: <SymbolGlyph symbol={symbol} />,
+    selected: symbol === current,
+    data: symbol
+  }))}
+  onSelect={(item) => revealInnertaPosition(path, item.data.line, 0)}
+/>
+```
+
+It is used by the [breadcrumb](breadcrumbs.md) symbol dropdowns, so those rows
+keep the Explorer's height, hover, selection, ellipsis and icon layout without a
+parallel hardcoded list.
+
 ## Limits
 
 | What | Status |

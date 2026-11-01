@@ -22,6 +22,12 @@ export interface EditorCursor {
   line: number
   /** Columna 0-based (en code points, no en grapheme clusters). */
   col: number
+  /**
+   * Archivo dueño del cursor. Lo empuja el bridge del engine que tiene el
+   * foco; es lo que permite que un breadcrumb sepa si el cursor es SUYO y no
+   * el de otra tab/split.
+   */
+  path?: string
 }
 
 type CursorListener = (cursor: EditorCursor | null) => void
@@ -31,7 +37,13 @@ const listeners = new Set<CursorListener>()
 
 /** Snapshot inmutable. */
 export function getEditorCursor(): EditorCursor | null {
-  return current ? { line: current.line, col: current.col } : null
+  return current
+    ? {
+        line: current.line,
+        col: current.col,
+        ...(current.path !== undefined ? { path: current.path } : {})
+      }
+    : null
 }
 
 /** Empuja una nueva posición. Llamar desde el bridge de InnertaEngine. */
@@ -42,9 +54,10 @@ export function setEditorCursor(cursor: EditorCursor | null): void {
     } else if (
       current !== null &&
       current.line === cursor.line &&
-      current.col === cursor.col
+      current.col === cursor.col &&
+      current.path === cursor.path
     ) {
-      // No-op: misma posición, evita re-renders innecesarios.
+      // No-op: misma posición y archivo, evita re-renders innecesarios.
       return
     }
   } else if (current === null) {
@@ -53,7 +66,15 @@ export function setEditorCursor(cursor: EditorCursor | null): void {
   current = cursor
   for (const listener of listeners) {
     try {
-      listener(cursor ? { line: cursor.line, col: cursor.col } : null)
+      listener(
+        cursor
+          ? {
+              line: cursor.line,
+              col: cursor.col,
+              ...(cursor.path !== undefined ? { path: cursor.path } : {})
+            }
+          : null
+      )
     } catch {
       // Un suscriptor roto no debe tumbar a los demás.
     }

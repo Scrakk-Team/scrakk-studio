@@ -5,6 +5,7 @@
 import {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type JSX,
@@ -13,6 +14,8 @@ import {
 import { ProductIcon } from '@services/productIcons/components'
 import { FileTypeIcon } from '@features/explorer/components/FileTypeIcon'
 import { openFileInEditor, subscribeToEditorFiles, getEditorFiles } from '@features/editor/editorBus'
+import { revealInnertaPosition } from '@features/editor/engines/innerta/hostBridge'
+import { SymbolIcons, type DocumentSymbol } from '@services/symbolExtractor'
 import {
   showAnchoredModal,
   anchoredModalId,
@@ -20,11 +23,14 @@ import {
   type AnchoredRect
 } from '@services/modals'
 import { buildSegments, type CrumbSegment } from './segments'
-import { ExplorerView } from '@features/explorer'
+import { buildSymbolCrumbs, type SymbolCrumb } from './symbols'
+import { useEditorSymbols } from './useEditorSymbols'
+import { ExplorerItemsView, ExplorerView, type ExplorerItem } from '@features/explorer'
 import styles from './BreadcrumbsBar.module.css'
 
 import { t } from '@core/i18n'
 const DROPDOWN_KEY = 'breadcrumbs-level'
+const SYMBOL_DROPDOWN_KEY = 'breadcrumbs-symbol'
 const ROOT_KEY = 'scrakk-studio:root-path'
 
 export interface BreadcrumbsBarProps {
@@ -80,14 +86,21 @@ export function BreadcrumbsBar({
   const workspaceRoot = useWorkspaceRoot()
   const editorActive = useActivePath()
   const openDirRef = useRef<string | null>(null)
+  const openSymbolRef = useRef<string | null>(null)
 
   const root = rootProp !== undefined ? rootProp : workspaceRoot
   const activePath = pathProp !== undefined ? pathProp : editorActive
   const segments: CrumbSegment[] = buildSegments(root, activePath)
+  const { symbols, line } = useEditorSymbols(activePath)
+  const symbolCrumbs = useMemo(() => buildSymbolCrumbs(symbols, line), [symbols, line])
 
   const openLevel = useCallback(
     (event: ReactMouseEvent<HTMLButtonElement>, segment: CrumbSegment): void => {
       if (!interactive) return
+      // Un solo dropdown de breadcrumb a la vez: cerrar el de símbolos.
+      const symbolId = anchoredModalId(SYMBOL_DROPDOWN_KEY)
+      if (symbolId) closeModal(symbolId)
+      openSymbolRef.current = null
       const button = event.currentTarget
       const rect = button.getBoundingClientRect()
       const anchor: AnchoredRect = {
@@ -134,6 +147,72 @@ export function BreadcrumbsBar({
     [interactive, root, onNavigate]
   )
 
+  /**
+   * Dropdown de un nivel de símbolos. Reutiliza `ExplorerItemsView`, que pinta
+   * las filas con el MISMO ExplorerRow del árbol real: nada de una lista
+   * paralela con estilos propios.
+   */
+  const openSymbolLevel = useCallback(
+    (event: ReactMouseEvent<HTMLButtonElement>, crumb: SymbolCrumb, index: number): void => {
+      if (!interactive || !activePath) return
+      const crumbId = `${index}:${crumb.symbol.line}:${crumb.symbol.name}`
+      const openId = anchoredModalId(SYMBOL_DROPDOWN_KEY)
+      if (openId && openSymbolRef.current === crumbId) {
+        closeModal(openId)
+        openSymbolRef.current = null
+        return
+      }
+      if (openId) closeModal(openId)
+      // Un solo dropdown de breadcrumb a la vez: cerrar el de carpetas.
+      const dirId = anchoredModalId(DROPDOWN_KEY)
+      if (dirId) closeModal(dirId)
+      openDirRef.current = null
+      openSymbolRef.current = crumbId
+
+      const rect = event.currentTarget.getBoundingClientRect()
+      const anchor: AnchoredRect = {
+        x: rect.left,
+        y: rect.top,
+        width: rect.width,
+        height: rect.height
+      }
+      const items: ExplorerItem<DocumentSymbol>[] = crumb.level.map((symbol) => {
+        const info = SymbolIcons[symbol.kind] ?? { icon: '•', color: '#cccccc' }
+        return {
+          id: `${symbol.line}:${symbol.name}:${symbol.kind}`,
+          name: symbol.name,
+          title: `${symbol.name} — línea ${symbol.line + 1}`,
+          selected: symbol === crumb.symbol,
+          icon: (
+            <span className={styles.symbolGlyph} style={{ color: info.color }}>
+              {info.icon}
+            </span>
+          ),
+          data: symbol
+        }
+      })
+      showAnchoredModal({
+        key: SYMBOL_DROPDOWN_KEY,
+        title: crumb.symbol.name,
+        anchor,
+        width: 320,
+        placement: 'below',
+        align: 'center',
+        render: ({ close }) => (
+          <ExplorerItemsView
+            items={items}
+            ariaLabel={t('features.esquema')}
+            onSelect={(item) => {
+              revealInnertaPosition(activePath, item.data.line, 0)
+              close()
+            }}
+          />
+        )
+      })
+    },
+    [interactive, activePath]
+  )
+
   if (segments.length === 0) return null
 
   return (
@@ -173,6 +252,31 @@ export function BreadcrumbsBar({
           </button>
         </span>
       ))}
+      {symbolCrumbs.map((crumb, index) => {
+        const info = SymbolIcons[crumb.symbol.kind] ?? { icon: '•', color: '#cccccc' }
+        return (
+          <span
+            key={`symbol-${index}-${crumb.symbol.line}-${crumb.symbol.name}`}
+            className={styles.crumb}
+          >
+            <ProductIcon id="chevron-right" size={11} aria-hidden="true" />
+            <button
+              type="button"
+              className={[styles.segment, styles.segmentSymbol].join(' ')}
+              title={`${crumb.symbol.name} — línea ${crumb.symbol.line + 1}`}
+              disabled={!interactive}
+              onClick={(event) => openSymbolLevel(event, crumb, index)}
+            >
+              {showIcons ? (
+                <span className={styles.symbolGlyph} style={{ color: info.color }}>
+                  {info.icon}
+                </span>
+              ) : null}
+              <span className={styles.label}>{crumb.symbol.name}</span>
+            </button>
+          </span>
+        )
+      })}
     </nav>
   )
 }

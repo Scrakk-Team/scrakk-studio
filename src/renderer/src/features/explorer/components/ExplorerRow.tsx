@@ -9,7 +9,7 @@
  * Altura fija (22px) para que la virtualización sea exacta.
  */
 
-import { memo, useEffect, useRef, useState, type JSX } from 'react'
+import { memo, useEffect, useRef, useState, type JSX, type ReactNode } from 'react'
 import { ProductIcon } from '@services/productIcons/components'
 import type { FileNode } from '../hooks/useWorkspaceState'
 import {
@@ -52,6 +52,15 @@ interface ExplorerRowProps {
   activeGuideLevel?: number | null
   /** Oculta el botón "…" (árboles de solo lectura). */
   hideDots?: boolean
+  /** Oculta el chevron/placeholder de expansión (listas planas custom). */
+  hideArrow?: boolean
+  /**
+   * Ícono ya resuelto por el consumidor (default: FileTypeIcon). Lo usan las
+   * listas custom —símbolos, por ejemplo— sin duplicar la fila ni su CSS.
+   */
+  icon?: ReactNode
+  /** Tooltip de la fila (default: el path del nodo). */
+  title?: string
   /** Hover de la fila (para guías activas dinámicas). Default: nada. */
   onHover?: (path: string | null) => void
   /** false = sin drag nativo (árboles de solo lectura). Default true. */
@@ -100,6 +109,9 @@ export const ExplorerRow = memo(function ExplorerRow({
   decoration,
   activeGuideLevel,
   hideDots = false,
+  hideArrow = false,
+  icon,
+  title,
   onHover,
   interactive = true,
   rowActions
@@ -161,7 +173,7 @@ export const ExplorerRow = memo(function ExplorerRow({
       onDoubleClick={() => {
         if (!node.isDirectory) onDoubleClick(node)
       }}
-      title={node.path}
+      title={title ?? node.path}
       draggable={!isEditing && interactive}
       onDragStart={(event) => onDragStart(event, node)}
       onDragOver={(event) => onDragOver(event, node)}
@@ -182,7 +194,7 @@ export const ExplorerRow = memo(function ExplorerRow({
         />
       ))}
 
-      {node.isDirectory ? (
+      {hideArrow ? null : node.isDirectory ? (
         <span className={styles.arrow} style={{ width: ROW_ICON_SIZE, height: ROW_ICON_SIZE }}>
           {node.isExpanded ? (
             <ProductIcon id="chevron-down" size={12} />
@@ -202,12 +214,14 @@ export const ExplorerRow = memo(function ExplorerRow({
           .filter(Boolean)
           .join(' ')}
       >
-        <FileTypeIcon
-          name={node.name}
-          isDirectory={node.isDirectory}
-          isExpanded={node.isExpanded}
-          size={ROW_ICON_SIZE}
-        />
+        {icon ?? (
+          <FileTypeIcon
+            name={node.name}
+            isDirectory={node.isDirectory}
+            isExpanded={node.isExpanded}
+            size={ROW_ICON_SIZE}
+          />
+        )}
       </span>
 
       {isEditing ? (

@@ -6,10 +6,12 @@ summary: "The path bar above the editor: how it resolves the workspace root and 
 ---
 # Breadcrumbs
 
-**Breadcrumbs** are the path strip shown above the editor content
-(`features/breadcrumbs/BreadcrumbsBar.tsx`). It reads `root > folder > … > file`,
-renders each segment with its icon, and lets a click open the Explorer listing
-for that level.
+**Breadcrumbs** are the strip shown above the editor content
+(`features/breadcrumbs/BreadcrumbsBar.tsx`). It reads `root > folder > … > file`
+and, when the cursor is inside a symbol from the parser tree, appends the
+symbol chain (`file.ts > Class > method`). Each segment with an icon can open an
+anchored dropdown: the path levels show the Explorer listing, and the symbol
+levels show the symbols at that level.
 
 The editor mounts one per file tab:
 
@@ -47,6 +49,28 @@ function, testable without React:
 
 Each `CrumbSegment` has `name`, `path`, `isFile` and `isRoot`.
 
+## Symbol breadcrumbs
+
+After the file segment, the bar appends the AST chain that contains the cursor
+line. The data comes from the dynamic tree-sitter parser (`tags.scm`) through
+`@services/extensions/dynamicSyntax`; there is no regex fallback because the
+regex extractor does not expose reliable end lines:
+
+```ts
+const { symbols, line } = useEditorSymbols(activePath)
+const crumbs = buildSymbolCrumbs(symbols, line)
+```
+
+`buildSymbolCrumbs` (`features/breadcrumbs/symbols.ts`) walks the symbol tree and
+keeps the children whose `line`/`endLine` range contains the cursor. It returns
+the symbol and its sibling level for each depth. When the cursor is outside every
+symbol, the chain is empty and the bar keeps showing only the path.
+
+The cursor comes from `features/editor/cursorBus.ts`. `EditorCursor` carries an
+optional `path`, which the Innerta bridge fills with the file that owns the
+editor. A breadcrumb only uses the cursor when that path matches its own file, so
+inactive tabs and split editors keep their path-only bar.
+
 ## Rendering
 
 The bar is a `<nav>` with each segment separated by a `chevron-right` icon. The
@@ -56,13 +80,15 @@ icon depends on the segment kind:
 - folder → `folder`
 - file → `FileTypeIcon` (the same file-icon theme used by the
   [Explorer](explorer.md))
+- symbol → the `SymbolIcons` glyph/colour used by the
+  [Outline](outline.md)
 
 The active file segment uses the `segmentFile` style. The button's `title` is the
 full absolute path.
 
 ## Click behaviour
 
-Clicking a segment calls `openLevel`:
+Clicking a path segment calls `openLevel`:
 
 1. It computes the directory to list — the segment path itself for a folder, or
    the parent directory for a file.
@@ -72,24 +98,34 @@ Clicking a segment calls `openLevel`:
 4. Selecting a file calls `navigate(path, name)` (default `openFileInEditor`)
    then closes the dropdown.
 
+Clicking a symbol segment opens `key: 'breadcrumbs-symbol'` with the siblings at
+that level. The list reuses `ExplorerItemsView`, so every row is the same
+`ExplorerRow` (height, hover, selection, ellipsis and icon layout) as the real
+Explorer tree. Picking a symbol calls
+`revealInnertaPosition(path, symbol.line, 0)` and closes the dropdown; moving the
+cursor updates the breadcrumb normally.
+
 Clicking the **same** level again toggles it closed; clicking a different level
-closes the previous dropdown and opens the new one. When `interactive` is
-`false`, the buttons are disabled and no dropdown opens.
+closes the previous dropdown and opens the new one. Path and symbol dropdowns
+are mutually exclusive. When `interactive` is `false`, the buttons are disabled
+and no dropdown opens.
 
 ## Limits
 
 - The bar reflects the workspace root from local storage; a file outside that
   root collapses to a single file segment with no intermediate folders.
-- The dropdown is a read-only Explorer view: it opens files, but there is no
+- Symbol crumbs need an installed language extension that ships a `.wasm`
+  parser and `tags.scm`. Without it, the bar shows only the path.
+- Only the focused editor gets symbol crumbs; an inactive split keeps the path.
+- The path dropdown is a read-only Explorer view: it opens files, but there is no
   rename/new-file/context-menu action inside it.
-- Breadcrumbs are not exposed as a setting; there is no per-file "symbol
-  breadcrumbs" mode.
 - The strip is part of the editor tab view, so it disappears when the tab is not
   the centre content.
 
 ## Next steps
 
 - [Explorer](explorer.md) — the file tree behind the dropdowns.
+- [Outline](outline.md) — the full symbol tree of the active file.
 - [Layout & panels](layout.md) — where the editor tab view is mounted.
 - [File timeline](file-timeline.md) — a related per-file view in the tool dock.
 - [Panels & features](README.md) — the other built-in areas.

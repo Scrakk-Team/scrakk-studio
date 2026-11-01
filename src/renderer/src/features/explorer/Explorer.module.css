@@ -21,6 +21,17 @@
   overflow: hidden;
 }
 
+/* Lista custom (símbolos, etc.): crece con el contenido hasta un tope y
+   reutiliza .tree para el scroll y la fila de ExplorerRow. */
+.itemsView {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-height: 320px;
+  overflow: hidden;
+}
+
 /* ── Árbol ────────────────────────────────────────────────────────────── */
 
 .tree {

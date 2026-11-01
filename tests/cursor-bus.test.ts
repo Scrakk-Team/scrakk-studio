@@ -36,6 +36,22 @@ describe('editorCursorBus', () => {
     expect(getEditorCursor()).toEqual({ line: 5, col: 10 })
   })
 
+  it('conserva el path y distingue la misma posición en otro archivo', () => {
+    setEditorCursor({ line: 3, col: 4, path: '/a.ts' })
+    expect(getEditorCursor()).toEqual({ line: 3, col: 4, path: '/a.ts' })
+
+    let calls = 0
+    const unsub = subscribeToEditorCursor(() => {
+      calls++
+    })
+    setEditorCursor({ line: 3, col: 4, path: '/a.ts' })
+    expect(calls).toBe(0)
+    setEditorCursor({ line: 3, col: 4, path: '/b.ts' })
+    expect(calls).toBe(1)
+    expect(getEditorCursor()).toEqual({ line: 3, col: 4, path: '/b.ts' })
+    unsub()
+  })
+
   it('set null limpia el estado', () => {
     setEditorCursor({ line: 1, col: 2 })
     setEditorCursor(null)
