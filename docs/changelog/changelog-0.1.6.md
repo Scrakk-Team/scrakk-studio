@@ -108,6 +108,12 @@ published are not edited. The file goes per version:
   instead of a hardcoded look. Only the focused editor gets symbols: the cursor
   bus now carries the file path, so an inactive tab or split cannot borrow
   another editor's cursor.
+- **TypeScript and TSX files actually provide the symbols.** Their `tags.scm`
+  only had signatures and was expected to inherit the ecma declarations from
+  Helix, which this pack does not carry. Normal classes, methods, functions,
+  arrow functions, fields, enums and type aliases were invisible to the tree,
+  so the new breadcrumb (and the tree source of the Outline) had nothing to
+  show. The missing declarations are now explicit in both queries.
 
 ### Editor (color picker)
 - **The color picker is the frontend's now.** The engine used to paint the
