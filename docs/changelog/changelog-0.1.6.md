@@ -359,6 +359,14 @@ published are not edited. The file goes per version:
   frame.** The fallback estimation now sums character counts instead of
   concatenating all message content, reasoning and tool results into temporary
   strings (twice or three times per call).
+- **Read-file results no longer put the whole file in the chat state.** The
+  model still receives the complete content, but `onToolResult` now sends only
+  metadata plus a short preview; the full text is not stored in
+  `ChatMessage.tool_results`, not rendered by the card and not serialised by
+  the session persistence. Clicking the read tool still opens the isolated
+  editor, but the modal reads the file **at that moment** instead of receiving
+  it preloaded. `read_file`, `read_multiple_files` and nested `multiple_tools`
+  results also use compact JSON instead of pretty-printing large contents.
 - **A partial subagent tool call no longer appears as a second card.** Some
   gateways re-emit the same `task` under a new id with only
   `{"subagent_type":"explorer"}`, so the chat painted the complete card and a
