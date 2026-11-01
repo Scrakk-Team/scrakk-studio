@@ -327,6 +327,16 @@ published are not edited. The file goes per version:
   `<conversation_title>` block only while the tool is enabled. Later turns omit
   the block, so the instruction is not repeated and the title is not requested
   again. The tool list is now rendered from a single read of the active tools.
+- **The editor stays responsive while the AI streams and tools run.** Streaming
+  deltas are now flushed every 50 ms instead of on every animation frame, and
+  their message patches run as low-priority transitions, so typing and cursor
+  movement in the editor are served first. Tool results arriving in a burst are
+  coalesced into one panel update, and the main's repeated full tool-call
+  payload reuses the unchanged call objects, so only the card whose arguments
+  are growing re-renders instead of all of them. Subagent sessions now emit
+  their id: a task card or the subagent modal only redraws for its own session,
+  not for every delta of every other subagent. With many `task` tools running,
+  the chat no longer re-renders the whole panel on every subagent token.
 
 ### Social (UI)
 - **The composer goes back to its compact height when the panel grows.** The
