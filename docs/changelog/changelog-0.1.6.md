@@ -376,6 +376,28 @@ published are not edited. The file goes per version:
   Calls with different prompts, agents or tools are kept, and two identical
   calls are still shown because they may be two real executions.
 
+### AI tools
+- **A tool card no longer stays “running” because the stream never closed.**
+  The main stream loop ignored the provider's explicit `[DONE]` marker and
+  `finish_reason`, waiting for the HTTP socket to close; proxies that keep the
+  connection open left the agent round pending forever. Both now terminate the
+  round and cancel the reader. A rejected stream request now also emits the
+  error event instead of being silently ignored by the preload.
+- **Each tool has its own lifecycle state.** The UI now receives `onToolStart`
+  and a result as soon as that tool settles, instead of waiting for the whole
+  sequential batch. Cards distinguish queued, running, success, error and
+  blocked, so one slow tool no longer paints every card as running.
+- **Terminal commands no longer hang the app.** `execute_command` now runs via
+  `spawn` instead of `exec`, caps captured output, resolves after exit even if
+  a grandchild keeps the pipes open, and kills the whole process tree on
+  timeout. Previously `exec` killed only the shell and a dev server/watch
+  process could keep the promise pending forever and consume CPU.
+- **Tool cards stop repainting while any tool is pending.** The text shimmer
+  (`background-position`, not compositor-friendly) is disabled for every
+  unresolved card, not only when more than six run at once. `list_directory`
+  and `execute_command` now send bounded previews to the chat state instead of
+  the full output, and directory listings are capped.
+
 ### Social (UI)
 - **The composer goes back to its compact height when the panel grows.** The
   textarea only refit itself when the text changed, so opening the panel at its
