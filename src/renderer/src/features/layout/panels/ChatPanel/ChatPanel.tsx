@@ -46,10 +46,6 @@ import {
 import styles from './ChatPanel.module.css'
 
 import { t } from '@core/i18n'
-/** Un solo setState cada 50 ms mientras streamea (20 fps de texto en vivo). */
-const STREAM_FLUSH_MS = 50
-/** Tool cards: agrupa argumentos parciales + resultados en una sola pasada. */
-const TOOL_SYNC_MS = 80
 /**
  * Panel de chat: usa las sesiones reales del ChatsProvider (el historial
  * refleja lo que pasa aquí) y delega el "backend" al módulo services. El LLM
@@ -258,9 +254,8 @@ export function ChatPanel(): JSX.Element {
       // Inicio de cada ronda, para la duración que se muestra en el footer.
       const segmentStartedAt = new Map<string, number>()
 
-      // Deltas del stream agrupados por ventana: un `setState` por TOKEN
-      // re-renderiza todo el panel. Con un flush cada 50 ms el texto sigue
-      // viéndose en vivo y el hilo queda libre para el editor (canvas).
+      // Deltas del stream agrupados por frame: un `setState` por TOKEN
+      // re-renderiza todo el panel; agrupando, como mucho uno por frame.
       const pendingContent = new Map<string, string>()
       const pendingReasoning = new Map<string, string>()
       let flushHandle: number | null = null
@@ -285,13 +280,13 @@ export function ChatPanel(): JSX.Element {
 
       const scheduleFlush = (): void => {
         if (flushHandle !== null) return
-        flushHandle = window.setTimeout(flushDeltas, STREAM_FLUSH_MS)
+        flushHandle = requestAnimationFrame(flushDeltas)
       }
 
       /** Vuelca lo pendiente YA (fin de ronda, tools, fin del stream). */
       const flushNow = (): void => {
         if (flushHandle !== null) {
-          window.clearTimeout(flushHandle)
+          cancelAnimationFrame(flushHandle)
           flushHandle = null
         }
         flushDeltas()
@@ -356,13 +351,13 @@ export function ChatPanel(): JSX.Element {
       /**
        * Los resultados de N tools llegan seguidos desde el servicio. Un
        * `updateMessage` por cada uno re-renderiza el panel N veces; acá se
-       * agrupan en un solo flush de macrotarea.
+       * agrupan en un solo flush de FRAME (siguen siendo en tiempo real).
        */
       let toolSyncHandle: number | null = null
       let toolSyncSegmentId: string | null = null
       const flushToolSync = (): void => {
         if (toolSyncHandle !== null) {
-          window.clearTimeout(toolSyncHandle)
+          cancelAnimationFrame(toolSyncHandle)
           toolSyncHandle = null
         }
         const target = toolSyncSegmentId
@@ -372,12 +367,12 @@ export function ChatPanel(): JSX.Element {
       const scheduleToolSync = (segmentId: string): void => {
         toolSyncSegmentId = segmentId
         if (toolSyncHandle !== null) return
-        toolSyncHandle = window.setTimeout(() => {
+        toolSyncHandle = requestAnimationFrame(() => {
           toolSyncHandle = null
           const target = toolSyncSegmentId
           toolSyncSegmentId = null
           if (target) syncToolState(target)
-        }, TOOL_SYNC_MS)
+        })
       }
 
       try {

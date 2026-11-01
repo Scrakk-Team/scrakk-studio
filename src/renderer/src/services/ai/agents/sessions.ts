@@ -41,26 +41,19 @@ interface Delta {
   reasoning: string
 }
 
-const STREAM_FLUSH_MS = 50
-
-/**
- * Un solo flush por ventana de 50 ms para TODOS los subagentes. Con muchos
- * `task` corriendo, un setState por frame por cada uno saturaba el hilo y el
- * editor (canvas) dejaba de responder. 20 fps de texto siguen viéndose en vivo.
- */
-function scheduleFrame(cb: () => void): ReturnType<typeof setTimeout> | null {
-  if (typeof setTimeout !== 'function') {
+function scheduleFrame(cb: () => void): number | null {
+  if (typeof requestAnimationFrame !== 'function') {
     cb()
     return null
   }
-  return setTimeout(cb, STREAM_FLUSH_MS)
+  return requestAnimationFrame(cb)
 }
 
 class SubagentSessionStore {
   private sessions = new Map<string, SubagentSession>()
   private listeners = new Set<Listener>()
   private pending = new Map<string, Delta>()
-  private rafHandle: ReturnType<typeof setTimeout> | null = null
+  private rafHandle: number | null = null
   private viewOpen = false
   private waiters = new Map<string, Array<(session: SubagentSession) => void>>()
 
@@ -160,8 +153,8 @@ class SubagentSessionStore {
   }
 
   private flushNow(): void {
-    if (this.rafHandle !== null && typeof clearTimeout === 'function') {
-      clearTimeout(this.rafHandle)
+    if (this.rafHandle !== null && typeof cancelAnimationFrame === 'function') {
+      cancelAnimationFrame(this.rafHandle)
     }
     this.rafHandle = null
     if (this.pending.size === 0) return

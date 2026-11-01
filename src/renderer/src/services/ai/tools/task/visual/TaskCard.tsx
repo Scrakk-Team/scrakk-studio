@@ -9,7 +9,7 @@
  * para abrir el subagente en su modal dentro del chat.
  */
 
-import { useEffect, useRef, useState, type JSX } from 'react'
+import { useEffect, useState, type JSX } from 'react'
 import { ToolShimmerText } from '@services/ai/tool-shell'
 import { agentRegistry, sessionIdForToolCall, subagentSessions } from '@services/ai/agents'
 
@@ -30,36 +30,14 @@ export function TaskCard({ args, status, execution }: TaskCardProps): JSX.Elemen
   const toolCallId = execution?.toolCallId
   const resolvedRunId =
     execution?.runId ?? (toolCallId ? sessionIdForToolCall(toolCallId) : undefined)
-  const lastUpdateRef = useRef(0)
-  const pendingUpdateRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  useEffect(() => {
-    const push = (): void => {
-      lastUpdateRef.current = Date.now()
-      setVersion((v) => v + 1)
-    }
-    const unsubscribe = subagentSessions.subscribe((changedId) => {
-      if (resolvedRunId && changedId !== resolvedRunId) return
-      // La card solo muestra la última línea: 20 fps por CADA subagente es
-      // puro paint demás. 5 fps alcanzan y dejan aire al canvas del editor.
-      const elapsed = Date.now() - lastUpdateRef.current
-      if (elapsed >= 200) {
-        push()
-        return
-      }
-      if (pendingUpdateRef.current !== null) return
-      pendingUpdateRef.current = setTimeout(() => {
-        pendingUpdateRef.current = null
-        push()
-      }, 200 - elapsed)
-    })
-    return () => {
-      unsubscribe()
-      if (pendingUpdateRef.current !== null) {
-        clearTimeout(pendingUpdateRef.current)
-        pendingUpdateRef.current = null
-      }
-    }
-  }, [resolvedRunId])
+  useEffect(
+    () =>
+      subagentSessions.subscribe((changedId) => {
+        if (resolvedRunId && changedId !== resolvedRunId) return
+        setVersion((v) => v + 1)
+      }),
+    [resolvedRunId]
+  )
   void version
 
   const id = typeof args.subagent_type === 'string' ? args.subagent_type : ''
