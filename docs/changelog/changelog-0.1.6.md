@@ -337,6 +337,23 @@ published are not edited. The file goes per version:
   their id: a task card or the subagent modal only redraws for its own session,
   not for every delta of every other subagent. With many `task` tools running,
   the chat no longer re-renders the whole panel on every subagent token.
+- **Bursts of tools no longer starve the editor.** Partial tool-call arguments
+  and their results are now coalesced into one 80 ms update instead of one
+  render per payload, the chat input's send/regenerate callbacks no longer
+  change identity on every streamed delta (so the memoised input skips them),
+  and the task cards refresh their live line at 5 fps instead of 20. When more
+  than six tool cards are running at once, their text shimmer (an animated
+  `background-position`, which repaints every frame) is disabled; the text
+  stays visible but stops competing with the editor canvas. The tool executor
+  also stopped `console.log`-ging every argument and result, which serialised
+  large file contents during bursts.
+- **A partial subagent tool call no longer appears as a second card.** Some
+  gateways re-emit the same `task` under a new id with only
+  `{"subagent_type":"explorer"}`, so the chat painted the complete card and a
+  phantom one that just said "Explorador". The display now drops a `task`
+  fragment without `prompt` when another `task` for the same subagent has one.
+  Calls with different prompts, agents or tools are kept, and two identical
+  calls are still shown because they may be two real executions.
 
 ### Social (UI)
 - **The composer goes back to its compact height when the panel grows.** The
