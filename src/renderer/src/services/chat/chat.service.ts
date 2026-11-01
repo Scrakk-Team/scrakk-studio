@@ -34,6 +34,8 @@ export interface SendMessageInput {
   onReasoning?: (delta: string) => void
   /** Tool calls que el modelo emitió y están por ejecutarse. */
   onToolCalls?: (toolCalls: ToolCallInfo[]) => void
+  /** Empezó la ejecución de UNA tool (después de las call/args). */
+  onToolStart?: (toolCallId: string) => void
   /** Usage del request (tokens de prompt/completion) que reporta el proveedor. */
   onUsage?: (usage: LlmStreamUsage) => void
   /** Resultado de una tool call ejecutada. */
@@ -240,29 +242,24 @@ export function createLlmChatService(): ChatService {
                   modifiedContent?: string
                 }
               }>
-              try {
-                const result = await executeTools(deduped, input.sessionId, input.signal)
-                executions = result
-              } catch (dispatchError) {
-                executions = deduped.map((tc) => ({
-                  result: {
-                    tool_call_id: tc.id,
-                    role: 'tool' as const,
-                    content: `Internal dispatch error: ${dispatchError instanceof Error ? dispatchError.message : String(dispatchError)}`
-                  },
-                  execution: { success: false, content: '' }
-                }))
-              }
-
               const nameById = new Map(
                 deduped.map((call) => [call.id, call.function.name] as const)
               )
-              for (const { result: toolResult, execution } of executions) {
-                messages.push({
-                  role: 'tool',
-                  tool_call_id: toolResult.tool_call_id,
-                  content: toolResult.content
-                })
+              const emittedResults = new Set<string>()
+              const emitToolResult = (
+                toolResult: { tool_call_id: string; content: string },
+                execution: {
+                  success: boolean
+                  content: string
+                  blocked?: boolean
+                  runId?: string
+                  filePath?: string
+                  originalContent?: string
+                  modifiedContent?: string
+                }
+              ): void => {
+                if (emittedResults.has(toolResult.tool_call_id)) return
+                emittedResults.add(toolResult.tool_call_id)
                 input.onToolResult?.(toolResult.tool_call_id, {
                   // El modelo ya recibió el contenido completo arriba. A la UI
                   // solo va metadata + muestra: el archivo entero en el estado
@@ -280,6 +277,31 @@ export function createLlmChatService(): ChatService {
                   // `onOpen` (el que abre la tab de diff) cortaba sin hacer nada.
                   originalContent: execution.originalContent,
                   modifiedContent: execution.modifiedContent
+                })
+              }
+              try {
+                const result = await executeTools(deduped, input.sessionId, input.signal, {
+                  onStart: (toolCallId) => input.onToolStart?.(toolCallId),
+                  onDone: ({ result, execution }) => emitToolResult(result, execution)
+                })
+                executions = result
+              } catch (dispatchError) {
+                executions = deduped.map((tc) => ({
+                  result: {
+                    tool_call_id: tc.id,
+                    role: 'tool' as const,
+                    content: `Internal dispatch error: ${dispatchError instanceof Error ? dispatchError.message : String(dispatchError)}`
+                  },
+                  execution: { success: false, content: '' }
+                }))
+                for (const entry of executions) emitToolResult(entry.result, entry.execution)
+              }
+
+              for (const { result: toolResult } of executions) {
+                messages.push({
+                  role: 'tool',
+                  tool_call_id: toolResult.tool_call_id,
+                  content: toolResult.content
                 })
               }
             }

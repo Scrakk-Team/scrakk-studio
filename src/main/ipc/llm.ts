@@ -42,7 +42,7 @@ interface OpenAiStreamUsage {
 }
 
 interface OpenAiStreamChunk {
-  choices?: Array<{ delta?: OpenAiStreamDelta }>
+  choices?: Array<{ delta?: OpenAiStreamDelta; finish_reason?: string | null }>
   /** Chunk final (choices vacío) cuando se pide `stream_options.include_usage`. */
   usage?: OpenAiStreamUsage
 }
@@ -272,6 +272,7 @@ async function runStream(sender: WebContents, request: LlmStreamRequest): Promis
       }
     }
 
+    let streamFinished = false
     while (true) {
       const { done, value } = await readWithIdleTimeout()
       if (done) break
@@ -282,13 +283,21 @@ async function runStream(sender: WebContents, request: LlmStreamRequest): Promis
         const trimmed = line.trim()
         if (!trimmed.startsWith('data:')) continue
         const payload = trimmed.slice(5).trim()
-        if (!payload || payload === '[DONE]') continue
+        // `[DONE]` es el cierre EXPLÍCITO del proveedor. No hay que esperar a
+        // que el socket HTTP se cierre: hay proxies que lo dejan abierto y eso
+        // dejaba la ronda (y la card de la tool) esperando para siempre.
+        if (!payload) continue
+        if (payload === '[DONE]') {
+          streamFinished = true
+          break
+        }
         let chunk: OpenAiStreamChunk
         try {
           chunk = JSON.parse(payload) as OpenAiStreamChunk
         } catch {
           continue
         }
+        const choice = chunk.choices?.[0]
         // El chunk de usage llega con `choices: []` (sin delta): se procesa
         // ANTES del `continue` para no perderlo.
         if (chunk.usage) {
@@ -310,8 +319,11 @@ async function runStream(sender: WebContents, request: LlmStreamRequest): Promis
             })
           }
         }
-        const delta = chunk.choices?.[0]?.delta
-        if (!delta) continue
+        const delta = choice?.delta
+        if (!delta) {
+          if (choice?.finish_reason) streamFinished = true
+          continue
+        }
         if (fullContent.length + fullReasoning.length > MAX_STREAM_CHARS) {
           await reader.cancel().catch(() => undefined)
           sendEvent(sender, LLM_IPC.chatStreamError, {
@@ -340,6 +352,11 @@ async function runStream(sender: WebContents, request: LlmStreamRequest): Promis
             emitToolCalls()
           }
         }
+        if (choice?.finish_reason) streamFinished = true
+      }
+      if (streamFinished) {
+        await reader.cancel().catch(() => undefined)
+        break
       }
     }
 

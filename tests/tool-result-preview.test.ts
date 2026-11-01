@@ -60,6 +60,12 @@ describe('previewToolResult', () => {
     expect(preview).toContain('[truncated]')
   })
 
+  it('list_directory y execute_command recortan el output de la UI', () => {
+    const huge = 'y'.repeat(10_000)
+    expect(previewToolResult('list_directory', huge)).toContain('[truncated]')
+    expect(previewToolResult('execute_command', huge)).toContain('[truncated]')
+  })
+
   it('JSON inválido no rompe: cae al texto original', () => {
     expect(previewToolResult('read_file', 'not-json')).toBe('not-json')
   })

@@ -29,6 +29,8 @@ export interface ChatMessage {
   tool_calls?: ToolCallInfo[]
   /** Results for the tool calls above (indexed by call id). */
   tool_results?: Record<string, ToolResultInfo>
+  /** Per-tool lifecycle: pending → running → success/error/cancelled. */
+  tool_statuses?: Record<string, ToolCallStatusType>
   /** Uso del modelo para esta respuesta (contexto/coste del chat). */
   usage?: ChatUsage
   /** Modo de aprobación activo cuando se generó esta respuesta. */

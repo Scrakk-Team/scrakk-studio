@@ -261,6 +261,7 @@ export const MessageBubble = memo(function MessageBubble({
             <ToolCallsBlock
               toolCalls={message.tool_calls!}
               toolResults={message.tool_results}
+              statuses={message.tool_statuses}
               status={pending ? 'running' : 'success'}
             />
           ) : null}

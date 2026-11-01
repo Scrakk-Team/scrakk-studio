@@ -11,6 +11,8 @@ const EXCLUDED_DIRS = new Set([
   '__pycache__', '.venv', 'venv', '.cache', '.turbo', 'coverage',
 ])
 
+const MAX_LIST_ENTRIES = 500
+
 export async function execute(args: Record<string, unknown>, ctx: ToolContext): Promise<ExecutionResult> {
   try {
     const targetPath = args.path && args.path !== '.'
@@ -36,12 +38,20 @@ export async function execute(args: Record<string, unknown>, ctx: ToolContext): 
       }
     }
 
-    const structure = filtered.map(entry => {
+    const limited = filtered.slice(0, MAX_LIST_ENTRIES)
+    const structure = limited.map(entry => {
       const prefix = entry.is_directory ? '📁 ' : '📄 '
       return `${prefix}${entry.path}`
     }).join('\n')
 
-    return { success: true, content: structure }
+    const missing = filtered.length - limited.length
+    return {
+      success: true,
+      content:
+        missing > 0
+          ? `${structure}\n\n… ${missing} more entries (truncated at ${MAX_LIST_ENTRIES})`
+          : structure
+    }
   } catch (error) {
     return { success: false, content: `Error listing directory: ${error}` }
   }

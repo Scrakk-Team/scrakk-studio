@@ -21,7 +21,9 @@ import styles from './ToolCallsBlock.module.css'
 interface ToolCallsBlockProps {
   toolCalls: ToolCallInfo[]
   toolResults?: Record<string, ToolResultInfo>
-  /** Overall status — 'running' while executing, 'success'/'error' after. */
+  /** Estado por tool: pending/running/success/error/blocked. */
+  statuses?: Record<string, ToolCallStatusType>
+  /** Overall status — fallback when a tool has no explicit status. */
   status?: ToolCallStatusType
 }
 
@@ -75,19 +77,27 @@ const ToolRow = memo(function ToolRow({
 export const ToolCallsBlock = memo(function ToolCallsBlock({
   toolCalls,
   toolResults,
+  statuses,
   status = 'running'
 }: ToolCallsBlockProps): JSX.Element {
-  // Con muchas cards corriendo a la vez, N animaciones de background-position
-  // compiten con el paint del editor. Pasado un umbral se apaga SOLO el
-  // shimmer (el texto queda igual, estático): el chat sigue legible.
-  const running = toolCalls.reduce(
-    (count, call) => count + (toolResults?.[call.id] ? 0 : 1),
-    0
-  )
+  // Con cualquier card sin resolver, el shimmer animado repinta cada frame y
+  // compite con el canvas del editor. Se apaga para TODAS, no solo para >6.
+  const running = toolCalls.reduce((count, call) => {
+    if (toolResults?.[call.id]) return count
+    const current = statuses?.[call.id] ?? status
+    return current === 'pending' || current === 'running' || current === 'streaming'
+      ? count + 1
+      : count
+  }, 0)
   return (
-    <div className={styles.block} data-crowded={running > 6 ? '' : undefined}>
+    <div className={styles.block} data-crowded={running > 0 ? '' : undefined}>
       {toolCalls.map((tc) => (
-        <ToolRow key={tc.id} toolCall={tc} resultInfo={toolResults?.[tc.id]} status={status} />
+        <ToolRow
+          key={tc.id}
+          toolCall={tc}
+          resultInfo={toolResults?.[tc.id]}
+          status={statuses?.[tc.id] ?? status}
+        />
       ))}
     </div>
   )

@@ -6,8 +6,7 @@ import { dialog, ipcMain, shell, type WebContents } from 'electron'
 import * as fs from 'fs/promises'
 import { watch as fsWatch, type FSWatcher } from 'node:fs'
 import * as path from 'path'
-import { exec as execCb } from 'child_process'
-import { promisify } from 'util'
+import { spawn, type ChildProcess } from 'child_process'
 import * as os from 'node:os'
 import { tryNativeSearchFiles, tryNativeGrep, ensureWatch } from '../search/nativeSearch'
 import { sidecarGrep } from '../search/kolargrepServer'
@@ -51,7 +50,6 @@ import {
 } from '@shared/fs'
 
 import { t } from '@shared/i18n'
-const execAsync = promisify(execCb)
 
 // ── Directory watchers ───────────────────────────────────────────────────
 // Un watcher por (webContents, path). El debounce agrupa ráfagas de eventos
@@ -78,6 +76,107 @@ function closeWatcher(key: string, entry: WatchEntry): void {
   }
   watchers.delete(key)
 }
+
+// ── Shell commands: spawn + kill process tree ───────────────────────────
+//
+// `exec` espera a que se cierren stdout/stderr. Un comando que deja hijos
+// (`npm run dev`, `vite`, `tsc --watch`) mantiene esos pipes abiertos y el
+// callback NUNCA corre: la tool queda cargando y el proceso huérfano sigue
+// consumiendo CPU. `spawn` + grupo de procesos permite matar el árbol.
+
+const MAX_COMMAND_OUTPUT_CHARS = 256 * 1024
+
+function appendCommandOutput(current: string, chunk: string): string {
+  const next = current + chunk
+  if (next.length <= MAX_COMMAND_OUTPUT_CHARS) return next
+  const half = Math.floor(MAX_COMMAND_OUTPUT_CHARS / 2)
+  return `${next.slice(0, half)}\n…[output truncated]…\n${next.slice(-half)}`
+}
+
+function killProcessTree(child: ChildProcess): void {
+  if (!child.pid) return
+  if (process.platform === 'win32') {
+    spawn('taskkill', ['/pid', String(child.pid), '/t', '/f'], { windowsHide: true })
+    return
+  }
+  try {
+    process.kill(-child.pid, 'SIGKILL')
+  } catch {
+    try {
+      child.kill('SIGKILL')
+    } catch {
+      // El proceso ya murió.
+    }
+  }
+}
+
+function runShellCommand(
+  command: string,
+  cwd: string | undefined,
+  timeoutMs: number
+): Promise<ExecCommandResponse> {
+  return new Promise((resolve) => {
+    const child = spawn(command, {
+      cwd,
+      shell: true,
+      detached: process.platform !== 'win32',
+      windowsHide: true,
+      env: process.env
+    })
+    let stdout = ''
+    let stderr = ''
+    let code: number | null = null
+    let timedOut = false
+    let settled = false
+    let timer: NodeJS.Timeout | undefined
+    let exitTimer: NodeJS.Timeout | undefined
+
+    const finish = (): void => {
+      if (settled) return
+      settled = true
+      if (timer) clearTimeout(timer)
+      if (exitTimer) clearTimeout(exitTimer)
+      resolve({
+        success: !timedOut && code === 0,
+        stdout,
+        stderr,
+        exitCode: code ?? (timedOut ? 124 : 1),
+        timedOut
+      })
+    }
+
+    child.stdout?.setEncoding('utf8')
+    child.stderr?.setEncoding('utf8')
+    child.stdout?.on('data', (chunk: string) => {
+      stdout = appendCommandOutput(stdout, chunk)
+    })
+    child.stderr?.on('data', (chunk: string) => {
+      stderr = appendCommandOutput(stderr, chunk)
+    })
+    child.on('error', (error) => {
+      stderr = appendCommandOutput(stderr, error.message)
+      finish()
+    })
+    child.on('exit', (exitCode) => {
+      code = exitCode
+      // `close` puede no llegar si un nieto quedó con los pipes abiertos.
+      // Se da un margen mínimo para vaciar stdout/stderr y se resuelve.
+      exitTimer = setTimeout(() => {
+        child.stdout?.destroy()
+        child.stderr?.destroy()
+        finish()
+      }, 250)
+    })
+    child.on('close', finish)
+
+    timer = setTimeout(() => {
+      timedOut = true
+      killProcessTree(child)
+      finish()
+    }, Math.max(1000, timeoutMs))
+  })
+}
+
 
 /** Registra todos los handlers IPC del filesystem. */
 export function registerFsIpc(): void {
@@ -315,29 +414,8 @@ export function registerFsIpc(): void {
     const req = request as ExecCommandRequest
     try {
       const timeoutMs = req.timeoutMs ?? 60_000
-      const { stdout, stderr } = await execAsync(req.command, {
-        cwd: req.cwd,
-        timeout: timeoutMs,
-        maxBuffer: 1024 * 1024 * 5, // 5MB
-        encoding: 'utf-8'
-      })
-      return {
-        success: true,
-        stdout: stdout ?? '',
-        stderr: stderr ?? '',
-        exitCode: 0
-      }
-    } catch (error: any) {
-      // execAsync throws on non-zero exit code
-      if (error.code !== undefined) {
-        return {
-          success: false,
-          stdout: error.stdout ?? '',
-          stderr: error.stderr ?? '',
-          exitCode: error.code ?? 1,
-          timedOut: error.killed === true && error.signal === 'SIGTERM'
-        }
-      }
+      return await runShellCommand(req.command, req.cwd, timeoutMs)
+    } catch (error) {
       const msg = error instanceof Error ? error.message : String(error)
       return {
         success: false,

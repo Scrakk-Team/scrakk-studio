@@ -176,8 +176,19 @@ const api: WindowApi = {
       ipcRenderer.on(LLM_IPC.chatStreamError, onError)
 
       // Los listeners ya están registrados antes de arrancar → no se pierde
-      // ningún delta temprano.
-      void ipcRenderer.invoke(LLM_IPC.chatStreamStart, request)
+      // ningún delta temprano. Si el main rechaza la request (por ejemplo un
+      // tool message sin id), hay que avisar por `onError`: antes se ignoraba
+      // el resultado del invoke y el renderer esperaba para siempre.
+      void ipcRenderer
+        .invoke(LLM_IPC.chatStreamStart, request)
+        .then((result: { ok?: boolean; error?: string } | undefined) => {
+          if (result && result.ok === false) {
+            handlers.onError?.(result.error ?? 'El proveedor rechazó la solicitud.')
+          }
+        })
+        .catch((error: unknown) => {
+          handlers.onError?.(error instanceof Error ? error.message : String(error))
+        })
 
       return () => {
         ipcRenderer.removeListener(LLM_IPC.chatStreamChunk, onChunk)

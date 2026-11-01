@@ -308,12 +308,22 @@ async function executeMultipleTools(
 }
 
 /**
+ * Callbacks de ciclo de vida por tool. La UI los usa para pintar `running` en
+ * la tool que realmente arrancó, en vez de esperar al lote completo.
+ */
+export interface ToolExecutionHooks {
+  onStart?: (toolCallId: string) => void
+  onDone?: (payload: { result: ToolResult; execution: ExecutionResult }) => void
+}
+
+/**
  * Execute multiple tool calls sequentially.
  */
 export async function executeTools(
   toolCalls: ToolCall[],
   sessionId?: string,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  hooks?: ToolExecutionHooks
 ): Promise<Array<{ result: ToolResult; execution: ExecutionResult }>> {
   toolScopeStack.push(sessionId ?? null)
   toolSignalStack.push(signal)
@@ -321,14 +331,19 @@ export async function executeTools(
   try {
     const results: Array<{ result: ToolResult; execution: ExecutionResult }> = []
     for (const tc of toolCalls) {
+      hooks?.onStart?.(tc.id)
       if (signal?.aborted) {
-        results.push({
+        const aborted = {
           result: { role: 'tool' as const, content: '[Aborted by user]', tool_call_id: tc.id },
           execution: { success: false, content: '[Aborted]' },
-        })
+        }
+        results.push(aborted)
+        hooks?.onDone?.(aborted)
         continue
       }
-      results.push(await executeTool(tc, signal))
+      const entry = await executeTool(tc, signal)
+      results.push(entry)
+      hooks?.onDone?.(entry)
     }
     return results
   } finally {

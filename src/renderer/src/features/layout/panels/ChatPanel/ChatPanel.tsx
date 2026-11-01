@@ -13,7 +13,11 @@ import { isSlashInput, slashCommands } from '@services/slash-commands'
 import { agentRegistry, subagentSessions } from '@services/ai/agents'
 import { getModeId } from '@services/ai/prompts/modes'
 import { spawnSubagentChat } from '@features/chat/agents'
-import type { ToolCallInfo, ToolResultInfo } from '@services/chat/types'
+import type {
+  ToolCallInfo,
+  ToolResultInfo,
+  ToolCallStatusType
+} from '@services/chat/types'
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore, startTransition, type JSX } from 'react'
 import { useProviders } from '@features/providers'
 import { useChats, ModeGlow, ChatModeBar } from '@features/chat'
@@ -249,6 +253,7 @@ export function ChatPanel(): JSX.Element {
       type SegmentTools = {
         calls: ToolCallInfo[]
         results: Record<string, ToolResultInfo>
+        statuses: Record<string, ToolCallStatusType>
       }
       const segments = new Map<string, SegmentTools>()
       // Inicio de cada ronda, para la duración que se muestra en el footer.
@@ -298,7 +303,7 @@ export function ChatPanel(): JSX.Element {
         flushNow()
         const id = crypto.randomUUID()
         currentSegmentId = id
-        segments.set(id, { calls: [], results: {} })
+        segments.set(id, { calls: [], results: {}, statuses: {} })
         segmentStartedAt.set(id, Date.now())
         appendMessage(targetId, {
           id,
@@ -344,7 +349,8 @@ export function ChatPanel(): JSX.Element {
         patchSegment(segmentId, (message) => ({
           ...message,
           tool_calls: [...state.calls],
-          tool_results: { ...state.results }
+          tool_results: { ...state.results },
+          tool_statuses: { ...state.statuses }
         }))
       }
 
@@ -453,6 +459,21 @@ export function ChatPanel(): JSX.Element {
                 return call
               })
             )
+            const statuses: Record<string, ToolCallStatusType> = {}
+            for (const call of state.calls) {
+              // Una call recién emitida está en cola; `onToolStart` la pasa a
+              // running y `onToolResult` la cierra. No se deriva del stream.
+              statuses[call.id] = state.statuses[call.id] ?? 'pending'
+            }
+            state.statuses = statuses
+            scheduleToolSync(id)
+          },
+          onToolStart: (toolCallId) => {
+            const id = currentSegmentId
+            if (!id) return
+            const state = segments.get(id)
+            if (!state) return
+            state.statuses[toolCallId] = 'running'
             scheduleToolSync(id)
           },
           onToolResult: (toolCallId, result) => {
@@ -462,6 +483,11 @@ export function ChatPanel(): JSX.Element {
             const state = segments.get(id)
             if (!state) return
             state.results[toolCallId] = result
+            state.statuses[toolCallId] = result.success
+              ? 'success'
+              : result.blocked
+                ? 'blocked'
+                : 'error'
             scheduleToolSync(id)
           }
         })

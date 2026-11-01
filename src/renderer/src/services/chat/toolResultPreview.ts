@@ -15,6 +15,7 @@
 const FILE_PREVIEW_CHARS = 2 * 1024
 const MULTI_FILE_PREVIEW_CHARS = 512
 const MULTI_TOOL_PREVIEW_CHARS = 8 * 1024
+const TEXT_PREVIEW_CHARS = 4 * 1024
 
 function asObject(value: string): Record<string, unknown> | null {
   try {
@@ -69,6 +70,11 @@ export function previewToolResult(toolName: string, content: string): string {
   if (toolName === 'multiple_tools') {
     return content.length > MULTI_TOOL_PREVIEW_CHARS
       ? `${content.slice(0, MULTI_TOOL_PREVIEW_CHARS)}\n… [truncated]`
+      : content
+  }
+  if (toolName === 'list_directory' || toolName === 'execute_command') {
+    return content.length > TEXT_PREVIEW_CHARS
+      ? `${content.slice(0, TEXT_PREVIEW_CHARS)}\n… [truncated]`
       : content
   }
   return content
