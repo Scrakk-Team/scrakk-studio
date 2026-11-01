@@ -18,7 +18,7 @@ import type {
   ToolResultInfo,
   ToolCallStatusType
 } from '@services/chat/types'
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore, startTransition, type JSX } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, startTransition, type JSX } from 'react'
 import { useProviders } from '@features/providers'
 import { useChats, ModeGlow, ChatModeBar } from '@features/chat'
 import { HeaderActionButton, usePanelTitleOptional } from '@features/layout'
@@ -74,8 +74,13 @@ export function ChatPanel(): JSX.Element {
   } = useChats()
   const { activeProvider, getModel, getThinkingMode, getVariant } = useProviders()
   const activeVariant = activeProvider ? getVariant(activeProvider.id) : ''
-  // Esfuerzo en el paso máximo: el input enciende el wash + las chispas.
-  const effortSteps = getAvailableVariants().options
+  const activeModel = activeProvider ? getModel(activeProvider.id) : ''
+  // `getAvailableVariants` lee localStorage dos veces. No puede correr en el
+  // render de cada frame del stream: solo cuando cambia provider/model/variant.
+  const effortSteps = useMemo(
+    () => getAvailableVariants().options,
+    [activeProvider, activeModel, activeVariant]
+  )
   const effortMaxed =
     effortSteps.length > 1 && activeVariant === effortSteps[effortSteps.length - 1]
   // Mientras hay un subagente spawneado abierto, el input principal se bloquea

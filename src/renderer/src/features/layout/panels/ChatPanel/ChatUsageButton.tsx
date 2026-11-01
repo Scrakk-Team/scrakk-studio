@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Licencia completa en LICENSE (Apache License 2.0).
 
-import { useMemo, type JSX, type MouseEvent } from 'react'
+import { useRef, type JSX, type MouseEvent } from 'react'
 import { useChats } from '@features/chat'
 import { useProviders } from '@features/providers'
 import { showAnchoredModal } from '@services/modals'
@@ -26,10 +26,29 @@ export function ChatUsageButton(): JSX.Element {
   const { activeProvider, getModel } = useProviders()
   const model = activeProvider ? getModel(activeProvider.id) : ''
   const messages = activeSession?.messages
-  const summary = useMemo(
-    () => summarizeUsage(messages ?? [], activeProvider?.modelsMeta, model),
-    [messages, activeProvider?.modelsMeta, model]
-  )
+  const last = messages?.[messages.length - 1]
+  const cacheRef = useRef<{
+    key: string
+    summary: ReturnType<typeof summarizeUsage>
+  } | null>(null)
+  // El reasoning no cambia el usage real: no hace falta re-escanear todo el
+  // historial en cada token del "thinking". Se recompone solo cuando cambia
+  // la estructura, el contenido o el usage del ÚLTIMO mensaje.
+  const key = [
+    model,
+    messages?.length ?? 0,
+    last?.id ?? '',
+    last?.content.length ?? 0,
+    last?.usage ? JSON.stringify(last.usage) : '',
+    Object.keys(last?.tool_results ?? {}).length
+  ].join('|')
+  if (!cacheRef.current || cacheRef.current.key !== key) {
+    cacheRef.current = {
+      key,
+      summary: summarizeUsage(messages ?? [], activeProvider?.modelsMeta, model)
+    }
+  }
+  const summary = cacheRef.current.summary
 
   const open = (event: MouseEvent<HTMLButtonElement>): void => {
     // Popover anclado al botón, SIN overlay y pegado a la esquina (igual que

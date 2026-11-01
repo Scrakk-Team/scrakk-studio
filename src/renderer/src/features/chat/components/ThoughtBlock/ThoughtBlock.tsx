@@ -3,7 +3,7 @@
 // Licencia completa en LICENSE (Apache License 2.0).
 
 import { ProductIcon } from '@services/productIcons/components'
-import { memo, useDeferredValue, useEffect, useMemo, useRef, useState, type JSX } from 'react'
+import { memo, useEffect, useRef, useState, type JSX } from 'react'
 import { ThinkingState } from '../ThinkingState/ThinkingState'
 import styles from './ThoughtBlock.module.css'
 
@@ -22,6 +22,44 @@ function splitSentences(text: string): string[] {
     .filter((sentence) => sentence.length > 0)
 }
 
+/** Tope de oraciones en el DOM: el viewport mide ~180px, no hace falta más. */
+const MAX_SENTENCES = 40
+
+export interface IncrementalSentences {
+  /** Texto acumulado ya procesado (para calcular solo el delta nuevo). */
+  source: string
+  /** Oraciones cerradas (solo las últimas MAX_SENTENCES). */
+  sentences: string[]
+  /** Frase que todavía no terminó. */
+  tail: string
+}
+
+/**
+ * Segmentación incremental: no vuelve a partir todo el razonamiento en cada
+ * frame. Solo procesa `tail + texto nuevo`, y el estado anterior no se toca.
+ */
+export function appendReasoning(
+  previous: IncrementalSentences,
+  reasoning: string
+): IncrementalSentences {
+  if (!reasoning.startsWith(previous.source)) {
+    return appendReasoning({ source: '', sentences: [], tail: '' }, reasoning)
+  }
+  const delta = reasoning.slice(previous.source.length)
+  if (!delta) return previous
+
+  const combined = previous.tail + delta
+  const parts = splitSentences(combined)
+  const endsSentence = /[.!?…]\s*$|\n\s*$/.test(combined)
+  let tail = ''
+  if (!endsSentence && parts.length > 0) tail = parts.pop() ?? ''
+  return {
+    source: reasoning,
+    sentences: [...previous.sentences, ...parts].slice(-MAX_SENTENCES),
+    tail
+  }
+}
+
 /**
  * Bloque de razonamiento estilo "Thought": mientras piensa el header es el
  * indicador "Thinking" (orb + shimmer) dentro del propio bloque; cuando
@@ -32,6 +70,8 @@ export const ThoughtBlock = memo(function ThoughtBlock({ reasoning, thinking }: 
   const [expanded, setExpanded] = useState(false)
   const [seconds, setSeconds] = useState(0)
   const viewportRef = useRef<HTMLDivElement>(null)
+  const streamRef = useRef<HTMLDivElement>(null)
+  const sentencesRef = useRef<IncrementalSentences>({ source: '', sentences: [], tail: '' })
 
   // Contador de "Thought for Ns" mientras piensa.
   useEffect(() => {
@@ -40,18 +80,28 @@ export const ThoughtBlock = memo(function ThoughtBlock({ reasoning, thinking }: 
     return () => window.clearInterval(timer)
   }, [thinking])
 
-  // Mientras piensa, el stream queda anclado al fondo.
+  // Mientras piensa, el stream queda anclado al fondo. ResizeObserver se
+  // dispara solo cuando el contenido crece: nada de leer scrollHeight por
+  // cada token.
   useEffect(() => {
-    const el = viewportRef.current
-    if (el && thinking) el.scrollTop = el.scrollHeight
-  }, [reasoning, thinking, expanded])
+    const viewport = viewportRef.current
+    const stream = streamRef.current
+    if (!viewport || !stream || !thinking) return undefined
+    const observer = new ResizeObserver(() => {
+      viewport.scrollTop = viewport.scrollHeight
+    })
+    observer.observe(stream)
+    return () => observer.disconnect()
+  }, [thinking])
 
   // Abierto mientras piensa; al terminar se pliega (el usuario lo despliega).
   const isExpanded = expanded || thinking
-  // El razonamiento puede ser largo: el split de oraciones se hace sobre el
-  // valor diferido para que React descarte pasadas intermedias del stream.
-  const deferredReasoning = useDeferredValue(reasoning)
-  const sentences = useMemo(() => splitSentences(deferredReasoning), [deferredReasoning])
+  const next = reasoning === sentencesRef.current.source
+    ? sentencesRef.current
+    : appendReasoning(sentencesRef.current, reasoning)
+  sentencesRef.current = next
+  const sentences = next.sentences
+  const tail = next.tail
 
   return (
     <div className={styles.tr}>
@@ -75,14 +125,15 @@ export const ThoughtBlock = memo(function ThoughtBlock({ reasoning, thinking }: 
             ref={viewportRef}
             className={`${styles.trViewport} ${thinking ? styles.isScroll : ''}`}
           >
-            <div className={styles.trStream}>
-              {/* key por índice: la última oración crece en su lugar sin
-                  re-animarse en cada delta del stream. */}
+            <div ref={streamRef} className={styles.trStream}>
               {sentences.map((sentence, index) => (
                 <p key={index} className={styles.trSentence}>
                   {sentence}
                 </p>
               ))}
+              {tail ? (
+                <p className={styles.trSentence}>{tail}</p>
+              ) : null}
             </div>
           </div>
         </div>

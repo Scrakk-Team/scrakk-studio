@@ -43,6 +43,8 @@ export const MessageList = memo(function MessageList({
 }: MessageListProps): JSX.Element {
   const listRef = useRef<HTMLDivElement>(null)
   const mountedRef = useRef(false)
+  /** ¿El usuario estaba pegado al fondo? Se actualiza solo en scroll real. */
+  const atBottomRef = useRef(true)
   /** Cantidad de mensajes de la última sonda DEV (ver el efecto de abajo). */
   const probeCountRef = useRef(-1)
 
@@ -105,11 +107,13 @@ export const MessageList = memo(function MessageList({
     const last = messages[messages.length - 1]
     if (last?.role === 'user') {
       el.scrollTop = el.scrollHeight
+      atBottomRef.current = true
       return
     }
 
-    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight
-    if (distanceFromBottom < 100) {
+    // `atBottom` se mantiene con el evento scroll, no leyendo scrollHeight/
+    // clientHeight en cada frame del stream.
+    if (atBottomRef.current) {
       el.scrollTop = el.scrollHeight
     }
   }, [messages])
@@ -166,6 +170,10 @@ export const MessageList = memo(function MessageList({
       className={className ? `${styles.list} ${className}` : styles.list}
       role="log"
       aria-live="polite"
+      onScroll={(event) => {
+        const el = event.currentTarget
+        atBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 100
+      }}
     >
       {turns.map((turn) => (
         <div key={turn.key} className={styles.turn}>

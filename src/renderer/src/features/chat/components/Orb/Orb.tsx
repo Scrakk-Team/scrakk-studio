@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Licencia completa en LICENSE (Apache License 2.0).
 
-import type { CSSProperties, JSX } from 'react'
+import { memo, type CSSProperties, type JSX } from 'react'
 import styles from './Orb.module.css'
 
 import { t } from '@core/i18n'
@@ -56,7 +56,7 @@ export interface OrbProps {
 }
 
 /** Orb de lattice 3×3 (variante S2): una ola barre el grid en diagonal. */
-export function Orb({ size = SIZE, className, style }: OrbProps): JSX.Element {
+export const Orb = memo(function Orb({ size = SIZE, className, style }: OrbProps): JSX.Element {
   return (
     <span className={styles.root + (className ? ` ${className}` : '')} style={style}>
       <span
@@ -81,4 +81,4 @@ export function Orb({ size = SIZE, className, style }: OrbProps): JSX.Element {
       </span>
     </span>
   )
-}
+})
