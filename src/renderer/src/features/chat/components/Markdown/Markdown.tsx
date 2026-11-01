@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Licencia completa en LICENSE (Apache License 2.0).
 
-import { memo, useDeferredValue, type JSX, type ReactNode } from 'react'
+import { memo, type JSX, type ReactNode } from 'react'
 import ReactMarkdown from 'react-markdown'
 import type { Components, ExtraProps } from 'react-markdown'
 import remarkBreaks from 'remark-breaks'
@@ -49,7 +49,7 @@ function Code({
     return <code className={styles.inlineCode}>{children}</code>
   }
   return (
-    <CodeBlock className={className} node={hast}>
+    <CodeBlock className={className} meta={hast?.data?.meta}>
       {children}
     </CodeBlock>
   )
@@ -88,6 +88,26 @@ interface MarkdownProps {
 }
 
 /**
+ * Cuerpo markdown sin el contenedor `.md`. Lo usan tanto `Markdown` (mensaje
+ * completo) como `StreamingMarkdown` (bloques dentro de UN solo contenedor).
+ */
+export const MarkdownContent = memo(function MarkdownContent({
+  content
+}: {
+  content: string
+}): JSX.Element {
+  return (
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm, remarkBreaks]}
+      rehypePlugins={[rehypeRaw, rehypeSanitize]}
+      components={components}
+    >
+      {content}
+    </ReactMarkdown>
+  )
+})
+
+/**
  * Renderizador de markdown — réplica del de Scrakk:
  * react-markdown + GFM (tablas, tachado, autolinks) + remark-breaks
  * (los saltos de línea simples se respetan) + rehype-raw sanitizado
@@ -100,19 +120,9 @@ interface MarkdownProps {
  * sí evita re-resaltados.
  */
 export const Markdown = memo(function Markdown({ content, className }: MarkdownProps): JSX.Element {
-  // El parseo de markdown + Prism es lo más caro del chat. Con `content`
-  // aplazado, React puede descartar renders intermedios del stream (el texto
-  // viejo se mantiene un instante) en vez de bloquear el hilo por token.
-  const deferredContent = useDeferredValue(content)
   return (
     <div className={className ? `${styles.md} ${className}` : styles.md}>
-      <ReactMarkdown
-        remarkPlugins={[remarkGfm, remarkBreaks]}
-        rehypePlugins={[rehypeRaw, rehypeSanitize]}
-        components={components}
-      >
-        {deferredContent}
-      </ReactMarkdown>
+      <MarkdownContent content={content} />
     </div>
   )
 })

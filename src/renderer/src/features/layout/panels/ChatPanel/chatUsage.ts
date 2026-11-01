@@ -59,17 +59,22 @@ export interface ChatUsageSummary {
   estimated: boolean
 }
 
-/** Todo el texto de la conversación (para la estimación local). */
-function conversationText(messages: ChatMessage[]): string {
-  let out = ''
-  for (const message of messages) {
-    if (message.content) out += message.content
-    if (message.reasoning) out += message.reasoning
+/** Todo el texto de la conversación, medido en caracteres (sin concatenar). */
+function conversationLength(messages: ChatMessage[], start = 0): number {
+  let chars = 0
+  for (let index = start; index < messages.length; index += 1) {
+    const message = messages[index]
+    if (message.content) chars += message.content.length
+    if (message.reasoning) chars += message.reasoning.length
     for (const result of Object.values(message.tool_results ?? {})) {
-      if (result?.content) out += result.content
+      if (result?.content) chars += result.content.length
     }
   }
-  return out
+  return chars
+}
+
+function tokensForChars(chars: number): number {
+  return chars > 0 ? Math.max(0, Math.round(chars / CHARS_PER_TOKEN)) : 0
 }
 
 export function summarizeUsage(
@@ -110,13 +115,12 @@ export function summarizeUsage(
   const estimated = !last
   if (!last) {
     // Sin usage del proveedor: estimación local de la conversación completa.
-    const prompt = estimateTokens(conversationText(messages))
-    const completion = estimateTokens(
-      messages
-        .filter((message) => message.role === 'assistant')
-        .map((message) => message.content)
-        .join('\n')
-    )
+    const prompt = tokensForChars(conversationLength(messages))
+    let assistantChars = 0
+    for (const message of messages) {
+      if (message.role === 'assistant') assistantChars += message.content.length
+    }
+    const completion = tokensForChars(assistantChars)
     totalPrompt = prompt
     totalCompletion = completion
     cost = computeCost(activeMeta?.cost, { promptTokens: prompt, completionTokens: completion }) ?? 0
@@ -126,11 +130,12 @@ export function summarizeUsage(
   //  - estimación del texto de TODOS los mensajes,
   //  - y, si hay usage real, su prompt + completion + lo que vino después
   //    (mensajes sin usage). Se toma el mayor de los dos para no subestimar.
-  const whole = estimateTokens(conversationText(messages))
+  const whole = tokensForChars(conversationLength(messages))
   const fromUsage =
     last !== undefined && lastIndex >= 0
-      ? (last.promptTokens + last.completionTokens) +
-        estimateTokens(conversationText(messages.slice(lastIndex + 1)))
+      ? last.promptTokens +
+        last.completionTokens +
+        tokensForChars(conversationLength(messages, lastIndex + 1))
       : 0
   const contextTokens = Math.max(whole, fromUsage)
   const contextLimit = activeMeta?.context && activeMeta.context > 0 ? activeMeta.context : null

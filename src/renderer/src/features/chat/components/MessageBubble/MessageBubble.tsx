@@ -6,40 +6,12 @@ import type { ChatMessage } from '@services/chat'
 import { ProductIcon } from '@services/productIcons/components'
 import { getModeLabel } from '@services/ai/prompts/modes'
 import { memo, useEffect, useRef, useState, type JSX, type KeyboardEvent } from 'react'
-import { Markdown } from '../Markdown/Markdown'
+import { Markdown, StreamingMarkdown } from '../Markdown'
 import { MessageActions } from '../MessageActions/MessageActions'
 import { ToolCallsBlock } from '../ToolCallsBlock'
 import styles from './MessageBubble.module.css'
 
 import { t } from '@core/i18n'
-
-/**
- * Contenido para el markdown, actualizado a lo sumo cada `ms`.
- *
- * Mientras la IA streamea, `content` cambia por frame; parsear markdown
- * (react-markdown + Prism) en cada frame es O(n) por frame. Con el throttle se
- * refresca ~7 veces/s: el markdown se ve EN VIVO sin comerse el hilo. Al terminar
- * (`pending` false) se usa el contenido completo, sin throttle.
- */
-function useThrottled(value: string, ms: number): string {
-  const [out, setOut] = useState(value)
-  const lastRef = useRef(0)
-  useEffect(() => {
-    if (value === out) return
-    const elapsed = Date.now() - lastRef.current
-    if (elapsed >= ms) {
-      lastRef.current = Date.now()
-      setOut(value)
-      return
-    }
-    const handle = window.setTimeout(() => {
-      lastRef.current = Date.now()
-      setOut(value)
-    }, ms - elapsed)
-    return () => window.clearTimeout(handle)
-  }, [value, ms, out])
-  return out
-}
 
 /** Duración en el mismo formato que OpenCode (`9.6s`, `1m 5s`). */
 function formatDuration(ms: number): string {
@@ -110,8 +82,6 @@ export const MessageBubble = memo(function MessageBubble({
   // Edición inline del mensaje (textarea en el lugar del contenido).
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState('')
-  // Markdown en vivo: el contenido del stream, throttleado (ver `useThrottled`).
-  const liveContent = useThrottled(message.content, 150)
 
   // Mensaje del USUARIO largo: se recorta a unas líneas (el recorte agrega el
   // "…") y el botón de al lado lo expande/contrae. Sin el tope, un pegado
@@ -276,10 +246,13 @@ export const MessageBubble = memo(function MessageBubble({
               ) : null}
             </>
           ) : (
-            // Markdown EN VIVO: también mientras streamea (antes se pintaba texto
-            // plano hasta que terminaba). El contenido va throttleado durante el
-            // stream para no re-parsear por frame.
-            <Markdown content={pending ? liveContent : message.content} />
+            // Markdown EN VIVO: bloques cerrados memoizados y solo la cola
+            // activa se vuelve a parsear en cada frame. Sin timer.
+            pending ? (
+              <StreamingMarkdown content={message.content} />
+            ) : (
+              <Markdown content={message.content} />
+            )
           )}
 
           {/* Tool calls DESPUÉS del texto: una tool que el modelo llama tras

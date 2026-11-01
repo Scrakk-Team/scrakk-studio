@@ -12,8 +12,8 @@ interface CodeBlockProps {
   /** className del <code> de react-markdown: "language-tsx". */
   className?: string
   children?: ReactNode
-  /** Nodo hast — usado solo para leer data.meta (nombre de archivo). */
-  node?: { data?: { meta?: string } } | undefined
+  /** `data.meta` del fence (nombre de archivo), como string primitivo. */
+  meta?: string
 }
 
 /**
@@ -25,7 +25,7 @@ interface CodeBlockProps {
 export const CodeBlock = memo(function CodeBlock({
   className,
   children,
-  node
+  meta
 }: CodeBlockProps): JSX.Element {
   const { theme } = useTheme()
   const [copied, setCopied] = useState(false)
@@ -37,11 +37,8 @@ export const CodeBlock = memo(function CodeBlock({
   // Nombre de archivo: desde el meta del fence (```ts app.ts) o desde la
   // primera línea del código (// app.ts, # app.ts, /* app.ts */).
   let filename = ''
-  const meta = node?.data?.meta
-  if (meta) {
-    const metaStr = String(meta).trim()
-    if (metaStr && !metaStr.includes('=')) filename = metaStr
-  }
+  const metaStr = meta ? String(meta).trim() : ''
+  if (metaStr && !metaStr.includes('=')) filename = metaStr
   if (!filename && contentString) {
     const firstLine = contentString.split('\n')[0].trim()
     const nameMatch = firstLine.match(

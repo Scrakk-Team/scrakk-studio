@@ -2,4 +2,5 @@
 // SPDX-License-Identifier: Apache-2.0
 // Licencia completa en LICENSE (Apache License 2.0).
 
-export { Markdown } from './Markdown'
+export { Markdown, MarkdownContent } from './Markdown'
+export { StreamingMarkdown, splitStableMarkdown } from './StreamingMarkdown'
