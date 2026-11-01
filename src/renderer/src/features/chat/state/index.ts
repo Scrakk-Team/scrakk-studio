@@ -4,3 +4,17 @@
 
 export { ChatsProvider, useChats } from './ChatSessionsContext'
 export type { ChatSession } from './ChatSessionsContext'
+export {
+  beginLiveSegment,
+  appendLiveContent,
+  appendLiveReasoning,
+  setLiveTools,
+  setLiveUsage,
+  setLiveDuration,
+  getLiveSnapshot,
+  hasLiveSegment,
+  commitLiveSegment,
+  clearLiveSegment,
+  subscribeToLiveStream
+} from './liveStream'
+export type { LiveSegmentInit } from './liveStream'

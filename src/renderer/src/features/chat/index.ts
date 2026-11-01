@@ -9,6 +9,20 @@
  */
 export { ChatsProvider, useChats } from './state'
 export type { ChatSession } from './state'
+export {
+  beginLiveSegment,
+  appendLiveContent,
+  appendLiveReasoning,
+  setLiveTools,
+  setLiveUsage,
+  setLiveDuration,
+  getLiveSnapshot,
+  hasLiveSegment,
+  commitLiveSegment,
+  clearLiveSegment,
+  subscribeToLiveStream
+} from './state/liveStream'
+export type { LiveSegmentInit } from './state/liveStream'
 export { ToolConfirmationModal } from './components/ToolConfirmationModal/ToolConfirmationModal'
 export { ModeGlow } from './components/ModeGlow/ModeGlow'
 export { ModeLabel } from './components/ModeLabel/ModeLabel'

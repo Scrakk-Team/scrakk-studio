@@ -18,9 +18,21 @@ import type {
   ToolResultInfo,
   ToolCallStatusType
 } from '@services/chat/types'
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, startTransition, type JSX } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type JSX } from 'react'
 import { useProviders } from '@features/providers'
-import { useChats, ModeGlow, ChatModeBar } from '@features/chat'
+import {
+  useChats,
+  ModeGlow,
+  ChatModeBar,
+  beginLiveSegment,
+  appendLiveContent,
+  appendLiveReasoning,
+  setLiveTools,
+  setLiveUsage,
+  setLiveDuration,
+  getLiveSnapshot,
+  commitLiveSegment
+} from '@features/chat'
 import { HeaderActionButton, usePanelTitleOptional } from '@features/layout'
 import { ChatInput } from '@features/chat/components/ChatInput/ChatInput'
 import { EffortSparks } from '@features/chat/components/EffortSparks/EffortSparks'
@@ -278,13 +290,10 @@ export function ChatPanel(): JSX.Element {
         pendingContent.clear()
         pendingReasoning.clear()
         for (const [id, delta] of contentBySegment) {
-          patchSegment(id, (message) => ({ ...message, content: message.content + delta }))
+          if (id === currentSegmentId) appendLiveContent(targetId, delta)
         }
         for (const [id, delta] of reasoningBySegment) {
-          patchSegment(id, (message) => ({
-            ...message,
-            reasoning: (message.reasoning ?? '') + delta
-          }))
+          if (id === currentSegmentId) appendLiveReasoning(targetId, delta)
         }
       }
 
@@ -302,37 +311,6 @@ export function ChatPanel(): JSX.Element {
         flushDeltas()
       }
 
-      const startSegment = (): void => {
-        // La ronda anterior pudo dejar deltas sin volcar: se aplican antes de
-        // crear el segmento nuevo para no perder orden.
-        flushNow()
-        const id = crypto.randomUUID()
-        currentSegmentId = id
-        segments.set(id, { calls: [], results: {}, statuses: {} })
-        segmentStartedAt.set(id, Date.now())
-        appendMessage(targetId, {
-          id,
-          role: 'assistant',
-          content: '',
-          timestamp: Date.now(),
-          // El modo y el modelo se congelan al arrancar la ronda: si el usuario
-          // los cambia a mitad de respuesta, el footer sigue mostrando con
-          // cuáles se hizo (y el modelo aparece incluso si la ronda falla).
-          mode: getModeId(),
-          model: activeProvider ? getModel(activeProvider.id) : ''
-        })
-      }
-
-      const patchSegment = (
-        segmentId: string,
-        updater: (message: ChatMessage) => ChatMessage
-      ): void => {
-        // Baja prioridad: si el usuario está escribiendo/moviendo el editor,
-        // React atiende primero esa interacción y descarta pasadas viejas del
-        // stream en vez de bloquear el hilo por cada delta.
-        startTransition(() => updateMessage(targetId, segmentId, updater))
-      }
-
       /**
        * Cierra la cuenta de tiempo de una ronda. Se llama al terminar el
        * stream de esa ronda (usage/tool calls), NO al arrancar la siguiente:
@@ -343,20 +321,49 @@ export function ChatPanel(): JSX.Element {
         if (startedAt === undefined) return
         segmentStartedAt.delete(segmentId)
         const durationMs = Math.max(0, Date.now() - startedAt)
-        patchSegment(segmentId, (message) =>
-          message.durationMs !== undefined ? message : { ...message, durationMs }
-        )
+        setLiveDuration(targetId, durationMs)
+      }
+
+      /**
+       * Vuelca el stream vivo al historial UNA sola vez por ronda. Hasta acá
+       * `ChatSessionsContext` no cambió: el panel/lista/usage no se
+       * re-renderizaron por token.
+       */
+      const commitCurrentSegment = (): void => {
+        const id = currentSegmentId
+        if (!id) return
+        flushNow()
+        finalizeSegment(id)
+        const message = commitLiveSegment(targetId)
+        if (message) appendMessage(targetId, message)
+        segments.delete(id)
+        currentSegmentId = null
+      }
+
+      const startSegment = (): void => {
+        // La ronda anterior pudo dejar deltas sin volcar: se aplican antes de
+        // crear el segmento nuevo para no perder orden.
+        commitCurrentSegment()
+        const id = crypto.randomUUID()
+        const startedAt = Date.now()
+        currentSegmentId = id
+        segments.set(id, { calls: [], results: {}, statuses: {} })
+        segmentStartedAt.set(id, startedAt)
+        beginLiveSegment(targetId, {
+          id,
+          timestamp: startedAt,
+          // El modo y el modelo se congelan al arrancar la ronda: si el usuario
+          // los cambia a mitad de respuesta, el footer sigue mostrando con
+          // cuáles se hizo (y el modelo aparece incluso si la ronda falla).
+          mode: getModeId(),
+          model: activeProvider ? getModel(activeProvider.id) : ''
+        })
       }
 
       const syncToolState = (segmentId: string): void => {
         const state = segments.get(segmentId)
-        if (!state) return
-        patchSegment(segmentId, (message) => ({
-          ...message,
-          tool_calls: [...state.calls],
-          tool_results: { ...state.results },
-          tool_statuses: { ...state.statuses }
-        }))
+        if (!state || segmentId !== currentSegmentId) return
+        setLiveTools(targetId, state.calls, state.results, state.statuses)
       }
 
       /**
@@ -419,15 +426,12 @@ export function ChatPanel(): JSX.Element {
             const meta =
               activeProvider && modelId ? activeProvider.modelsMeta?.[modelId] : undefined
             const cost = computeCost(meta?.cost, usage)
-            patchSegment(id, (message) => ({
-              ...message,
-              usage: {
-                ...usage,
-                ...(cost !== undefined ? { cost } : {}),
-                model: modelId,
-                providerId: activeProvider?.id
-              }
-            }))
+            setLiveUsage(targetId, {
+              ...usage,
+              ...(cost !== undefined ? { cost } : {}),
+              model: modelId,
+              providerId: activeProvider?.id
+            })
             // El usage del proveedor llega al final de la ronda: es el mejor
             // punto para cerrar la duración.
             finalizeSegment(id)
@@ -500,11 +504,11 @@ export function ChatPanel(): JSX.Element {
         const message =
           error instanceof Error ? error.message : t('layout.ups.algo.salio.mal.prueba')
         if (currentSegmentId) {
-          patchSegment(currentSegmentId, (current) => ({
-            ...current,
-            // Si el stream ya acumuló contenido, se conserva y se anexa el error.
-            content: current.content ? `${current.content}\n\n${message}` : message
-          }))
+          const current = getLiveSnapshot(targetId)
+          appendLiveContent(
+            targetId,
+            current?.content ? `\n\n${message}` : message
+          )
         } else {
           appendMessage(targetId, {
             id: crypto.randomUUID(),
@@ -521,8 +525,8 @@ export function ChatPanel(): JSX.Element {
         // El último delta pudo quedar en el buffer: se vuelca antes de cerrar.
         flushNow()
         flushToolSync()
-        // Ronda final sin usage (o detenida): su tiempo termina acá.
-        if (currentSegmentId) finalizeSegment(currentSegmentId)
+        // Commit único al historial: recién acá ChatSessionsContext cambia.
+        commitCurrentSegment()
         endRun(targetId, controller)
       }
     },
@@ -694,6 +698,7 @@ export function ChatPanel(): JSX.Element {
               className={styles.messagesList}
               messages={messages}
               isStreaming={isBusy}
+              liveSessionId={sessionId}
               onRegenerate={handleRegenerate}
               onEditMessage={handleEditMessage}
             />

@@ -3,7 +3,12 @@
 // Licencia completa en LICENSE (Apache License 2.0).
 
 import type { ChatMessage } from '@services/chat'
-import { memo, useCallback, useEffect, useRef, type JSX } from 'react'
+import { memo, useCallback, useEffect, useRef, useSyncExternalStore, type JSX } from 'react'
+import {
+  getLiveSnapshot,
+  hasLiveSegment,
+  subscribeToLiveStream
+} from '@features/chat'
 import { MessageBubble } from '../MessageBubble/MessageBubble'
 import { ThinkingState } from '../ThinkingState/ThinkingState'
 import { ThoughtBlock } from '../ThoughtBlock/ThoughtBlock'
@@ -13,6 +18,8 @@ interface MessageListProps {
   messages: ChatMessage[]
   /** true mientras un stream está en curso (el último mensaje se está armando). */
   isStreaming: boolean
+  /** Sesión cuyo stream vivo se dibuja al final (fuera del historial). */
+  liveSessionId?: string | null
   /** Regenera la última respuesta (el botón solo se muestra en el último mensaje). */
   onRegenerate?: () => void
   /**
@@ -23,6 +30,50 @@ interface MessageListProps {
   /** Clase extra sobre el root (p. ej. para acotar el ancho de la columna). */
   className?: string
 }
+
+/**
+ * Mensaje VIVO: es el ÚNICO componente que se re-renderiza por token.
+ * El historial (`messages`) queda estable durante toda la ronda.
+ */
+const LiveAssistantMessage = memo(function LiveAssistantMessage({
+  sessionId,
+  onGrow
+}: {
+  sessionId: string
+  onGrow?: () => void
+}): JSX.Element | null {
+  const rootRef = useRef<HTMLDivElement>(null)
+  const message = useSyncExternalStore(subscribeToLiveStream, () =>
+    getLiveSnapshot(sessionId)
+  )
+  useEffect(() => {
+    const root = rootRef.current
+    if (!root || !onGrow) return undefined
+    const observer = new ResizeObserver(onGrow)
+    observer.observe(root)
+    return () => observer.disconnect()
+  }, [onGrow])
+  if (!message) return null
+  const hasReasoning = Boolean(message.reasoning)
+  const hasToolCalls = Boolean(message.tool_calls?.length)
+  const thinking = !message.content && !hasToolCalls
+  return (
+    <div
+      ref={rootRef}
+      className={styles.messageWrap}
+      data-thought={hasReasoning ? '' : undefined}
+    >
+      {hasReasoning ? (
+        <ThoughtBlock reasoning={message.reasoning ?? ''} thinking={thinking} />
+      ) : null}
+      {thinking ? (
+        hasReasoning ? null : <ThinkingState />
+      ) : (
+        <MessageBubble message={message} pending canEdit={false} />
+      )}
+    </div>
+  )
+})
 
 /**
  * Lista scrollable con scroll inteligente:
@@ -37,6 +88,7 @@ interface MessageListProps {
 export const MessageList = memo(function MessageList({
   messages,
   isStreaming,
+  liveSessionId = null,
   onRegenerate,
   onEditMessage,
   className
@@ -45,6 +97,9 @@ export const MessageList = memo(function MessageList({
   const mountedRef = useRef(false)
   /** ¿El usuario estaba pegado al fondo? Se actualiza solo en scroll real. */
   const atBottomRef = useRef(true)
+  const hasLive = useSyncExternalStore(subscribeToLiveStream, () =>
+    hasLiveSegment(liveSessionId)
+  )
   /** Cantidad de mensajes de la última sonda DEV (ver el efecto de abajo). */
   const probeCountRef = useRef(-1)
 
@@ -164,22 +219,28 @@ export const MessageList = memo(function MessageList({
     el.scrollTo({ top: el.scrollTop + delta, behavior: 'smooth' })
   }, [])
 
+  /** El mensaje vivo creció: seguir el fondo solo si el usuario ya estaba ahí. */
+  const handleLiveGrow = useCallback((): void => {
+    const el = listRef.current
+    if (el && atBottomRef.current) el.scrollTop = el.scrollHeight
+  }, [])
+
   return (
     <div
       ref={listRef}
       className={className ? `${styles.list} ${className}` : styles.list}
       role="log"
-      aria-live="polite"
+      aria-live={hasLive ? 'off' : 'polite'}
       onScroll={(event) => {
         const el = event.currentTarget
         atBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 100
       }}
     >
-      {turns.map((turn) => (
+      {turns.map((turn, turnIndex) => (
         <div key={turn.key} className={styles.turn}>
           {turn.items.map((message) => {
             const isLast = message.id === lastId
-            const isPending = isLast && message.role === 'assistant' && isStreaming
+            const isPending = !hasLive && isLast && message.role === 'assistant' && isStreaming
             const hasReasoning = Boolean(message.role === 'assistant' && message.reasoning)
             // Con tool calls el bubble SÍ se dibuja aunque no haya texto todavía:
             // es lo único que muestra la card de la tool (y el subagente en vivo).
@@ -224,7 +285,7 @@ export const MessageList = memo(function MessageList({
                     // Regenerar hasta que sea la última respuesta ya terminada.
                     pending={isPending}
                     onRegenerate={
-                      message.role === 'assistant' && isLast && !isPending
+                      message.role === 'assistant' && isLast && !isPending && !hasLive
                         ? onRegenerate
                         : undefined
                     }
@@ -242,8 +303,16 @@ export const MessageList = memo(function MessageList({
               </div>
             )
           })}
+          {hasLive && liveSessionId && turnIndex === turns.length - 1 ? (
+            <LiveAssistantMessage sessionId={liveSessionId} onGrow={handleLiveGrow} />
+          ) : null}
         </div>
       ))}
+      {hasLive && liveSessionId && turns.length === 0 ? (
+        <div className={styles.turn}>
+          <LiveAssistantMessage sessionId={liveSessionId} onGrow={handleLiveGrow} />
+        </div>
+      ) : null}
     </div>
   )
 })
