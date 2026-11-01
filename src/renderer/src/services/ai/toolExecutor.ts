@@ -111,7 +111,9 @@ export async function executeTool(toolCall: ToolCall, signal?: AbortSignal): Pro
       args = {}
     }
 
-    console.log(`Executing tool: ${name}`, args)
+    // console.log en cada tool (con args/result completos) serializaba objetos
+    // grandes durante ráfagas de tools; el editor comparte este hilo. El
+    // diagnóstico queda en los eventos de la UI, no en la consola.
 
     // Check tool exists in registry
     const activeSessionId = getToolScopeSessionId()
@@ -160,8 +162,6 @@ export async function executeTool(toolCall: ToolCall, signal?: AbortSignal): Pro
         state: ToolCallStatus.Error,
       }
     }
-
-    console.log(`Tool ${name} result:`, execution)
 
     return {
       result: { tool_call_id: toolCall.id, role: 'tool', content: execution.content },

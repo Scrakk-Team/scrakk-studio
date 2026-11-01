@@ -20,5 +20,5 @@ interface ToolShimmerTextProps {
 }
 
 export function ToolShimmerText({ text = 'Cargando…' }: ToolShimmerTextProps): JSX.Element {
-  return <span className={styles.shimmer}>{text}</span>
+  return <span className={styles.shimmer} data-tool-shimmer="">{text}</span>
 }

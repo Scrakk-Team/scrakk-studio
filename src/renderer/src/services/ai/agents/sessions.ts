@@ -14,6 +14,7 @@
  */
 
 import type { ChatMessage, ToolCallInfo, ToolResultInfo } from '@services/chat'
+import { collapsePartialToolCalls } from '@services/chat'
 import { runHeadlessAgent } from './runner'
 import type { AgentProfile } from './types'
 
@@ -230,7 +231,7 @@ class SubagentSessionStore {
           onToolCalls: (calls) =>
             this.patchMessage(id, ensureSegment(), (message) => ({
               ...message,
-              tool_calls: [...(calls as ToolCallInfo[])]
+              tool_calls: collapsePartialToolCalls(calls as ToolCallInfo[])
             })),
           onToolResult: (toolCallId, result) =>
             this.patchMessage(id, ensureSegment(), (message) => ({

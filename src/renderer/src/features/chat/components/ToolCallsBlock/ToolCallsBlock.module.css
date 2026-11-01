@@ -16,6 +16,15 @@
   -webkit-user-select: none;
 }
 
+/* Ráfaga de tools: apagar el shimmer (background-position animado) de todas
+   las cards. N animaciones de paint compiten con el canvas del editor. */
+.block[data-crowded] :global([data-tool-shimmer]) {
+  animation: none;
+  background: none;
+  color: var(--color-text-muted);
+  -webkit-text-fill-color: currentColor;
+}
+
 /* Fila de tool: icono + visual. El texto hereda muted para diferenciarlo
    del chat normal; lo que trae color propio (diffs, previews) lo conserva. */
 .toolRow {

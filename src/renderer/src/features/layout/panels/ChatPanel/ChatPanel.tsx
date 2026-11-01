@@ -2,7 +2,13 @@
 // SPDX-License-Identifier: Apache-2.0
 // Licencia completa en LICENSE (Apache License 2.0).
 
-import { createLlmChatService, type ChatMessage, type ChatService, type ChatInsertPayload } from '@services/chat'
+import {
+  createLlmChatService,
+  collapsePartialToolCalls,
+  type ChatMessage,
+  type ChatService,
+  type ChatInsertPayload
+} from '@services/chat'
 import { isSlashInput, slashCommands } from '@services/slash-commands'
 import { agentRegistry, subagentSessions } from '@services/ai/agents'
 import { getModeId } from '@services/ai/prompts/modes'
@@ -42,6 +48,8 @@ import styles from './ChatPanel.module.css'
 import { t } from '@core/i18n'
 /** Un solo setState cada 50 ms mientras streamea (20 fps de texto en vivo). */
 const STREAM_FLUSH_MS = 50
+/** Tool cards: agrupa argumentos parciales + resultados en una sola pasada. */
+const TOOL_SYNC_MS = 80
 /**
  * Panel de chat: usa las sesiones reales del ChatsProvider (el historial
  * refleja lo que pasa aquí) y delega el "backend" al módulo services. El LLM
@@ -87,6 +95,11 @@ export function ChatPanel(): JSX.Element {
   )
 
   const messages = activeSession?.messages ?? []
+  // Espejo mutable para callbacks ESTABLES: `messages` cambia ~20 veces/s
+  // durante el stream; si `handleSend`/`handleRegenerate` dependieran de él,
+  // re-renderizarían el input y la lista en cada pasada aunque no haga falta.
+  const messagesRef = useRef(messages)
+  messagesRef.current = messages
   const sessionId = activeSession?.id
   // "¿Está generando ESTA sesión?" sale de un registro por sesión (módulo), NO de
   // un `useState` local: mover/cambiar el panel REMONTA este componente y el botón
@@ -364,7 +377,7 @@ export function ChatPanel(): JSX.Element {
           const target = toolSyncSegmentId
           toolSyncSegmentId = null
           if (target) syncToolState(target)
-        }, 0)
+        }, TOOL_SYNC_MS)
       }
 
       try {
@@ -432,18 +445,20 @@ export function ChatPanel(): JSX.Element {
             // memo de cada ToolRow salte: solo se redibuja la tool que está
             // emitiendo argumentos, no las otras N.
             const previousById = new Map(state.calls.map((call) => [call.id, call]))
-            state.calls = calls.map((call) => {
-              const previous = previousById.get(call.id)
-              if (
-                previous &&
-                previous.function.name === call.function.name &&
-                previous.function.arguments === call.function.arguments
-              ) {
-                return previous
-              }
-              return call
-            })
-            syncToolState(id)
+            state.calls = collapsePartialToolCalls(
+              calls.map((call) => {
+                const previous = previousById.get(call.id)
+                if (
+                  previous &&
+                  previous.function.name === call.function.name &&
+                  previous.function.arguments === call.function.arguments
+                ) {
+                  return previous
+                }
+                return call
+              })
+            )
+            scheduleToolSync(id)
           },
           onToolResult: (toolCallId, result) => {
             const id = currentSegmentId
@@ -546,11 +561,11 @@ export function ChatPanel(): JSX.Element {
         timestamp: Date.now()
       })
 
-      const run = streamReply(targetId, trimmed, messages)
+      const run = streamReply(targetId, trimmed, messagesRef.current)
       setRunPromise(targetId, run)
       await run
     },
-    [isBusy, sessionId, createSession, appendMessage, updateMessage, streamReply, messages]
+    [isBusy, sessionId, createSession, appendMessage, streamReply]
   )
 
   // Regenerar: borra la última respuesta de la IA y vuelve a enviar el último
@@ -558,32 +573,24 @@ export function ChatPanel(): JSX.Element {
   const handleRegenerate = useCallback(async (): Promise<void> => {
     if (!sessionId || isBusy) return
 
+    const current = messagesRef.current
     let lastUserIndex = -1
-    for (let i = messages.length - 1; i >= 0; i--) {
-      if (messages[i].role === 'user') {
+    for (let i = current.length - 1; i >= 0; i--) {
+      if (current[i].role === 'user') {
         lastUserIndex = i
         break
       }
     }
     if (lastUserIndex < 0) return
 
-    const content = messages[lastUserIndex].content
-    const history = messages.slice(0, lastUserIndex)
+    const content = current[lastUserIndex].content
+    const history = current.slice(0, lastUserIndex)
 
     removeMessagesAfter(sessionId, lastUserIndex + 1)
     const run = streamReply(sessionId, content, history)
     setRunPromise(sessionId, run)
     await run
-  }, [sessionId, isBusy, messages, removeMessagesAfter, streamReply])
-
-  // `handleEditMessage` se pasa a TODAS las burbujas: si dependiera de
-  // `messages` (cambia en cada token del stream) o de `isBusy`, su identidad
-  // cambiaría y rompería el `memo` de cada burbuja — o sea, volvería a
-  // re-parsear el markdown de TODO el historial por token. Los valores mutables
-  // se leen por ref, así el callback no cambia nunca (mismo criterio que las
-  // filas del panel de Git).
-  const messagesRef = useRef(messages)
-  messagesRef.current = messages
+  }, [sessionId, isBusy, removeMessagesAfter, streamReply])
 
   // Editar un mensaje. El panel no sabe de botones: recibe un mensaje y su
   // texto. Si es del USUARIO, además se REENVÍA: lo que venía después respondía

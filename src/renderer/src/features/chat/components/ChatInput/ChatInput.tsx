@@ -4,6 +4,7 @@
 
 import { ProductIcon } from '@services/productIcons/components'
 import {
+  memo,
   useEffect,
   useRef,
   useState,
@@ -48,7 +49,7 @@ interface ChatInputProps {
  * `state: 'locked'` lo deshabilita por completo (spawn de subagente): se ve
  * bloqueado y no acepta escritura.
  */
-export function ChatInput({
+export const ChatInput = memo(function ChatInput({
   onSend,
   disabled = false,
   busy = false,
@@ -237,4 +238,4 @@ export function ChatInput({
       </div>
     </form>
   )
-}
+})

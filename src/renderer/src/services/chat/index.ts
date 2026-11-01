@@ -5,3 +5,4 @@
 export * from './types'
 export * from './chat.service'
 export * from './chatApi'
+export { collapsePartialToolCalls } from './toolCallDisplay'

@@ -77,8 +77,15 @@ export const ToolCallsBlock = memo(function ToolCallsBlock({
   toolResults,
   status = 'running'
 }: ToolCallsBlockProps): JSX.Element {
+  // Con muchas cards corriendo a la vez, N animaciones de background-position
+  // compiten con el paint del editor. Pasado un umbral se apaga SOLO el
+  // shimmer (el texto queda igual, estático): el chat sigue legible.
+  const running = toolCalls.reduce(
+    (count, call) => count + (toolResults?.[call.id] ? 0 : 1),
+    0
+  )
   return (
-    <div className={styles.block}>
+    <div className={styles.block} data-crowded={running > 6 ? '' : undefined}>
       {toolCalls.map((tc) => (
         <ToolRow key={tc.id} toolCall={tc} resultInfo={toolResults?.[tc.id]} status={status} />
       ))}
