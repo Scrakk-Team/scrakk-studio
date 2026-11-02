@@ -423,6 +423,10 @@ published are not edited. The file goes per version:
   starving the editor canvas.
 
 ### Social (UI)
+- **The sign-in email field and consent control match Settings.** The email
+  input now uses the same 40px, borderless, surface-colored search field as the
+  theme and LSP searches in Settings, and the legal acceptance checkbox is the
+  same square Settings toggle instead of a native browser checkbox.
 - **The composer goes back to its compact height when the panel grows.** The
   textarea only refit itself when the text changed, so opening the panel at its
   minimum width and widening it afterwards left the field stuck at the taller
