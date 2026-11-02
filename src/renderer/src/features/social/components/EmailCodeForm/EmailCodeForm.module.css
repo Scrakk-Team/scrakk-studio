@@ -57,24 +57,36 @@
 .input,
 .codeInput {
   width: 100%;
-  padding: 7px 10px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-input);
-  background: var(--color-surface-raised);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
   color: var(--color-text);
   font-family: inherit;
   font-size: var(--text-sm);
   outline: none;
 }
 
+/* Email: mismo buscador de Ajustes (Apariencia / Servidores LSP): 40px,
+   sin borde y surface del tema. */
+.input {
+  height: 40px;
+  padding: 0 var(--space-3);
+  border: none;
+  background: var(--color-surface);
+}
+
 .codeInput {
+  padding: 7px 10px;
+  border: 1px solid var(--color-border);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: var(--text-lg);
   letter-spacing: 8px;
   text-align: center;
 }
 
-.input:focus,
+.input:focus {
+  outline: none;
+}
+
 .codeInput:focus {
   border-color: var(--color-accent);
 }
@@ -154,10 +166,10 @@
   cursor: default;
 }
 
-/* Consentimiento legal (checkbox + enlaces) del signup. */
+/* Consentimiento legal (toggle + enlaces) del signup. */
 .consent {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 8px;
   font-size: var(--text-xs);
   color: var(--color-text-secondary);
@@ -165,17 +177,11 @@
   cursor: pointer;
 }
 
-.consent input {
-  margin: 1px 0 0;
-  accent-color: var(--color-accent);
-  flex-shrink: 0;
-}
-
 .consentLinks {
   display: flex;
   gap: 4px;
   margin: -6px 0 0;
-  padding-left: 22px;
+  padding-left: 44px;
   font-size: var(--text-xs);
 }
 

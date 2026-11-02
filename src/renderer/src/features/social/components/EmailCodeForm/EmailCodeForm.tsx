@@ -3,6 +3,7 @@
 // Licencia completa en LICENSE (Apache License 2.0).
 
 import { useCallback, useState, type ChangeEvent, type FormEvent, type JSX } from 'react'
+import { ToggleSwitch } from '@ui'
 import { ProductIcon } from '@services/productIcons/components'
 import { ACCOUNT_RULES } from '@shared/account'
 import { LEGAL_LINKS, LEGAL_VERSION, type LegalConsent } from '@shared/legal'
@@ -100,10 +101,11 @@ export function EmailCodeForm({ onRequestCode, onVerifyCode }: EmailCodeFormProp
         {error ? <p className={styles.error}>{error}</p> : null}
 
         <label className={styles.consent}>
-          <input
-            type="checkbox"
+          <ToggleSwitch
             checked={accepted}
-            onChange={(event: ChangeEvent<HTMLInputElement>) => setAccepted(event.target.checked)}
+            onChange={setAccepted}
+            label={t('social.acepto.los.terminos')}
+            disabled={busy}
           />
           <span>{t('social.acepto.los.terminos')}</span>
         </label>
