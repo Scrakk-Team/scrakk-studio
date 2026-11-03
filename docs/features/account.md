@@ -61,8 +61,11 @@ avatarUrl, bio, custom status), `AccountSummary` (the switcher row) and `Account
 for UX while main revalidates: `handle` is `/^[a-z0-9_]{3,24}$/`, `displayNameMax: 48`,
 `bioMax: 160`, `avatarMaxBytes: 96_000`. The database (`validate_handle`)
 normalizes the handle to lowercase and enforces the same format plus uniqueness
-(`profiles_handle_lower_key`); reserved words are not blocked, so official
-accounts can use handles such as `scrakk`, `scrakkteam` or `support`.
+(`profiles_handle_lower_key`). Reserved handles are rejected unless the account is
+in `public.handle_allowlist`: this includes `scrakk`, any handle containing
+`scrakk`, and role words such as `admin`, `root`, `support`, `system`,
+`official`, `mod` or `staff` (with optional suffixes). Official `@scrakk.art`
+accounts are added to the allowlist automatically by `ensure_profile`.
 
 ## The account switcher
 

@@ -5,6 +5,8 @@
 -- 0034: los handles reservados dejan de bloquear la creación de cuentas.
 -- Proyecto: scrakk-cli (Supabase)
 --
+-- Nota: 0035 restaura la protección. Esta migración se conserva como historial.
+--
 -- 0008/0009 reservaban palabras como `scrakk`, `admin` o `support` y solo
 -- dejaban usarlas a las cuentas de `handle_allowlist`. Eso impide crear las
 -- cuentas oficiales del estudio sin una intervención manual por cada una.
