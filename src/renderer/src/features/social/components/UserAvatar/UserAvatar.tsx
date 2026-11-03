@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Licencia completa en LICENSE (Apache License 2.0).
 
-import { useMemo, useState, type JSX } from 'react'
+import { useEffect, useMemo, useState, type JSX } from 'react'
 import styles from './UserAvatar.module.css'
 
 interface UserAvatarProps {
@@ -37,6 +37,12 @@ export function UserAvatar({ name, src, size = 32, className }: UserAvatarProps)
   const [failed, setFailed] = useState(false)
   const initials = useMemo(() => initialsOf(name), [name])
   const hue = useMemo(() => hueOf(name), [name])
+
+  // Si cambia la foto, reintentar (una URL rota anterior no debe bloquear la
+  // nueva selección).
+  useEffect(() => {
+    setFailed(false)
+  }, [src])
 
   const showImage = Boolean(src) && !failed
 
