@@ -58,9 +58,11 @@ messages: `invalid_input`, `invalid_code`, `handle_taken`, `rate_limited`, `netw
 Shared types live in `src/shared/account.ts`: `AccountProfile` (id, email, handle, displayName,
 avatarUrl, bio, custom status), `AccountSummary` (the switcher row) and `AccountList`
 (`activeId` + `accounts`). Validation rules (`ACCOUNT_RULES`) are shared so the UI can validate
-for UX while main revalidates: `handle` is `/^[a-z0-9_]{3,24}$/` with reserved words
-(`scrakk`, `admin`, `root`, `support`, `system`, `official`), `displayNameMax: 48`,
-`bioMax: 160`, `avatarMaxBytes: 96_000`.
+for UX while main revalidates: `handle` is `/^[a-z0-9_]{3,24}$/`, `displayNameMax: 48`,
+`bioMax: 160`, `avatarMaxBytes: 96_000`. The database (`validate_handle`)
+normalizes the handle to lowercase and enforces the same format plus uniqueness
+(`profiles_handle_lower_key`); reserved words are not blocked, so official
+accounts can use handles such as `scrakk`, `scrakkteam` or `support`.
 
 ## The account switcher
 

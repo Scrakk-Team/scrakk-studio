@@ -142,7 +142,6 @@ export const ACCOUNT_RULES = {
   /** Código OTP de 6 dígitos (mismo formato que el CLI). */
   code: /^\d{6}$/,
   handle: /^[a-z0-9_]{3,24}$/,
-  handleReserved: ['scrakk', 'admin', 'root', 'support', 'system', 'official'],
   displayNameMax: 48,
   bioMax: 160,
   /** Tope del avatar (URL http(s) o data URL de imagen). */
