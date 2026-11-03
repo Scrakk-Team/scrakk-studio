@@ -423,6 +423,9 @@ published are not edited. The file goes per version:
   starving the editor canvas.
 
 ### Social (UI)
+- **A selected profile photo replaces the initials avatar.** `UserAvatar` resets
+  its failed-image state when `src` changes, so choosing a new photo shows it
+  instead of keeping the initials fallback.
 - **Reserved and look-alike handles are blocked again for non-official accounts.**
   `validate_handle` rejects `scrakk`, any handle containing `scrakk`, and role
   words such as `admin`, `support`, `root` or `official` unless the account is
