@@ -423,6 +423,10 @@ published are not edited. The file goes per version:
   starving the editor canvas.
 
 ### Social (UI)
+- **Reserved handles no longer block account setup.** The database validates the
+  handle format and uniqueness only, so official accounts can claim names such
+  as `scrakk`, `scrakkteam` or `support` during onboarding instead of needing a
+  manual allowlist entry.
 - **The sign-in email field and consent control match Settings.** The email
   input now uses the same 40px, borderless, surface-colored search field as the
   theme and LSP searches in Settings, and the legal acceptance checkbox is the
