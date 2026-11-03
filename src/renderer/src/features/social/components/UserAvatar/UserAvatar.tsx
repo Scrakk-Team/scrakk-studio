@@ -53,12 +53,20 @@ export function UserAvatar({ name, src, size = 32, className }: UserAvatarProps)
         width: size,
         height: size,
         fontSize: Math.round(size * 0.38),
-        background: `hsl(${hue} 42% 32%)`
+        background: showImage ? 'transparent' : `hsl(${hue} 42% 32%)`
       }}
       aria-hidden="true"
     >
       {showImage ? (
-        <img className={styles.img} src={src} alt="" onError={() => setFailed(true)} />
+        <img
+          key={src}
+          className={styles.img}
+          src={src}
+          alt=""
+          loading="eager"
+          onLoad={() => setFailed(false)}
+          onError={() => setFailed(true)}
+        />
       ) : (
         <span className={styles.initials}>{initials}</span>
       )}
