@@ -15,6 +15,8 @@
   font-weight: 600;
   line-height: 1;
   user-select: none;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 .img {
@@ -22,6 +24,9 @@
   height: 100%;
   object-fit: cover;
   display: block;
+  image-rendering: auto;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 .initials {
