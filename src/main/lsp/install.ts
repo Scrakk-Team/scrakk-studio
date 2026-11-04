@@ -61,6 +61,11 @@ export function managedNpmDir(): string {
   return path.join(scrakkHome(), 'lsp', 'npm')
 }
 
+/** Gem home gestionado (gem install con GEM_HOME). */
+export function managedGemDir(): string {
+  return path.join(scrakkHome(), 'lsp', 'gem')
+}
+
 /** Toolchains gestionados por la app: ~/.scrakk/toolchains/<id>. */
 export function managedToolchainDir(id: string): string {
   return path.join(scrakkHome(), 'toolchains', id)
@@ -256,8 +261,11 @@ export async function resolveManagedCommand(command: string): Promise<string | n
   if (path.isAbsolute(command)) return null
   const candidates = [
     path.join(managedBinDir(), command),
-    // npm sin -g --prefix DIR: bins en DIR/node_modules/.bin
-    path.join(managedNpmDir(), 'node_modules', '.bin', command)
+    path.join(managedNpmDir(), 'node_modules', '.bin', command),
+    // gem install con GEM_HOME gestionado deja los bins en <gem>/bin.
+    path.join(managedGemDir(), 'bin', command),
+    // dotnet tool install -g deja los bins en ~/.dotnet/tools.
+    path.join(os.homedir(), '.dotnet', 'tools', command)
   ]
   for (const candidate of candidates) {
     try {
@@ -304,7 +312,11 @@ export function buildInstallCommand(recipe: InstallRecipe): {
         env: { GOBIN: managedBinDir() }
       }
     case 'gem':
-      return { cmd: 'gem', args: ['install', recipe.package] }
+      return {
+        cmd: 'gem',
+        args: ['install', recipe.package],
+        env: { GEM_HOME: managedGemDir(), GEM_PATH: managedGemDir() }
+      }
     case 'dotnet':
       return { cmd: 'dotnet', args: ['tool', 'install', '-g', recipe.package] }
     case 'custom':
@@ -605,18 +617,31 @@ async function extractBinary(
     if (!wanted) throw new Error(`${binaryPathInArchive} no está en el zip`)
     await fs.writeFile(destination, Buffer.from(files[wanted]))
   } else {
-    // tar/tar.gz vía tar del sistema (disponible en linux/mac; win10+ tiene bsdtar).
+    // Puede ser un tar sin extensión o un binario crudo (marksman, etc.).
+    // Se intenta primero como tar; si falla, se copia el archivo tal cual.
     const tmpDir = path.join(path.dirname(archivePath), 'extracted')
     await fs.mkdir(tmpDir, { recursive: true })
-    const { code, stderr } = await run(
-      resolveExecutable('tar') ?? 'tar',
-      ['-xf', archivePath, '-C', tmpDir],
-      undefined,
-      (line) => onProgress?.({ stage: 'extracting', message: line })
-    )
-    if (code !== 0) throw new Error(`tar falló: ${stderr.slice(0, 300)}`)
-    const source = path.join(tmpDir, binaryPathInArchive)
-    await fs.copyFile(source, destination)
+    let extracted = false
+    try {
+      await assertSafeTar(archivePath)
+      const { code } = await run(
+        resolveExecutable('tar') ?? 'tar',
+        ['-xf', archivePath, '-C', tmpDir],
+        undefined,
+        (line) => onProgress?.({ stage: 'extracting', message: line })
+      )
+      if (code === 0) {
+        const source = path.join(tmpDir, binaryPathInArchive)
+        await fs.access(source)
+        await fs.copyFile(source, destination)
+        extracted = true
+      }
+    } catch {
+      extracted = false
+    }
+    if (!extracted) {
+      await fs.copyFile(archivePath, destination)
+    }
   }
 
   if (process.platform !== 'win32') {

@@ -454,7 +454,8 @@ export class LspManager {
     const resolved = await this.resolveOrInstall(serverName, config, root)
     if (!resolved) {
       const error =
-        config.transport === 'socket' ? undefined : `binario no encontrado: ${config.command}`
+        this.lastErrorByKey.get(key) ??
+        (config.transport === 'socket' ? undefined : `binario no encontrado: ${config.command}`)
       if (error) this.lastErrorByKey.set(key, error)
       this.emitEvent({ serverName, state: 'failed', error })
       return false
@@ -537,7 +538,9 @@ export class LspManager {
     try {
       return await withTimeout(install(recipe as InstallRecipe, config), INSTALL_TIMEOUT_MS)
     } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
       console.warn(`[lsp] auto-instalación de "${serverName}" falló:`, error)
+      this.lastErrorByKey.set(this.clientKey(serverName, root), message)
       return null
     }
   }

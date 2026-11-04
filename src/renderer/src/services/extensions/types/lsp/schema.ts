@@ -73,6 +73,8 @@ function isValidInstallRecipe(raw: unknown): boolean {
     r.kind === 'gem' ||
     r.kind === 'dotnet' ||
     r.kind === 'github' ||
+    r.kind === 'githubTree' ||
+    r.kind === 'hashicorp' ||
     r.kind === 'custom'
   )
 }
