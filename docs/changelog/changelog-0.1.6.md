@@ -491,6 +491,18 @@ published are not edited. The file goes per version:
   serialized per extension, so two calls that arrive before the session is
   published cannot spawn two hosts.
 
+### LSP (install)
+- **Raw GitHub binaries install instead of failing as tar.** `extractBinary`
+  now falls back to copying the downloaded file when it is not a recognized
+  archive (e.g. Marksman's ELF asset), instead of running `tar` on it.
+- **Gem installs use a managed GEM_HOME.** `gem install` runs with
+  `GEM_HOME`/`GEM_PATH` under `~/.scrakk/lsp/gem` and managed binaries are
+  resolved from there.
+- **Extension LSP recipes accept `githubTree` and `hashicorp`.** The schema
+  validator no longer drops install recipes that use those kinds.
+- **Auto-install failures are surfaced.** `resolveOrInstall` stores the real
+  error in `lastErrorByKey` instead of returning a generic "binary not found".
+
 ### Development
 - **The engine's shortcut registry is data-driven now.** `ShortcutManager`
   used to hardcode four bindings in its constructor and only understand a
