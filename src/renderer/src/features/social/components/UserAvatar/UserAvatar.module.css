@@ -17,6 +17,7 @@
   user-select: none;
   transform: translateZ(0);
   backface-visibility: hidden;
+  will-change: transform;
 }
 
 .img {
@@ -27,6 +28,7 @@
   image-rendering: auto;
   transform: translateZ(0);
   backface-visibility: hidden;
+  will-change: transform;
 }
 
 .initials {
