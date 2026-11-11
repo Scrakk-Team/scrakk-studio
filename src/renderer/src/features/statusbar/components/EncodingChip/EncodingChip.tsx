@@ -93,7 +93,7 @@ export function EncodingChip(): JSX.Element | null {
     if (!res.success || !res.detected || typeof res.text !== 'string') return
     setDetected(activePath, res.text, { ...res.detected, encoding: chosen })
     // Multi-editor: el reload apunta a la SESIÓN del archivo (no al singleton).
-    reloadFileContent(activePath, res.text)
+    await reloadFileContent(activePath, res.text)
 
     // 3) Ofrecer convertir EOL también (opcional).
     const eol = await pickOption(t('statusbar.convertir.saltos.de.linea'), [

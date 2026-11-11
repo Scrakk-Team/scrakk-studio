@@ -145,7 +145,9 @@ class FileSessionImpl implements FileSession {
         }
       }
       if (!this.engine || this.engine !== engine) return
-      engine.createFileSession(this.path, text ?? '')
+      // El contenido viaja por chunks (createFileSession es async): el motor
+      // pinta el principio del archivo mientras el resto llega desde disco.
+      await engine.createFileSession(this.path, text ?? '')
       this.applyReadOnly(engine, provided)
       // Recién cargado = limpio.
       const revision = engine.fileSessionRevision(this.path) ?? 0
@@ -246,10 +248,10 @@ class FileSessionImpl implements FileSession {
   }
 
   /** Re-setea el buffer con texto ya re-decodificado (reabrir con encoding). */
-  reloadText(text: string): void {
+  async reloadText(text: string): Promise<void> {
     const engine = this.engine
     if (!engine) return
-    engine.createFileSession(this.path, text)
+    await engine.createFileSession(this.path, text)
     const revision = engine.fileSessionRevision(this.path) ?? 0
     engine.markFileSessionClean(this.path, revision)
     this.setDirty(false)
@@ -315,6 +317,6 @@ export function getFileSessionText(path: string): string | undefined {
  * Recarga el contenido de la sesión (acción "reabrir con encoding"): descarta
  * los cambios y re-setea el buffer con el texto ya re-decodificado.
  */
-export function reloadFileContent(path: string, text: string): void {
-  sessions.get(path)?.reloadText(text)
+export async function reloadFileContent(path: string, text: string): Promise<void> {
+  await sessions.get(path)?.reloadText(text)
 }

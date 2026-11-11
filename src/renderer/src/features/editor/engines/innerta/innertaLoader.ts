@@ -182,6 +182,28 @@ function toUtf32Ptr(raw: Record<string, unknown>, text: string): number {
   return ptr
 }
 
+/**
+ * Versión de toUtf32Ptr que además devuelve el número de code units UTF-32
+ * escritos (el motor los necesita: `stringToUTF32` no los expone).
+ */
+function toUtf32PtrCounted(
+  raw: Record<string, unknown>,
+  text: string
+): { ptr: number; units: number } {
+  const { _malloc, stringToUTF32 } = raw as Record<string, (...a: never[]) => unknown>
+  // Code units UTF-32 ≠ string.length (los surrogates cuentan por 1).
+  let units = 0
+  for (let i = 0; i < text.length; i++) {
+    const cp = text.codePointAt(i)
+    if (cp !== undefined && cp > 0xffff) i++
+    units++
+  }
+  const bytes = (units + 1) * 4
+  const ptr = (_malloc as (s: number) => number)(bytes)
+  ;(stringToUTF32 as (s: string, p: number, n: number) => void)(text, ptr, bytes)
+  return { ptr, units }
+}
+
 /** UTF-8 para exports `const char*` (clipboard del engine). */
 function toUtf8Ptr(raw: Record<string, unknown>, text: string): number {
   const { _malloc, stringToUTF8, lengthBytesUTF8 } = raw as Record<
@@ -255,6 +277,21 @@ function wrap(raw: Record<string, unknown>): InnertaModule {
         _raw._free(namePtr)
       }
 
+      if (typeof _raw._InnertaEnsureVisible === 'function') {
+        _raw._InnertaEnsureVisible()
+      }
+    },
+    beginContent() {
+      _raw._BeginInnertaContent?.()
+    },
+    appendContent(text: string) {
+      if (!text || typeof _raw._AppendInnertaContent !== 'function') return
+      const { ptr, units } = toUtf32PtrCounted(_raw, text)
+      ;(_raw._AppendInnertaContent as (p: number, n: number) => void)(ptr, units)
+      _raw._free(ptr)
+    },
+    endContent() {
+      _raw._EndInnertaContent?.()
       if (typeof _raw._InnertaEnsureVisible === 'function') {
         _raw._InnertaEnsureVisible()
       }
@@ -861,6 +898,19 @@ function wrapIsolated(raw: Record<string, unknown>, canvas: HTMLCanvasElement): 
         _raw._SetInnertaBreadcumbFilename(namePtr)
         _raw._free(namePtr)
       }
+      if (typeof _raw._InnertaEnsureVisible === 'function') _raw._InnertaEnsureVisible()
+    },
+    beginContent() {
+      _raw._BeginInnertaContent?.()
+    },
+    appendContent(text: string) {
+      if (!text || typeof _raw._AppendInnertaContent !== 'function') return
+      const { ptr, units } = toUtf32PtrCounted(_raw, text)
+      ;(_raw._AppendInnertaContent as (p: number, n: number) => void)(ptr, units)
+      _raw._free(ptr)
+    },
+    endContent() {
+      _raw._EndInnertaContent?.()
       if (typeof _raw._InnertaEnsureVisible === 'function') _raw._InnertaEnsureVisible()
     },
     setLanguage(language) {

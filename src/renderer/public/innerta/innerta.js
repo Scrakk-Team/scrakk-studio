@@ -8399,8 +8399,8 @@ function checkIncomingModuleAPI() {
   ignoredModuleProp('wasmBinary');
 }
 var ASM_CONSTS = {
-  3526756: ($0) => { var txt = UTF8ToString($0); if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(txt).catch(function(){}); } },  
- 3526906: ($0, $1, $2, $3) => { if (Module._innertaOnEvent) { try { Module._innertaOnEvent($0, $1, $2, $3); } catch (e) {} } }
+  3867732: ($0) => { var txt = UTF8ToString($0); if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(txt).catch(function(){}); } },  
+ 3867882: ($0, $1, $2, $3) => { if (Module._innertaOnEvent) { try { Module._innertaOnEvent($0, $1, $2, $3); } catch (e) {} } }
 };
 
 // Imports from the Wasm binary.
@@ -8414,6 +8414,9 @@ var _GetInnertaBookmarkCount = Module['_GetInnertaBookmarkCount'] = makeInvalidE
 var _InnertaFrame = Module['_InnertaFrame'] = makeInvalidEarlyAccess('_InnertaFrame');
 var _SetInnertaHostGlyph = Module['_SetInnertaHostGlyph'] = makeInvalidEarlyAccess('_SetInnertaHostGlyph');
 var _SetInnertaContent = Module['_SetInnertaContent'] = makeInvalidEarlyAccess('_SetInnertaContent');
+var _BeginInnertaContent = Module['_BeginInnertaContent'] = makeInvalidEarlyAccess('_BeginInnertaContent');
+var _AppendInnertaContent = Module['_AppendInnertaContent'] = makeInvalidEarlyAccess('_AppendInnertaContent');
+var _EndInnertaContent = Module['_EndInnertaContent'] = makeInvalidEarlyAccess('_EndInnertaContent');
 var _SetInnertaTheme = Module['_SetInnertaTheme'] = makeInvalidEarlyAccess('_SetInnertaTheme');
 var _SetInnertaOverlayHoles = Module['_SetInnertaOverlayHoles'] = makeInvalidEarlyAccess('_SetInnertaOverlayHoles');
 var _SetInnertaDimRegions = Module['_SetInnertaDimRegions'] = makeInvalidEarlyAccess('_SetInnertaDimRegions');
@@ -8544,6 +8547,9 @@ function assignWasmExports(wasmExports) {
   assert(typeof wasmExports['InnertaFrame'] != 'undefined', 'missing Wasm export: InnertaFrame');
   assert(typeof wasmExports['SetInnertaHostGlyph'] != 'undefined', 'missing Wasm export: SetInnertaHostGlyph');
   assert(typeof wasmExports['SetInnertaContent'] != 'undefined', 'missing Wasm export: SetInnertaContent');
+  assert(typeof wasmExports['BeginInnertaContent'] != 'undefined', 'missing Wasm export: BeginInnertaContent');
+  assert(typeof wasmExports['AppendInnertaContent'] != 'undefined', 'missing Wasm export: AppendInnertaContent');
+  assert(typeof wasmExports['EndInnertaContent'] != 'undefined', 'missing Wasm export: EndInnertaContent');
   assert(typeof wasmExports['SetInnertaTheme'] != 'undefined', 'missing Wasm export: SetInnertaTheme');
   assert(typeof wasmExports['SetInnertaOverlayHoles'] != 'undefined', 'missing Wasm export: SetInnertaOverlayHoles');
   assert(typeof wasmExports['SetInnertaDimRegions'] != 'undefined', 'missing Wasm export: SetInnertaDimRegions');
@@ -8670,6 +8676,9 @@ function assignWasmExports(wasmExports) {
   _InnertaFrame = Module['_InnertaFrame'] = createExportWrapper('InnertaFrame', wasmExports['InnertaFrame'], 0);
   _SetInnertaHostGlyph = Module['_SetInnertaHostGlyph'] = createExportWrapper('SetInnertaHostGlyph', wasmExports['SetInnertaHostGlyph'], 5);
   _SetInnertaContent = Module['_SetInnertaContent'] = createExportWrapper('SetInnertaContent', wasmExports['SetInnertaContent'], 1);
+  _BeginInnertaContent = Module['_BeginInnertaContent'] = createExportWrapper('BeginInnertaContent', wasmExports['BeginInnertaContent'], 0);
+  _AppendInnertaContent = Module['_AppendInnertaContent'] = createExportWrapper('AppendInnertaContent', wasmExports['AppendInnertaContent'], 2);
+  _EndInnertaContent = Module['_EndInnertaContent'] = createExportWrapper('EndInnertaContent', wasmExports['EndInnertaContent'], 0);
   _SetInnertaTheme = Module['_SetInnertaTheme'] = createExportWrapper('SetInnertaTheme', wasmExports['SetInnertaTheme'], 1);
   _SetInnertaOverlayHoles = Module['_SetInnertaOverlayHoles'] = createExportWrapper('SetInnertaOverlayHoles', wasmExports['SetInnertaOverlayHoles'], 2);
   _SetInnertaDimRegions = Module['_SetInnertaDimRegions'] = createExportWrapper('SetInnertaDimRegions', wasmExports['SetInnertaDimRegions'], 2);

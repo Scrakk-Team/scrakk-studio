@@ -36,6 +36,15 @@ export interface InnertaModule {
   setContent(text: string): void
   /** Abre un archivo: nombre para el chrome (breadcrumb) + contenido. */
   openFile(path: string, content: string): void
+  /**
+   * Streaming de contenido (multi-chunk). `beginContent` resetea el buffer;
+   * `appendContent` agrega un chunk (puede haber frames entre chunks — así el
+   * motor pinta mientras llega el resto); `endContent` normaliza el final
+   * y programa el resaltado.
+   */
+  beginContent(): void
+  appendContent(chunk: string): void
+  endContent(): void
   setLanguage?(language: string): void
   setBounds(x: number, y: number, w: number, h: number): void
   setFocus(focused: boolean): void
@@ -841,18 +850,46 @@ export class InnertaEngine implements EditorEngine {
   /**
    * Crea la sesión del archivo y la activa. `content` es el texto a cargar;
    * `cleanRevision` la revisión ya persistida (si se conoce).
+   *
+   * El contenido viaja por chunks (\`beginContent\`/\`appendContent\`/\`endContent\`)
+   * con un frame entre chunk y chunk: el motor pinta el archivo apenas llega el
+   * primer chunk en vez de congelarse con TODO el texto en un solo bloque.
    */
-  createFileSession(id: string, content: string, cleanRevision?: number): void {
+  async createFileSession(id: string, content: string, cleanRevision?: number): Promise<void> {
     const module = this.module
     if (!module?.createSession) return
     module.createSession(id)
     this.fileSessions.add(id)
     module.activateSession?.(id)
     // openFile setea contenido + lenguaje + breadcrumb en la sesión ACTIVA.
-    module.openFile(id, content)
+    await this.feedStreamedContent(module, content)
     this.activatePath(id, content)
     if (typeof cleanRevision === 'number') module.setSessionCleanRevision?.(id, cleanRevision)
     this.host?.querySelector<HTMLCanvasElement>('.scrakk-innerta-canvas')?.focus()
+  }
+
+  /**
+   * Alimenta el buffer del motor por chunks con un frame entre chunk y chunk.
+   * El motor pinta el contenido según llega (paint progresivo + highlight del
+   * viewport primero), en vez de congelarse con TODO el texto en un bloque.
+   */
+  private async feedStreamedContent(module: InnertaModule, content: string): Promise<void> {
+    module.beginContent()
+    // ~16 frames como mucho en archivos de decenas de MB; uno o dos en chicos.
+    const chunkChars = Math.max(256 * 1024, Math.ceil(content.length / 16))
+    for (let offset = 0; offset < content.length;) {
+      let end = Math.min(offset + chunkChars, content.length)
+      // No partir un surrogate pair (el string JS es UTF-16).
+      if (end < content.length) {
+        const code = content.charCodeAt(end - 1)
+        if (code >= 0xd800 && code <= 0xdbff) end++
+      }
+      module.appendContent(content.slice(offset, end))
+      offset = end
+      // Ceder el hilo: el motor pinta lo que haya y el paint loop respira.
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+    }
+    module.endContent()
   }
 
   /** Activa una sesión existente (cambio de tab, sin recargar nada). */
