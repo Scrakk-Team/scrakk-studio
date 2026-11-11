@@ -17,6 +17,7 @@ import { AppearanceSection } from './AppearanceSection'
 import { EditorSection } from './EditorSection/EditorSection'
 import { ExtensionsSection } from './ExtensionsSection'
 import { PerformanceSection } from './PerformanceSection/PerformanceSection'
+import { ExperimentalSection } from './ExperimentalSection/ExperimentalSection'
 import { ServersSection } from './ServersSection/ServersSection'
 import { HighlightSection } from './HighlightSection/HighlightSection'
 import { TerminalSection } from './TerminalSection/TerminalSection'
@@ -31,6 +32,7 @@ export type SettingsSectionId =
   | 'editor'
   | 'extensions'
   | 'performance'
+  | 'experimental'
   | 'servers'
   | 'highlight'
   | 'terminal'
@@ -95,6 +97,7 @@ export const SETTINGS_SECTIONS: SettingsSectionDef[] = [
   section('extensions', 'settings.nav.extensions', 'extensions', ExtensionsSection),
   // Oculto por pedido (queda el código, no se muestra en el nav).
   hiddenSection('performance', 'settings.nav.performance', 'chart', PerformanceSection),
+  section('experimental', 'settings.nav.experimental', 'chart', ExperimentalSection),
   section('chat', 'settings.nav.chat', 'chat', ChatSection),
   section('chatProviders', 'settings.nav.providers', 'server', ProvidersSection, 'chat'),
   section('chatTools', 'settings.nav.tools', 'grid', ToolsSection, 'chat'),

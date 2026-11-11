@@ -1,0 +1,79 @@
+.wrap {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Native scroll container: the browser draws and styles the scrollbar
+   (global Scrakk skin), and its scrollTop drives the WASM core. */
+.scroller {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.canvas {
+  position: sticky;
+  top: 0;
+  display: block;
+  outline: none;
+  /* Rows set `pointer` dynamically; the scrollbar keeps the normal cursor. */
+  cursor: default;
+}
+
+/* No focus ring after clicking the explorer (the global :focus-visible rule
+   would otherwise draw an accent outline around the canvas). */
+.canvas:focus,
+.canvas:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+.empty {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 20px;
+  background: var(--color-bg);
+  text-align: center;
+}
+
+.emptyText {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.emptyBtn {
+  padding: 6px 14px;
+  border: none;
+  border-radius: var(--radius-capsule);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.emptyBtn:hover {
+  background: var(--color-accent-hover);
+}
+
+.errorText {
+  max-width: 90%;
+  margin: 0;
+  font-size: 10px;
+  color: var(--color-danger, #f87171);
+  white-space: pre-wrap;
+  word-break: break-word;
+}

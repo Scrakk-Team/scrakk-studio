@@ -11,7 +11,7 @@
       "category": "highlights",
       "source": "upstream",
       "origin": "repo",
-      "sha256": "da7f4979c8aebcf8432dc454da8c3506c56a8a90ddbc0e5d2c775bbf15ccb5cc"
+      "sha256": "b7175098691e995be64cbc395cd4b29eda5e34b5d4410ad257c379d9b8a6cec8"
     },
     {
       "file": "queries/injections.scm",
@@ -77,5 +77,7 @@
   "categoriesWithoutConsumer": [
     "rainbows"
   ],
-  "inherits": []
+  "inherits": [
+    "c"
+  ]
 }

@@ -79,6 +79,19 @@ function readLanguages() {
 const registry = JSON.parse(readFileSync(join(ENGINE, 'deps', 'languages.json'), 'utf8'))
 const repoByName = new Map(registry.languages.map((l) => [l.name, l.repoName]))
 
+/**
+ * Herencia de queries por lenguaje (base PRIMERO), igual que nvim-treesitter.
+ *
+ * Varias gramáticas publican sólo los AGREGADOS de su lenguaje y esperan que la
+ * base se fusione: `tree-sitter-cpp/queries/highlights.scm` no trae comentarios,
+ * strings ni keywords de control de flujo porque se usa con `; inherits: c`.
+ * Sin esta tabla el pack generaba el C++ a medias (sólo pintaba unas pocas
+ * palabras). El CLI resuelve la fusión (`--inherits`) al empaquetar.
+ */
+const INHERITS = {
+  cpp: ['c']
+}
+
 const targets = readLanguages().map(({ id, ext }) => {
   const special = SPECIAL[id]
   return {
@@ -86,7 +99,8 @@ const targets = readLanguages().map(({ id, ext }) => {
     ext,
     dir: special?.dir ?? repoByName.get(id) ?? `tree-sitter-${id}`,
     parser: special?.parser,
-    force: special?.force
+    force: special?.force,
+    inherits: INHERITS[id] ?? []
   }
 })
 
@@ -159,6 +173,9 @@ for (const target of targets) {
   ]
   if (target.parser) args.push('--parser', target.parser)
   if (target.force) args.push('--force')
+  // La base se fusiona en TODAS las queries del lenguaje (highlights, folds,
+  // injections, …), no sólo en highlights: es lo que hace nvim-treesitter.
+  if (target.inherits.length > 0) args.push('--inherits', target.inherits.join(','))
   try {
     execFileSync(process.execPath, args, { stdio: 'pipe' })
     ok += 1

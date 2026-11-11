@@ -66,3 +66,14 @@ export async function createNewFile(workspaceRoot = getWorkspaceRoot()): Promise
   openFileInEditor(path, baseNameOf(path))
   return path
 }
+
+/** Crea una carpeta nueva en la raíz del workspace. */
+export async function createNewFolder(workspaceRoot = getWorkspaceRoot()): Promise<string | null> {
+  const root = workspaceRoot ?? (await openFolderViaDialog())
+  if (!root) return null
+  const name = window.prompt('Nombre de la carpeta', 'nueva-carpeta')?.trim()
+  if (!name) return null
+  const path = joinPath(root, name)
+  const res = await api.fs.mkdir(path)
+  return res.success ? path : null
+}

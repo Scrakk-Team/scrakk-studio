@@ -727,6 +727,15 @@ published are not edited. The file goes per version:
   releases and auto-update are untouched. In exchange the repo no longer ships
   the `npm run sef:*` scripts.
 
+### Editor
+- **The editor now uses Obel Mono** (Typographic Systems, SIL OFL 1.1) instead
+  of Lilex. It is loaded through a separate `FontAtlas::LoadEditorDefault`, so
+  the **terminal keeps its own font** (JetBrains Mono or the system chain the
+  host passes) and the UI/emoji fonts are untouched. The editor reloads this
+  font after the canvas baseline on every start, so it no longer stays on the
+  fallback until the first zoom. The WASM embeds `ObelMono-Regular.ttf`
+  (~+330 KB).
+
 ### Themes (Appearance)
 - **A theme can now own an animated background, not just a static image.**
   `colors.background` accepts `{ "type": "overlay", "overlay": "<id>", "opacity"? }`

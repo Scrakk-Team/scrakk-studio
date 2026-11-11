@@ -1,527 +1,191 @@
 // Copyright 2026 Scrakk Studio
 // SPDX-License-Identifier: Apache-2.0
-// Licencia completa en LICENSE (Apache License 2.0).
+//
+// Explorer panel — native renderer.
+// The tree state and hit-testing live in the WASM core built from Innerta
+// (src/Core/ui/explorer/wasm). This component owns the canvas, input and the
+// bridge to the Electron filesystem / editor tabs.
 
-/**
- * Explorer — panel de archivos del workspace.
- *
- * Técnicas de rendimiento portadas del Explorer GTK:
- *  - Virtualización: solo se renderizan las filas visibles del árbol
- *    (altura de fila fija + ventana con buffer).
- *  - Árbol lazy + carga incremental por lotes + cancelación por generación
- *    + watcher de filesystem (ver hooks/useWorkspaceState).
- *  - Metadata mínima en readdir (sin stat por entrada).
- *
- * Combinación de estilos: estructura del Explorer de Scrakk Code Editor
- * (indent guiado, chevrons, filas "…") con tokens de Scrakk Studio.
- */
-
-import { useCallback, useEffect, useMemo, useRef, useState, type JSX } from 'react'
-import { ProductIcon } from '@services/productIcons/components'
-import { ContextMenu, type ContextMenuItem } from '@ui'
-import { HeaderActionButton, usePanelTitle } from '@features/layout'
+import { useCallback, useEffect, useRef, useState, type JSX } from 'react'
+import { getWorkspaceRoot } from './hooks/useWorkspaceState'
+import { createNewFile, createNewFolder, openFolderViaDialog } from './fileActions'
 import {
   isGitDecorationsVisible,
   setGitDecorationsVisible,
   subscribeToDecorations
 } from './decorations'
+import { HeaderActionButton, usePanelTitle } from '@features/layout'
+import { t } from '@core/i18n'
+import { ContextMenu, type ContextMenuItem } from '@ui'
 import { openFileInEditor } from '@features/editor'
 import { setResourceDragData } from '@features/dnd'
-import { useWorkspaceState, type FileNode } from './hooks/useWorkspaceState'
-import type { RowAction } from './components/ExplorerRow'
-import { useFileSelection } from './hooks/useFileSelection'
-import { useWindowedRows } from './hooks/useWindowedRows'
-import { useSelectionBox, type LassoContext } from './hooks/useSelectionBox'
-import { ExplorerRow } from './components/ExplorerRow'
-import { focusGuideLevel, rowActiveGuideLevel } from './utils/indentGuides'
-import { SelectionBox } from './components/SelectionBox/SelectionBox'
-import { DeleteModal, type DeleteTarget } from './components/DeleteModal'
-import { ROW_HEIGHT, VIRTUAL_BUFFER } from './constants'
-import { baseNameOf, isWithin, isValidName } from './utils/fileUtils'
-import { ancestorDirs, filterRowsByPaths } from './filter'
-import styles from './Explorer.module.css'
-import { ToolDock, ToolDockHostProvider } from '@features/tooldock'
-
-import { t } from '@core/i18n'
-import { shareFileToSocial } from '@features/social/actions/shareFile'
-import { fileHandlerRegistry } from '@features/fileHandlers/registry'
-import {
-  canToggleMode,
-  effectiveMode,
-  setPreferredMode
-} from '@features/fileHandlers/preferences'
 import { api } from '@services/api'
-/** Fila fantasma mientras se crea un archivo/carpeta. */
-interface CreatingState {
-  parentPath: string
-  isDirectory: boolean
+import { isSkipFilesOnExpandAll } from '@services/explorerSettings'
+import { baseNameOf } from '@services/workspaces/history'
+import { getFileIconUrl, subscribeToFileIcons } from '@services/fileIcons'
+import { resolveProductIcon, subscribeToProductIcons } from '@services/productIcons'
+import type { LassoContext } from './hooks/useSelectionBox'
+import { createNativeExplorer, type NativeExplorer } from './native/nativeExplorer'
+import styles from './ExplorerCanvas.module.css'
+
+const ROW_HEIGHT = 22
+const LIST_PAD_Y = 2
+const INDENT = 12
+const BASE_PAD = 8
+/** Extra rows above/below the viewport (editor-style virtualization). */
+const VIRTUAL_BUFFER = 12
+
+interface ExplorerPanelProps {
+  /** Root to show (explorer tabs spawned by drag & drop). */
+  rootOverride?: string
+  interactive?: boolean
+  visiblePaths?: Set<string> | null
+  onSelectionChange?: (paths: string[]) => void
+  onOpenFile?: (path: string, name: string) => void
+  rowActions?: unknown
+  onLasso?: (paths: string[], ctx: LassoContext) => void
 }
-
-interface ContextMenuState {
-  x: number
-  y: number
-  node: FileNode | null
-  /** true si el menú se abrió sobre el fondo del árbol (sin item). */
-  background: boolean
-}
-
-type FlatKind = 'node' | 'creating' | 'loading'
-
-interface FlatRow {
-  node: FileNode
-  level: number
-  kind: FlatKind
-}
-
-const CREATING_NODE: FileNode = {
-  name: '',
-  path: '__creating__',
-  isDirectory: false,
-  children: null,
-  isExpanded: false,
-  level: 0
-}
-
-const LOADING_NODE: FileNode = {
-  name: 'Cargando…',
-  path: '__loading__',
-  isDirectory: false,
-  children: null,
-  isExpanded: false,
-  level: 0
-}
-
-/** Handler de drag no-op ESTABLE (identidad fija): no rompe el `memo` de las filas. */
-const NOOP_DRAG_EVENT = (_event: React.DragEvent, _node: FileNode): void => {}
 
 export function ExplorerPanel({
   rootOverride,
-  interactive = true,
-  visiblePaths = null,
   onSelectionChange,
   onOpenFile,
-  rowActions,
   onLasso
-}: {
-  /** Raíz arbitraria a mostrar (default: workspace global). */
-  rootOverride?: string
-  /** false = solo lectura (sin menús, dnd ni crear/renombrar/eliminar). */
-  interactive?: boolean
-  /** Subset a mostrar (default: todo). Los ancestros se auto-expanden. */
-  visiblePaths?: Set<string> | null
-  /** Selección actual (para acciones bulk externas). */
-  onSelectionChange?: (paths: string[]) => void
-  /** Hook extra al abrir un archivo (default: nada). */
-  onOpenFile?: (path: string, name: string) => void
-  /** Acciones por fila (hover), dibujadas por el propio árbol. Ver `RowAction`. */
-  rowActions?: (node: FileNode) => RowAction[]
-  /**
-   * Acción del RECUADRO de selección (lasso) al soltar.
-   *
-   * Si no se pasa, el recuadro deja los paths como selección (lo de siempre),
-   * y con **Ctrl/Cmd** los SUMA a la selección existente.
-   *
-   * Si se pasa, el consumidor decide qué hacer: recibe los paths barridos y un
-   * `ctx` con `select` (la acción por defecto, para COMPONER en vez de
-   * reemplazar) y `additive` (el usuario mantuvo Ctrl/Cmd), así puede respetar
-   * la suma o ignorarla:
-   *
-   *   onLasso: (paths, { select, additive }) => {
-   *     select(additive ? [...yaSeleccionados, ...paths] : paths)
-   *     stage(paths)
-   *   }
-   *
-   * El panel de Git lo usa para preparar en lote arrastrando el recuadro.
-   */
-  onLasso?: (paths: string[], ctx: LassoContext) => void
-}): JSX.Element {
-  const workspace = useWorkspaceState(rootOverride)
-  const selection = useFileSelection()
+}: ExplorerPanelProps): JSX.Element {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const wrapRef = useRef<HTMLDivElement>(null)
+  const scrollerRef = useRef<HTMLDivElement>(null)
+  const spacerRef = useRef<HTMLDivElement>(null)
+  const sizeRef = useRef({ w: 0, h: 0 })
+  const explorerRef = useRef<NativeExplorer | null>(null)
+  const lastDragRef = useRef(0)
+  const [root, setRoot] = useState<string | null>(
+    () => rootOverride ?? getWorkspaceRoot()
+  )
+  const [error, setError] = useState<string | null>(null)
+  const iconCache = useRef(new Map<string, { img: HTMLImageElement | null; url: string | null }>())
+  const chevronCache = useRef(new Map<string, HTMLImageElement>())
   const { setTitle, setActions } = usePanelTitle()
-
-  // ── Edición inline (crear / renombrar) ─────────────────────────────────
-  const [creating, setCreating] = useState<CreatingState | null>(null)
-  const [renamingPath, setRenamingPath] = useState<string | null>(null)
-  const [editValue, setEditValue] = useState('')
-  const [editError, setEditError] = useState<string | null>(null)
-
-  // ── Menú contextual / modals / drag & drop ─────────────────────────────
-  const [menu, setMenu] = useState<ContextMenuState | null>(null)
-  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null)
-  const draggedPathsRef = useRef<string[]>([])
-  const [dropTarget, setDropTarget] = useState<string | null>(null)
-  // Fila bajo el cursor: las guías ACTIVAS la siguen en vivo (hover) y caen
-  // a la selección al salir del árbol.
-  const [hoverPath, setHoverPath] = useState<string | null>(null)
-  const handleRowHover = useCallback((path: string | null): void => {
-    setHoverPath(path)
-  }, [])
-
-  // El header del panel muestra el nombre de la carpeta abierta.
-  useEffect(() => {
-    setTitle(workspace.rootPath ? baseNameOf(workspace.rootPath) : t('explorer.explorador'))
-  }, [workspace.rootPath, setTitle])
-
-  // ── Lista plana visible (para render y selección por rango) ────────────
-  const flat = useMemo<FlatRow[]>(() => {
-    if (!workspace.rootPath) return []
-    const out: FlatRow[] = []
-    const walk = (nodes: FileNode[], level: number): void => {
-      for (const node of nodes) {
-        out.push({ node, level, kind: 'node' })
-        if (node.isDirectory && node.isExpanded) {
-          if (creating && creating.parentPath === node.path) {
-            out.push({ node: CREATING_NODE, level: level + 1, kind: 'creating' })
-          }
-          if (node.children === null) {
-            out.push({
-              node: { ...LOADING_NODE, path: `__loading__:${node.path}` },
-              level: level + 1,
-              kind: 'loading'
-            })
-          } else {
-            walk(node.children, level + 1)
-          }
-        }
-      }
-    }
-    if (creating && creating.parentPath === workspace.rootPath) {
-      out.push({ node: CREATING_NODE, level: 0, kind: 'creating' })
-    }
-    walk(workspace.tree, 0)
-    return out
-  }, [workspace.tree, workspace.rootPath, creating])
-
-
-  // Vista filtrada (Cambios de git): subset + ancestros auto-expandidos.
-  const ancestors = useMemo(
-    () =>
-      visiblePaths && workspace.rootPath
-        ? ancestorDirs(workspace.rootPath, visiblePaths)
-        : new Set<string>(),
-    [visiblePaths, workspace.rootPath]
-  )
-
-  useEffect(() => {
-    if (!visiblePaths) return
-    // UNA vez para todas las carpetas: llamar `ensureExpanded` en bucle costaba
-    // un render por carpeta (y cada render re-aplana el árbol completo).
-    // Además se depende del callback (estable) y no del objeto `workspace`, que
-    // cambia de identidad en cada render y hacía que el efecto corriera siempre.
-    workspace.ensureExpandedMany(ancestors)
-  }, [visiblePaths, ancestors, workspace.ensureExpandedMany])
-  // Selección hacia afuera (acciones bulk externas).
-  useEffect(() => {
-    onSelectionChange?.([...selection.selected])
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selection.selected])
-
-  const visibleFlat = useMemo(
-    () => (visiblePaths ? filterRowsByPaths(flat, visiblePaths, ancestors) : flat),
-    [flat, visiblePaths, ancestors]
-  )
-
-  const flatPaths = useMemo(
-    () => visibleFlat.filter((row) => row.kind === 'node').map((row) => row.node.path),
-    [visibleFlat]
-  )
-
-  // ── Virtualización: solo filas visibles (± buffer) ─────────────────────
-  const windowed = useWindowedRows(visibleFlat.length, ROW_HEIGHT, VIRTUAL_BUFFER)
-
-  // ── Caja de selección (lasso) — DOM directo, sin React state ──────────
-  const selectionBoxRef = useRef<HTMLDivElement>(null)
-  const selectionBox = useSelectionBox({
-    containerRef: windowed.containerRef,
-    boxRef: selectionBoxRef,
-    rowCount: flatPaths.length,
-    flatPaths,
-    onCommit: (paths, additive) => {
-      // La acción del recuadro es **del consumidor**: por defecto deja los
-      // paths seleccionados, pero `onLasso` puede reemplazarla o componerla
-      // (el panel de Git la usa para stagear en lote al arrastrar).
-      const select = (next: string[]): void => selection.setSelection(next)
-      if (onLasso) {
-        onLasso(paths, { select, additive })
-        return
-      }
-      // Ctrl/Cmd: se SUMA a lo que ya estaba seleccionado en vez de pisarlo.
-      if (additive) select([...new Set([...selection.selected, ...paths])])
-      else select(paths)
-    },
-    onClear: () => {
-      selection.clear()
-    }
-  })
-
-  // ── Selección ──────────────────────────────────────────────────────────
-  // Apertura centralizada (single-click y doble-click pasan por aquí para
-  // avisar a onOpenFile: dropdowns que se cierran al abrir, etc.).
-  const openFile = useCallback(
-    (path: string, name: string): void => {
-      openFileInEditor(path, name)
-      onOpenFile?.(path, name)
-    },
-    [onOpenFile]
-  )
-
-  const handleSelect = useCallback(
-    (path: string, mode?: 'single' | 'multi' | 'range'): void => {
-      selection.select(path, flatPaths, mode)
-      windowed.containerRef.current?.focus()
-      // Single-click en un archivo → pedir su contenido y abrirlo en Innerta.
-      if (!mode) {
-        const row = visibleFlat.find((r) => r.kind === 'node' && r.node.path === path)
-        if (row && !row.node.isDirectory) {
-          openFile(row.node.path, row.node.name)
-        }
-      }
-    },
-    [selection, flatPaths, windowed.containerRef, visibleFlat, openFile]
-  )
-
-  // ── Crear / renombrar ──────────────────────────────────────────────────
-  const startCreate = useCallback((parentPath: string, isDirectory: boolean): void => {
-    setCreating({ parentPath, isDirectory })
-    setEditValue('')
-    setEditError(null)
-    setRenamingPath(null)
-  }, [])
-
-  const startRename = useCallback((node: FileNode): void => {
-    setRenamingPath(node.path)
-    setEditValue(node.name)
-    setEditError(null)
-    setCreating(null)
-  }, [])
-
-  const cancelEdit = useCallback((): void => {
-    setCreating(null)
-    setRenamingPath(null)
-    setEditError(null)
-  }, [])
-
-  // Los botones de acción viven en el header del panel, no en una barra
-  // aparte (el título ya muestra el nombre de la carpeta). Íconos y orden
-  // replicados del header del Explorer de Scrakk Code Editor.
-  // En modo solo lectura no hay acciones de mutación.
-  // El botón git alterna los badges de estado (A/M/??/D/R) en las filas.
-  //
-  // Van con HeaderActionButton (no IconButton) para que el usuario pueda
-  // ARRASTRARLOS y cambiar su orden: el `id` namespaced es lo que el store
-  // del layout persiste, y el orden del JSX es el default.
   const [gitBadges, setGitBadges] = useState(() => isGitDecorationsVisible())
+  const [menu, setMenu] = useState<{
+    x: number
+    y: number
+    row: { path: string; name: string; isDir: boolean; index: number; level: number } | null
+  } | null>(null)
+  // Native inline rename: value, caret and selection all live in the C++ core.
+  // The canvas only measures glyphs and paints what the core reports.
+  const textDragRef = useRef(false)
+  // Native lasso: the core owns rectangle, hit-testing and preview selection.
+  // These refs only carry the drag state between DOM events.
+  const lassoDragRef = useRef(false)
+  const lassoAdditiveRef = useRef(false)
+  const lassoBaseRef = useRef<string[]>([])
+  // Timestamp of the lasso release: the browser still emits a `click` on the
+  // canvas afterwards (same element), which would click the row under the
+  // pointer and destroy the selection. Suppress it.
+  const lassoClickRef = useRef(0)
+
+  const notifySelection = useCallback((): void => {
+    onSelectionChange?.(explorerRef.current?.selection() ?? [])
+  }, [onSelectionChange])
+
+  const finishLasso = useCallback((): void => {
+    const ex = explorerRef.current
+    if (!ex || !lassoDragRef.current) return
+    lassoDragRef.current = false
+    // mouseup → click is emitted right after this; ignore that click.
+    lassoClickRef.current = Date.now()
+    const paths = ex.lassoPaths()
+    const additive = lassoAdditiveRef.current
+    lassoAdditiveRef.current = false
+    ex.lassoEnd()
+    if (onLasso) {
+      // Same contract as the React explorer: selection only changes if the
+      // consumer calls `select` (the preview is rolled back first).
+      ex.setSelection(lassoBaseRef.current)
+      onLasso(paths, {
+        select: (next) => {
+          ex.setSelection(next)
+          notifySelection()
+        },
+        additive
+      })
+      notifySelection()
+      return
+    }
+    // Default: the core already applied replace (or additive union).
+    notifySelection()
+  }, [notifySelection, onLasso])
+
   useEffect(() => subscribeToDecorations(() => setGitBadges(isGitDecorationsVisible())), [])
+
+  // Drags continue outside the canvas (mouse leaves the panel): the native
+  // core keeps receiving the pointer and the release always ends both drags.
   useEffect(() => {
-    if (!interactive) {
-      setActions(null)
-      return
+    const onMove = (e: MouseEvent): void => {
+      if (!lassoDragRef.current) return
+      const canvas = canvasRef.current
+      const ex = explorerRef.current
+      if (!canvas || !ex) return
+      const rect = canvas.getBoundingClientRect()
+      ex.lassoUpdate(e.clientX - rect.left, e.clientY - rect.top)
     }
-    setActions(() => (
-      <>
-        <HeaderActionButton
-          id="explorer.new-file"
-          label={t('explorer.nuevo.archivo')}
-          icon="new-file"
-          size="sm"
-          shape="rounded"
-          onClick={() => startCreate(workspace.rootPath ?? '', false)}
-        />
-        <HeaderActionButton
-          id="explorer.new-folder"
-          label={t('explorer.nueva.carpeta')}
-          icon="new-folder"
-          size="sm"
-          shape="rounded"
-          onClick={() => startCreate(workspace.rootPath ?? '', true)}
-        />
-        <HeaderActionButton
-          id="explorer.git-badges"
-          label={gitBadges ? t('explorer.git.ocultar.estados') : t('explorer.git.mostrar.estados')}
-          icon="source-control"
-          size="sm"
-          shape="rounded"
-          variant={gitBadges ? 'accent' : 'neutral'}
-          onClick={() => setGitDecorationsVisible(!gitBadges)}
-        />
-        <HeaderActionButton
-          id="explorer.collapse-all"
-          label={t('explorer.colapsar.todas.las.carpetas')}
-          icon="collapse-all"
-          size="sm"
-          shape="rounded"
-          onClick={() => workspace.collapseAll()}
-        />
-        <HeaderActionButton
-          id="explorer.refresh"
-          label={t('explorer.actualizar.explorador')}
-          icon="refresh"
-          size="sm"
-          shape="rounded"
-          onClick={() => workspace.refresh()}
-        />
-      </>
-    ))
-    return () => setActions(null)
-  }, [setActions, interactive, gitBadges, workspace.rootPath, startCreate, workspace.refresh, workspace.collapseAll])
-
-  const commitCreate = useCallback(async (): Promise<void> => {
-    if (!creating) return
-    const name = editValue.trim()
-    if (!isValidName(name)) {
-      setEditError(t('explorer.nombre.invalido'))
-      return
+    const onUp = (): void => {
+      textDragRef.current = false
+      if (lassoDragRef.current) finishLasso()
     }
-    const res = await workspace.createEntry(creating.parentPath, name, creating.isDirectory)
-    if (res.ok) {
-      cancelEdit()
-    } else {
-      setEditError(res.error ?? t('explorer.no.se.pudo.crear'))
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+    return () => {
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
     }
-  }, [creating, editValue, workspace, cancelEdit])
+  }, [finishLasso])
 
-  const commitRename = useCallback(async (): Promise<void> => {
-    if (!renamingPath) return
-    const name = editValue.trim()
-    if (!isValidName(name)) {
-      setEditError(t('explorer.nombre.invalido'))
-      return
+  // Explorer tabs are rooted at their own folder and ignore workspace changes.
+  useEffect(() => {
+    setRoot(rootOverride ?? getWorkspaceRoot())
+  }, [rootOverride])
+
+  // Follow workspace changes triggered from other panels (Welcome, menu…).
+  useEffect(() => {
+    if (rootOverride) return
+    const onWorkspaceChanged = (event: Event): void => {
+      const path = (event as CustomEvent<{ path?: string }>).detail?.path
+      setRoot(path ?? getWorkspaceRoot())
     }
-    const res = await workspace.renameEntry(renamingPath, name)
-    if (res.ok) {
-      cancelEdit()
-    } else {
-      setEditError(res.error ?? t('explorer.no.se.pudo.renombrar'))
-    }
-  }, [renamingPath, editValue, workspace, cancelEdit])
+    window.addEventListener('workspace-changed', onWorkspaceChanged)
+    return () => window.removeEventListener('workspace-changed', onWorkspaceChanged)
+  }, [rootOverride])
 
-  // ── Borrar ─────────────────────────────────────────────────────────────
-  const requestDelete = useCallback(
-    (node: FileNode): void => {
-      const multi = selection.selected.size > 1 && selection.selected.has(node.path)
-      if (multi) {
-        setDeleteTarget({ label: `${selection.selected.size} elementos`, paths: [...selection.selected] })
-      } else {
-        setDeleteTarget({ label: node.name, paths: [node.path] })
-      }
-    },
-    [selection.selected]
-  )
+  // Header title: the opened folder name (Scrakk behavior), not "Explorador".
+  useEffect(() => {
+    setTitle(root ? baseNameOf(root) : t('explorer.explorador'))
+  }, [root, setTitle])
 
-  const confirmDelete = useCallback(
-    async (paths: string[]): Promise<void> => {
-      for (const path of paths) {
-        const res = await workspace.deleteEntry(path)
-        if (!res.ok) {
-          // Se propaga para que el modal muestre el error y no cierre en falso.
-          throw new Error(res.error ?? `No se pudo eliminar "${path}".`)
-        }
-      }
-      selection.setSelection([])
-    },
-    [workspace, selection]
-  )
+  const reopen = useCallback(async (): Promise<void> => {
+    if (!root) return
+    await explorerRef.current?.open(root)
+  }, [root])
 
-  // ── Drag & drop ────────────────────────────────────────────────────────
-  const handleDragStart = useCallback(
-    (event: React.DragEvent, node: FileNode): void => {
-      const paths = selection.selected.has(node.path)
-        ? [...selection.selected]
-        : [node.path]
-      draggedPathsRef.current = paths
-      event.dataTransfer.setData('text/plain', node.path)
-      // Publica el recurso para el sistema de tabs: soltarlo en una zona de
-      // tabs lo abre como tab (archivo) o crea un explorador (carpeta).
-      setResourceDragData(event.dataTransfer, [
-        { kind: node.isDirectory ? 'folder' : 'file', path: node.path, name: node.name }
-      ])
-      event.dataTransfer.effectAllowed = 'copyMove'
-    },
-    [selection.selected]
-  )
+  const newFile = useCallback(async (): Promise<void> => {
+    await createNewFile(root ?? undefined)
+    await reopen()
+  }, [root, reopen])
 
-  const handleDragOver = useCallback(
-    (event: React.DragEvent, node: FileNode): void => {
-      // Drag INTERNO del explorador: lo maneja el explorador aunque el destino
-      // no sea carpeta. Frena el handler del slot, que crearía una tab.
-      if (draggedPathsRef.current.length > 0) event.stopPropagation()
-      if (!node.isDirectory) return
-      const invalid = draggedPathsRef.current.some((p) => isWithin(node.path, p))
-      if (invalid) return
-      event.preventDefault()
-      event.dataTransfer.dropEffect = 'move'
-      setDropTarget(node.path)
-    },
-    []
-  )
+  const newFolder = useCallback(async (): Promise<void> => {
+    await createNewFolder(root ?? undefined)
+    await reopen()
+  }, [root, reopen])
 
-  const moveDropped = useCallback(
-    async (targetDir: string): Promise<void> => {
-      const paths = draggedPathsRef.current
-      draggedPathsRef.current = []
-      setDropTarget(null)
-      if (paths.length === 0 || !targetDir) return
-      if (paths.some((p) => isWithin(targetDir, p))) return
-      for (const path of paths) {
-        await workspace.moveInto([path], targetDir)
-      }
-    },
-    [workspace]
-  )
+  const expandAllFolders = useCallback(async (): Promise<void> => {
+    if (!root) return
+    await explorerRef.current?.expandAllProgressive(root, isSkipFilesOnExpandAll())
+  }, [root])
 
-  const handleDrop = useCallback(
-    (event: React.DragEvent, node: FileNode): void => {
-      if (draggedPathsRef.current.length > 0) event.stopPropagation()
-      event.preventDefault()
-      if (!node.isDirectory) return
-      void moveDropped(node.path)
-    },
-    [moveDropped]
-  )
-
-  const handleDragEnd = useCallback((): void => {
-    draggedPathsRef.current = []
-    setDropTarget(null)
+  const collapseAllFolders = useCallback((): void => {
+    explorerRef.current?.collapseAll()
   }, [])
-
-  // ── Menú contextual ────────────────────────────────────────────────────
-  const openMenuFor = useCallback(
-    (event: React.MouseEvent, node: FileNode | null, background: boolean): void => {
-      event.preventDefault()
-      setMenu({ x: event.clientX, y: event.clientY, node, background })
-    },
-    []
-  )
-
-  // Callbacks ESTABLES para las filas. Antes se creaban closures nuevas en
-  // cada render (dentro del map), así que el `memo` de ExplorerRow nunca podía
-  // saltarse ninguna fila: cada hover re-renderizaba TODO el árbol visible.
-  const handleEditValueChange = useCallback((value: string): void => {
-    setEditValue(value)
-    setEditError(null)
-  }, [])
-
-  const handleRowMenu = useCallback(
-    (event: React.MouseEvent, node: FileNode): void => {
-      if (!interactive) return
-      openMenuFor(event, node, false)
-    },
-    [interactive, openMenuFor]
-  )
-
-  const handleRowDoubleClick = useCallback(
-    (node: FileNode): void => {
-      if (!node.isDirectory) openFile(node.path, node.name)
-    },
-    [openFile]
-  )
-
-  const handleRowCommitEdit = useCallback(
-    (node: FileNode): void => {
-      if (node.path === renamingPath) void commitRename()
-    },
-    [renamingPath, commitRename]
-  )
 
   const copyPath = useCallback(async (path: string): Promise<void> => {
     try {
@@ -531,367 +195,778 @@ export function ExplorerPanel({
     }
   }, [])
 
-  const menuItems = useMemo<ContextMenuItem[]>(() => {
-    if (!menu) return []
-    const items: ContextMenuItem[] = []
-    const root = workspace.rootPath ?? ''
-    const multi =
-      menu.node !== null &&
-      !menu.background &&
-      selection.selected.size > 1 &&
-      selection.selected.has(menu.node.path)
+  const deleteRow = useCallback(
+    async (row: { path: string; name: string }): Promise<void> => {
+      if (!window.confirm(`Eliminar "${row.name}"?`)) return
+      await api.fs.deleteFile(row.path)
+      await reopen()
+    },
+    [reopen]
+  )
 
-    if (menu.background || menu.node === null) {
-      items.push(
-        {
-          label: t('explorer.actualizar'),
-          onClick: () => workspace.refresh()
-        },
-        {
-          label: t('explorer.nuevo.archivo'),
-          onClick: () => startCreate(root, false)
-        },
-        {
-          label: t('explorer.nueva.carpeta'),
-          onClick: () => startCreate(root, true)
-        },
-        {
-          label: t('explorer.copiar.ruta.raiz'),
-          separatorBefore: true,
-          onClick: () => void copyPath(root)
-        }
-      )
-      if (root) {
-        items.push({
-          label: t('explorer.abrir.en.explorador'),
-          onClick: () => void api.fs.openInFolder(root)
-        })
+  const startRename = useCallback(
+    (row: { path: string; name: string }): void => {
+      explorerRef.current?.beginRename(row.path, row.name)
+      canvasRef.current?.focus()
+    },
+    []
+  )
+
+  // Inline rename geometry, derived from the core (row index + level + scroll).
+  const editInputRect = useCallback((): {
+    x: number
+    y: number
+    w: number
+    h: number
+  } | null => {
+    const ex = explorerRef.current
+    if (!ex || !ex.editingPath()) return null
+    const idx = ex.editRow()
+    if (idx < 0) return null
+    const row = ex.rows(idx, 1)[0]
+    if (!row) return null
+    const rowY = LIST_PAD_Y + idx * ROW_HEIGHT - ex.scrollY()
+    const left = 4 + BASE_PAD + row.level * INDENT + 16 + 2 + 16 + 6 - 2
+    return {
+      x: left,
+      y: rowY + ROW_HEIGHT / 2 - 10,
+      w: Math.max(60, sizeRef.current.w - left - 8),
+      h: 20
+    }
+  }, [])
+
+  // Host-side glyph measurement: x -> caret byte offset (the core owns the
+  // actual caret/selection state and all editing semantics).
+  const caretFromX = useCallback((clientX: number): number => {
+    const ex = explorerRef.current
+    const canvas = canvasRef.current
+    const box = editInputRect()
+    if (!ex || !canvas || !box) return 0
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return ex.caret()
+    ctx.font = '12px Inter, system-ui, sans-serif'
+    const value = ex.editValue()
+    const textLeft = box.x + 6 - ex.editScroll()
+    const x = clientX - canvas.getBoundingClientRect().left
+    const encoder = new TextEncoder()
+    let best = 0
+    let bestDist = Math.abs(x - textLeft)
+    let u16 = 0
+    let bytes = 0
+    for (const ch of value) {
+      u16 += ch.length
+      bytes += encoder.encode(ch).length
+      const w = ctx.measureText(value.slice(0, u16)).width
+      const dist = Math.abs(x - (textLeft + w))
+      if (dist < bestDist) {
+        bestDist = dist
+        best = bytes
       }
-      return items
     }
+    return best
+  }, [editInputRect])
 
-    if (multi) {
-      items.push(
-        {
-          label: `Eliminar ${selection.selected.size} elementos`,
-          danger: true,
-          onClick: () => setDeleteTarget({ label: 'elementos', paths: [...selection.selected] })
-        },
-        {
-          label: t('explorer.copiar.rutas'),
-          separatorBefore: true,
-          onClick: () => void copyPath([...selection.selected].join('\n'))
-        }
-      )
-      return items
+  const commitRename = useCallback(async (): Promise<void> => {
+    const ex = explorerRef.current
+    if (!ex) return
+    const oldPath = ex.editingPath()
+    if (!oldPath) return
+    const value = ex.editValue().trim()
+    const name = oldPath.split(/[/\\]/).pop() ?? ''
+    ex.cancelRename()
+    if (!value || value === name) return
+    const parent = oldPath.replace(/[\\/][^\\/]+$/, '')
+    await api.fs.moveFile(oldPath, `${parent}/${value}`)
+    await reopen()
+  }, [reopen])
+
+  const menuItems = ((): ContextMenuItem[] => {
+    if (!menu) return []
+    const row = menu.row
+    if (!row) {
+      return [
+        { label: t('explorer.actualizar'), onClick: () => void reopen() },
+        { label: t('explorer.nuevo.archivo'), onClick: () => void newFile() },
+        { label: t('explorer.nueva.carpeta'), onClick: () => void newFolder() },
+        ...(root
+          ? [
+              {
+                label: t('explorer.copiar.ruta.raiz'),
+                separatorBefore: true,
+                onClick: () => void copyPath(root)
+              },
+              {
+                label: t('explorer.abrir.en.explorador'),
+                onClick: () => void api.fs.openInFolder(root)
+              }
+            ]
+          : [])
+      ]
     }
-
-    const node = menu.node
-    if (node.isDirectory) {
+    const items: ContextMenuItem[] = []
+    if (row.isDir) {
       items.push(
         {
           label: t('explorer.nuevo.archivo'),
-          onClick: () => startCreate(node.path, false)
+          onClick: () => void (async () => {
+            await createNewFile(row.path)
+            await reopen()
+          })()
         },
         {
           label: t('explorer.nueva.carpeta'),
-          onClick: () => startCreate(node.path, true)
+          onClick: () => void (async () => {
+            await createNewFolder(row.path)
+            await reopen()
+          })()
         }
       )
     } else {
       items.push({
         label: t('explorer.abrir'),
-        onClick: () => openFileInEditor(node.path, node.name)
-      })
-      items.push({
-        label: t('social.compartir.en.social'),
-        onClick: () => void shareFileToSocial(node.path)
-      })
-      // El mismo toggle visor ⇄ editor que el menú de la tab.
-      const nodeHandler = fileHandlerRegistry.resolve(node.path)
-      const nodeCanToggle = canToggleMode(nodeHandler, node.path)
-      const nodeViewing = effectiveMode(nodeHandler, node.path) === 'view'
-      items.push({
-        label: !nodeHandler?.load
-          ? t('features.sin.visor.para.este.formato')
-          : nodeViewing
-            ? t('features.ver.como.texto')
-            : t('features.ver.como.visor'),
-        icon: <ProductIcon id={nodeViewing ? 'eye-off' : 'eye'} size={14} aria-hidden="true" />,
-        disabled: !nodeCanToggle,
-        onClick: nodeCanToggle
-          ? () => setPreferredMode(node.path, nodeViewing ? 'text' : 'view')
-          : undefined
+        onClick: () => openFileInEditor(row.path, row.name)
       })
     }
-
     items.push(
       {
         label: t('explorer.renombrar'),
         separatorBefore: true,
-        onClick: () => startRename(node)
+        onClick: () => startRename(row)
       },
-      {
-        label: t('explorer.eliminar'),
-        danger: true,
-        onClick: () => requestDelete(node)
-      },
+      { label: t('explorer.eliminar'), danger: true, onClick: () => void deleteRow(row) },
       {
         label: t('explorer.mostrar.en.explorador'),
         separatorBefore: true,
-        onClick: () => void api.fs.openInFolder(node.path)
+        onClick: () => void api.fs.openInFolder(row.path)
       },
-      {
-        label: t('explorer.copiar.ruta'),
-        onClick: () => void copyPath(node.path)
-      }
+      { label: t('explorer.copiar.ruta'), onClick: () => void copyPath(row.path) }
     )
     return items
-  }, [menu, workspace, selection.selected, startCreate, startRename, requestDelete, copyPath])
+  })()
 
-  // ── Atajos de teclado del árbol ────────────────────────────────────────
-  const handleTreeKeyDown = useCallback(
-    (event: React.KeyboardEvent): void => {
-      // Solo lectura: sin atajos de mutación.
-      if (!interactive) return
-      if (event.key === 'F2') {
-        const first = [...selection.selected][0]
-        if (first) {
-          const node = visibleFlat.find((row) => row.kind === 'node' && row.node.path === first)?.node
-          if (node) startRename(node)
-        }
-      } else if (event.key === 'Delete') {
-        const paths = [...selection.selected]
-        if (paths.length > 0) {
-          const firstNode = visibleFlat.find((row) => row.kind === 'node' && row.node.path === paths[0])?.node
-          if (firstNode) requestDelete(firstNode)
-        }
-      }
-    },
-    [selection.selected, visibleFlat, startRename, requestDelete, interactive]
+  // Original explorer header actions (same ids/icons as Scrakk).
+  useEffect(() => {
+    setActions(() => (
+      <>
+        <HeaderActionButton
+          id="explorer.new-file"
+          label={t('explorer.nuevo.archivo')}
+          icon="new-file"
+          size="sm"
+          shape="rounded"
+          onClick={() => void newFile()}
+        />
+        <HeaderActionButton
+          id="explorer.new-folder"
+          label={t('explorer.nueva.carpeta')}
+          icon="new-folder"
+          size="sm"
+          shape="rounded"
+          onClick={() => void newFolder()}
+        />
+        <HeaderActionButton
+          id="explorer.git-badges"
+          label={
+            gitBadges ? t('explorer.git.ocultar.estados') : t('explorer.git.mostrar.estados')
+          }
+          icon="source-control"
+          size="sm"
+          shape="rounded"
+          variant={gitBadges ? 'accent' : 'neutral'}
+          onClick={() => setGitDecorationsVisible(!gitBadges)}
+        />
+        <HeaderActionButton
+          id="explorer.expand-all"
+          label={t('explorer.expandir.todas.las.carpetas')}
+          icon="expand-all"
+          size="sm"
+          shape="rounded"
+          onClick={() => void expandAllFolders()}
+        />
+        <HeaderActionButton
+          id="explorer.collapse-all"
+          label={t('explorer.colapsar.todas.las.carpetas')}
+          icon="collapse-all"
+          size="sm"
+          shape="rounded"
+          onClick={collapseAllFolders}
+        />
+        <HeaderActionButton
+          id="explorer.refresh"
+          label={t('explorer.actualizar.explorador')}
+          icon="refresh"
+          size="sm"
+          shape="rounded"
+          onClick={() => void reopen()}
+        />
+      </>
+    ))
+    return () => setActions(null)
+  }, [gitBadges, newFile, newFolder, reopen, setActions])
+
+  // File icon themes (Material, extensions) are provided by the same registry
+  // the original React explorer uses. Invalidate the raster cache when they
+  // change so canvas icons follow the active theme.
+  useEffect(
+    () =>
+      subscribeToFileIcons(() => {
+        iconCache.current.clear()
+      }),
+    []
   )
 
-  // ── Render ─────────────────────────────────────────────────────────────
-  const renderRow = (row: FlatRow): JSX.Element => {
-    const { node, level, kind } = row
+  useEffect(
+    () =>
+      subscribeToProductIcons(() => {
+        chevronCache.current.clear()
+      }),
+    []
+  )
 
-    if (kind === 'creating') {
-      return (
-        <div
-          className={styles.row}
-          style={{ height: ROW_HEIGHT, paddingLeft: 8 + level * 12 }}
-        >
-          <span className={styles.arrowPlaceholder} style={{ width: 16, height: 16 }} />
-          <span className={[styles.icon, creating?.isDirectory ? styles.iconFolder : styles.iconFile].join(' ')}>
-            {creating?.isDirectory ? (
-              <ProductIcon id="folder" size={16} />
-            ) : (
-              <ProductIcon id="new-file" size={16} />
-            )}
-          </span>
-          <input
-            className={styles.input}
-            placeholder={creating?.isDirectory ? t('explorer.nombre.de.carpeta') : t('explorer.nombre.de.archivo')}
-            value={editValue}
-            onChange={(event) => {
-              setEditValue(event.target.value)
-              setEditError(null)
-            }}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') {
-                event.preventDefault()
-                void commitCreate()
-              } else if (event.key === 'Escape') {
-                event.preventDefault()
-                cancelEdit()
-              }
-            }}
-            onBlur={() => {
-              if (!editValue.trim()) cancelEdit()
-              else void commitCreate()
-            }}
-            autoFocus
-          />
-          {editError ? <span className={styles.editError}>{editError}</span> : null}
-        </div>
-      )
+  useEffect(() => {
+    let alive = true
+    let raf = 0
+
+    const draw = (): void => {
+      const canvas = canvasRef.current
+      if (!canvas) return
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return
+      const dpr = window.devicePixelRatio || 1
+      const { w, h } = sizeRef.current
+      if (w === 0 || h === 0) return
+
+      // One computed-style read per frame (the vars are theme-driven).
+      const rootStyle = getComputedStyle(document.documentElement)
+      const read = (name: string, fallback: string): string =>
+        rootStyle.getPropertyValue(name).trim() || fallback
+      const bg = read('--color-bg', '#000')
+      const hoverBg = read('--color-hover', '#1a1a1a')
+      const accent = read('--color-accent', '#fb923c')
+      const text = read('--color-text', '#fff')
+      const muted = read('--color-text-muted', '#7a7a7a')
+      const border = read('--color-border', '#262626')
+      // Theme-driven item radius (default = Scrakk's --radius-sm: 8px).
+      const radiusRaw = Number.parseFloat(read('--radius-sm', '8px'))
+      const itemRadius = Number.isFinite(radiusRaw) ? radiusRaw : 8
+
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+      ctx.clearRect(0, 0, w, h)
+      ctx.fillStyle = bg
+      ctx.fillRect(0, 0, w, h)
+
+      const explorer = explorerRef.current
+      const sy = explorer?.scrollY() ?? 0
+      // Virtualization: only read the rows inside the viewport (+ buffer).
+      const first = Math.max(0, Math.floor(sy / ROW_HEIGHT) - VIRTUAL_BUFFER)
+      const count = Math.ceil(h / ROW_HEIGHT) + VIRTUAL_BUFFER * 2 + 1
+      const all = explorer?.rows(first, count) ?? []
+      const editPath = explorer?.editingPath() ?? ''
+
+      ctx.font = '12px Inter, system-ui, sans-serif'
+      ctx.textBaseline = 'middle'
+
+      for (let j = 0; j < all.length; j++) {
+        const i = first + j
+        const row = all[j]
+        const rowY = LIST_PAD_Y + i * ROW_HEIGHT - sy
+        if (rowY + ROW_HEIGHT < 0 || rowY > h) continue
+
+        if (row.selected) {
+          // Scrakk: accent 14%, 20% on hover. Contiguous selected rows merge
+          // (the core reports the merge bits) so there is no inner radius.
+          const corners = {
+            tl: row.mergeTop ? 0 : itemRadius,
+            tr: row.mergeTop ? 0 : itemRadius,
+            br: row.mergeBottom ? 0 : itemRadius,
+            bl: row.mergeBottom ? 0 : itemRadius
+          }
+          ctx.fillStyle = row.hovered ? accent + '33' : accent + '24'
+          roundRectCorners(ctx, 4, rowY, w - 8, ROW_HEIGHT, corners)
+          ctx.fill()
+        } else if (row.hovered) {
+          ctx.fillStyle = hoverBg
+          roundRect(ctx, 4, rowY, w - 8, ROW_HEIGHT, itemRadius)
+          ctx.fill()
+        }
+
+        for (let l = 0; l < row.level; l++) {
+          const gx = 4 + BASE_PAD + l * INDENT + 7
+          ctx.fillStyle = border
+          ctx.globalAlpha = 0.5
+          ctx.fillRect(gx, rowY, 1, ROW_HEIGHT)
+          ctx.globalAlpha = 1
+        }
+
+        let cx = 4 + BASE_PAD + row.level * INDENT
+        const midY = rowY + ROW_HEIGHT / 2
+
+        if (row.isDir) {
+          drawChevron(ctx, chevronCache.current, row.expanded, cx, midY, muted)
+        }
+        cx += 16 + 2
+
+        // File icon theme (Material / extension-provided), same registry the
+        // React explorer uses. Falls back to the drawn folder/file glyph.
+        const iconKey = `${row.path}|${row.isDir}|${row.expanded}`
+        let entry = iconCache.current.get(iconKey)
+        if (!entry) {
+          const url = getFileIconUrl(row.name, {
+            path: row.path,
+            isDirectory: row.isDir,
+            isExpanded: row.expanded
+          })
+          const img = url ? new Image() : null
+          if (img && url) img.src = url
+          entry = { img, url }
+          iconCache.current.set(iconKey, entry)
+        }
+        if (entry.img && entry.img.complete && entry.img.naturalWidth > 0) {
+          ctx.drawImage(entry.img, cx, midY - 8, 16, 16)
+        } else if (row.isDir) {
+          ctx.fillStyle = accent
+          roundRect(ctx, cx, midY - 6, 14, 11, 2)
+          ctx.fill()
+          ctx.fillStyle = bg
+          ctx.fillRect(cx + 1, midY - 5, 12, 2)
+        } else {
+          ctx.fillStyle = muted
+          roundRect(ctx, cx + 1, midY - 7, 11, 14, 2)
+          ctx.fill()
+        }
+        cx += 16 + 6
+
+        if (explorer && editPath && editPath === row.path) {
+          // Native inline rename: the C++ core owns value/caret/selection;
+          // here we only paint them (selection highlight + blinking caret).
+          const inputX = cx - 2
+          const inputW = Math.max(60, w - inputX - 8)
+          const surfaceRaised = read('--color-surface-raised', '#161616')
+          ctx.fillStyle = surfaceRaised
+          roundRect(ctx, inputX, midY - 10, inputW, 20, 4)
+          ctx.fill()
+
+          const value = explorer.editValue()
+          const bounds = textBoundaries(value)
+          const caretU16 = u16AtByte(bounds, explorer.caret())
+          const anchorU16 = u16AtByte(bounds, explorer.anchor())
+          const caretX = ctx.measureText(value.slice(0, caretU16)).width
+          // The core decides the horizontal text offset (long names).
+          explorer.followCaret(caretX, inputW)
+          const textX = inputX + 6 - explorer.editScroll()
+
+          ctx.save()
+          ctx.beginPath()
+          ctx.rect(inputX + 2, midY - 10, inputW - 4, 20)
+          ctx.clip()
+
+          if (caretU16 !== anchorU16) {
+            const a = Math.min(caretU16, anchorU16)
+            const b = Math.max(caretU16, anchorU16)
+            const x1 = textX + ctx.measureText(value.slice(0, a)).width
+            const x2 = textX + ctx.measureText(value.slice(0, b)).width
+            ctx.fillStyle = accent + '66'
+            ctx.fillRect(x1, midY - 7, Math.max(1, x2 - x1), 14)
+          }
+
+          ctx.fillStyle = text
+          ctx.fillText(value, textX, midY)
+
+          if (explorer.caretVisible()) {
+            ctx.fillStyle = text
+            ctx.fillRect(textX + caretX, midY - 7, 1, 14)
+          }
+          ctx.restore()
+        } else {
+          ctx.fillStyle = text
+          ctx.fillText(row.name, cx, midY)
+        }
+      }
+
+      // Native lasso rectangle: geometry, hit-test and auto-scroll all come
+      // from the C++ core; the host only paints it.
+      if (explorer?.lassoActive()) {
+        const box = explorer.lassoRect()
+        if (box.w > 0 || box.h > 0) {
+          ctx.fillStyle = accent + '14'
+          ctx.strokeStyle = accent + '80'
+          ctx.lineWidth = 1
+          roundRect(
+            ctx,
+            box.x + 0.5,
+            box.y + 0.5,
+            Math.max(0, box.w - 1),
+            Math.max(0, box.h - 1),
+            3
+          )
+          ctx.fill()
+          ctx.stroke()
+        }
+      }
+
+      // No outer border: the panel card already draws it. The scrollbar is
+      // the browser's native one on the scroller element.
     }
 
-    if (kind === 'loading') {
-      return (
-        <div
-          className={`${styles.row} ${styles.special}`}
-          style={{ height: ROW_HEIGHT, paddingLeft: 8 + level * 12 }}
-        >
-          <span className={styles.arrowPlaceholder} style={{ width: 16, height: 16 }} />
-          <span className={styles.name}>{t('explorer.cargando')}</span>
-        </div>
-      )
+    let lastContent = -1
+    let lastFrame = performance.now()
+    const loop = (now: number): void => {
+      if (!alive) return
+      const dt = Math.min(0.05, Math.max(0, (now - lastFrame) / 1000))
+      lastFrame = now
+      explorerRef.current?.tick(dt)
+
+      // Native lasso auto-scroll: the core computes the delta; the host just
+      // moves the native scroller (its scroll event re-runs the hit-test).
+      const scrollDelta = explorerRef.current?.takeLassoScroll() ?? 0
+      if (scrollDelta !== 0 && scrollerRef.current) {
+        scrollerRef.current.scrollTop += scrollDelta
+      }
+
+      // Content height is written straight to the DOM: expanding a folder must
+      // not re-render React (that used to flash the whole panel).
+      const ch = explorerRef.current?.contentHeight() ?? 0
+      if (ch !== lastContent && spacerRef.current) {
+        lastContent = ch
+        spacerRef.current.style.height = `${ch}px`
+      }
+      draw()
+      raf = requestAnimationFrame(loop)
     }
 
-    const isEditing = renamingPath === node.path
-    return (
-      <ExplorerRow
-        node={node}
-        level={level}
-        isSelected={selection.selected.has(node.path)}
-        activeGuideLevel={rowActiveGuideLevel(node.path, guideFocus)}
-        onHover={handleRowHover}
-        isEditing={isEditing}
-        isDragging={draggedPathsRef.current.includes(node.path)}
-        isDropTarget={dropTarget === node.path}
-        editValue={editValue}
-        interactive={interactive}
-        hideDots={!interactive}
-        rowActions={rowActions}
-        onEditValueChange={handleEditValueChange}
-        onSelect={handleSelect}
-        onToggle={workspace.toggleFolder}
-        onContextMenu={handleRowMenu}
-        onOpenMenu={handleRowMenu}
-        onDoubleClick={handleRowDoubleClick}
-        onCommitEdit={handleRowCommitEdit}
-        onCancelEdit={cancelEdit}
-        onDragStart={interactive ? handleDragStart : NOOP_DRAG_EVENT}
-        onDragOver={interactive ? handleDragOver : NOOP_DRAG_EVENT}
-        onDrop={interactive ? handleDrop : NOOP_DRAG_EVENT}
-        onDragEnd={handleDragEnd}
-      />
-    )
-  }
+    const onResize = (): void => {
+      const scroller = scrollerRef.current
+      const canvas = canvasRef.current
+      if (!scroller || !canvas) return
+      const w = scroller.clientWidth
+      const h = scroller.clientHeight
+      if (w === 0 || h === 0) return
+      const dpr = window.devicePixelRatio || 1
+      // Resizing the bitmap clears it; only do it when the size really changed
+      // and repaint immediately so the cleared frame is never presented.
+      if (w === sizeRef.current.w && h === sizeRef.current.h) return
+      sizeRef.current = { w, h }
+      canvas.width = Math.max(1, Math.round(w * dpr))
+      canvas.height = Math.max(1, Math.round(h * dpr))
+      canvas.style.width = `${w}px`
+      canvas.style.height = `${h}px`
+      explorerRef.current?.setViewport(w, h)
+      draw()
+    }
 
-  const visibleRows = visibleFlat.slice(windowed.start, windowed.end)
+    const ro = new ResizeObserver(onResize)
+    if (scrollerRef.current) ro.observe(scrollerRef.current)
 
-  // Foco para la guía ACTIVA (hover en vivo, selección al salir): UNA sola
-  // línea — la de la carpeta en foco — en su subárbol. Memoizado, no por fila.
-  const guideFocus = useMemo(() => {
-    const path = hoverPath ?? selection.lastSelected
-    const level = focusGuideLevel(workspace.rootPath, path)
-    return path !== null && level !== null ? { path, level } : null
-  }, [workspace.rootPath, hoverPath, selection.lastSelected])
+    void (async () => {
+      try {
+        // One WASM instance per panel (independent tree/hover/scroll).
+        const explorer = await createNativeExplorer()
+        explorerRef.current = explorer
+        if (root) await explorer.open(root)
+        onResize()
+        raf = requestAnimationFrame(loop)
+      } catch (err) {
+        console.error('[explorer] native load failed', err)
+        setError(err instanceof Error ? err.message : String(err))
+      }
+    })()
 
-  // No-ops tipados para modo solo lectura (las filas exigen handlers).
+    return () => {
+      alive = false
+      cancelAnimationFrame(raf)
+      ro.disconnect()
+      explorerRef.current?.close()
+      explorerRef.current = null
+    }
+  }, [root])
 
-  // Sin workspace: estado vacío con acción de abrir carpeta.
-  if (!workspace.rootPath) {
-    return (
-      <div className={styles.explorer}>
-        <div className={styles.empty}>
-          <div className={styles.emptyIcon}>
-            <ProductIcon id="folder" size={40} />
-          </div>
-          <h3 className={styles.emptyTitle}>{t('explorer.sin.workspace')}</h3>
-          <p className={styles.emptyText}>
-            {t('explorer.abre.una.carpeta.para.explorar')}
-          </p>
-          <div className={styles.emptyActions}>
-            <button
-              type="button"
-              className={`${styles.emptyBtn} ${styles.emptyBtnPrimary}`}
-              onClick={() => void workspace.openFolder()}
-            >
-              <ProductIcon id="folder" size={14} />
-              {t('explorer.abrir.carpeta')}
-            </button>
-          </div>
-        </div>
-      </div>
-    )
+  const rowAt = (
+    clientY: number
+  ): { path: string; name: string; isDir: boolean; index: number; level: number } | null => {
+    const wrap = wrapRef.current
+    if (!wrap) return null
+    const rect = wrap.getBoundingClientRect()
+    const explorer = explorerRef.current
+    if (!explorer) return null
+    const local = clientY - rect.top + explorer.scrollY() - LIST_PAD_Y
+    const idx = Math.floor(local / ROW_HEIGHT)
+    if (local < 0 || idx < 0 || idx >= explorer.rowCount()) return null
+    const row = explorer.rows(idx, 1)[0]
+    if (!row) return null
+    return {
+      path: row.path,
+      name: row.name,
+      isDir: row.isDir,
+      index: idx,
+      level: row.level
+    }
   }
 
   return (
-    <div className={styles.explorer}>
+    <div ref={wrapRef} className={styles.wrap}>
+      {!root ? (
+        <div className={styles.empty}>
+          <p className={styles.emptyText}>Abre una carpeta para explorar.</p>
+          <button
+            type="button"
+            className={styles.emptyBtn}
+            onClick={() => {
+              void (async () => {
+                await openFolderViaDialog()
+                setRoot(getWorkspaceRoot())
+              })()
+            }}
+          >
+            Abrir carpeta
+          </button>
+        </div>
+      ) : null}
+      {error ? (
+        <div className={styles.empty}>
+          <p className={styles.emptyText}>No se pudo cargar el explorer nativo.</p>
+          <pre className={styles.errorText}>{error}</pre>
+        </div>
+      ) : null}
       <div
-        ref={windowed.attachContainer}
-        className={styles.tree}
+        ref={scrollerRef}
+        className={styles.scroller}
+        onScroll={(e) => explorerRef.current?.setScroll(e.currentTarget.scrollTop)}
+      >
+      <div ref={spacerRef}>
+      <canvas
+        ref={canvasRef}
+        className={styles.canvas}
         tabIndex={0}
-        onKeyDown={handleTreeKeyDown}
-        onMouseLeave={() => setHoverPath(null)}
-        onMouseDown={(event) => {
-          if (event.target === event.currentTarget) {
-            selection.clear()
-            windowed.containerRef.current?.focus()
-          }
-          selectionBox.handleMouseDown(event)
-        }}
-        onContextMenu={(event) => {
-          // Solo el fondo del árbol (no filas): las filas manejan las suyas.
-          if (event.target !== event.currentTarget) return
-          event.preventDefault()
-          openMenuFor(event, null, true)
-        }}
-        onDragOver={(event) => {
-          if (!interactive) return
-          // Drag INTERNO: lo maneja el explorador y nunca debe llegar al slot
-          // (que crearía una tab). El fondo del árbol mueve al root.
-          if (draggedPathsRef.current.length > 0) {
-            event.stopPropagation()
-            if (event.target === event.currentTarget) {
-              event.preventDefault()
-              setDropTarget(workspace.rootPath ?? null)
-            }
+        onKeyDown={(e) => {
+          const ex = explorerRef.current
+          if (!ex || !ex.editingPath()) return
+          const mod = e.ctrlKey || e.metaKey
+          if (e.key === 'Escape') {
+            e.preventDefault()
+            ex.cancelRename()
             return
           }
-          if (event.target !== event.currentTarget) return
-          event.preventDefault()
-          setDropTarget(workspace.rootPath ?? null)
+          if (e.key === 'Enter') {
+            e.preventDefault()
+            void commitRename()
+            return
+          }
+          if (mod && e.key.toLowerCase() === 'a') {
+            e.preventDefault()
+            ex.selectAll()
+            return
+          }
+          if (mod && (e.key.toLowerCase() === 'c' || e.key.toLowerCase() === 'x')) {
+            e.preventDefault()
+            const text = ex.selectedText()
+            if (!text) return
+            void navigator.clipboard.writeText(text).catch(() => {})
+            if (e.key.toLowerCase() === 'x') ex.editBackspace()
+            return
+          }
+          if (mod && e.key.toLowerCase() === 'v') {
+            e.preventDefault()
+            void navigator.clipboard
+              .readText()
+              .then((text) => {
+                if (text) ex.editInsert(text)
+              })
+              .catch(() => {})
+            return
+          }
+          if (e.key === 'ArrowLeft') {
+            e.preventDefault()
+            ex.editMove(-1, e.shiftKey)
+            return
+          }
+          if (e.key === 'ArrowRight') {
+            e.preventDefault()
+            ex.editMove(1, e.shiftKey)
+            return
+          }
+          if (e.key === 'Home') {
+            e.preventDefault()
+            ex.editHome(e.shiftKey)
+            return
+          }
+          if (e.key === 'End') {
+            e.preventDefault()
+            ex.editEnd(e.shiftKey)
+            return
+          }
+          if (e.key === 'Backspace') {
+            e.preventDefault()
+            ex.editBackspace()
+            return
+          }
+          if (e.key === 'Delete') {
+            e.preventDefault()
+            ex.editDelete()
+            return
+          }
+          if (e.key.length === 1 && !mod && !e.altKey) {
+            e.preventDefault()
+            ex.editInsert(e.key)
+          }
         }}
-        onDragLeave={() => setDropTarget(null)}
-        onDrop={(event) => {
-          if (!interactive) return
-          if (draggedPathsRef.current.length > 0) event.stopPropagation()
-          if (event.target !== event.currentTarget) return
-          event.preventDefault()
-          if (workspace.rootPath) void moveDropped(workspace.rootPath)
+        onMouseMove={(e) => {
+          const canvas = canvasRef.current
+          const ex = explorerRef.current
+          if (!canvas || !ex) return
+          // The window listener drives the native lasso (also outside canvas).
+          if (lassoDragRef.current) {
+            canvas.style.cursor = 'default'
+            return
+          }
+          const rect = canvas.getBoundingClientRect()
+          const box = editInputRect()
+          const x = e.clientX - rect.left
+          const y = e.clientY - rect.top
+          const overInput =
+            box !== null && x >= box.x && x <= box.x + box.w && y >= box.y && y <= box.y + box.h
+
+          // While selecting text the selection follows the pointer (native
+          // drag: anchor stays put, caret moves).
+          if (textDragRef.current && ex.editingPath()) {
+            ex.setCaret(caretFromX(e.clientX), true)
+            canvas.style.cursor = 'text'
+            return
+          }
+
+          // The 4px lateral margins are tree background (same as Scrakk rows).
+          const inRow = x >= 4 && x <= sizeRef.current.w - 4
+          canvas.style.cursor =
+            overInput ? 'text' : inRow && rowAt(e.clientY) ? 'pointer' : 'default'
+          if (inRow) ex.hover(x, y)
+          else ex.hover(-1, -1)
         }}
-        role="tree"
-        aria-label={t('explorer.explorador.de.archivos')}
-      >
-        {workspace.isLoadingRoot && visibleFlat.length === 0 ? (
-          <div className={styles.loadingRoot}>
-            <span className={styles.spinner} />
-            {t('explorer.cargando')}
-          </div>
-        ) : null}
+        onMouseLeave={() => {
+          if (canvasRef.current) canvasRef.current.style.cursor = 'default'
+          explorerRef.current?.hover(-1, -1)
+        }}
+        draggable
+        onDragStart={(e) => {
+          // Text selection inside the inline rename must not start a drag.
+          if (explorerRef.current?.editingPath()) {
+            e.preventDefault()
+            return
+          }
+          const canvas = canvasRef.current
+          const x = canvas ? e.clientX - canvas.getBoundingClientRect().left : 0
+          const row =
+            x >= 4 && x <= sizeRef.current.w - 4 ? rowAt(e.clientY) : null
+          if (!row) {
+            e.preventDefault()
+            return
+          }
+          lastDragRef.current = Date.now()
+          setResourceDragData(e.dataTransfer, [
+            {
+              kind: row.isDir ? 'folder' : 'file',
+              path: row.path,
+              name: row.name
+            }
+          ])
+          e.dataTransfer.effectAllowed = 'copyMove'
 
-        <SelectionBox ref={selectionBoxRef} />
+          // Custom drag image: just the item, not the whole canvas.
+          const ghost = document.createElement('div')
+          ghost.textContent = row.name
+          ghost.style.cssText =
+            'position:fixed;top:-1000px;left:-1000px;height:22px;display:flex;' +
+            'align-items:center;padding:0 10px;border-radius:6px;' +
+            'background:var(--color-surface-raised);color:var(--color-text);' +
+            'border:1px solid color-mix(in srgb,var(--color-border) 60%,transparent);' +
+            'font:12px Inter,system-ui,sans-serif;white-space:nowrap;pointer-events:none;'
+          document.body.appendChild(ghost)
+          e.dataTransfer.setDragImage(ghost, 8, 11)
+          setTimeout(() => ghost.remove(), 0)
+        }}
+        onMouseDown={(e) => {
+          if (e.button !== 0) return
+          const ex = explorerRef.current
+          const canvas = canvasRef.current
+          if (!ex || !canvas) return
+          const rect = canvas.getBoundingClientRect()
+          const x = e.clientX - rect.left
+          const y = e.clientY - rect.top
 
-        {visibleFlat.length > 0 ? (
-          <div className={styles.window} style={{ height: windowed.totalHeight }}>
-            {visibleRows.map((row, index) => {
-              // Merge visual de seleccionadas contiguas (sin :has: cada fila
-              // vive en su wrapper y el scope de CSS Modules no lo resuelve).
-              const isSel = (r: (typeof visibleRows)[number]): boolean =>
-                r.kind === 'node' && selection.selected.has(r.node.path)
-              const mergeTop = isSel(row) && index > 0 && isSel(visibleRows[index - 1])
-              const mergeBottom =
-                isSel(row) && index < visibleRows.length - 1 && isSel(visibleRows[index + 1])
-              return (
-                <div
-                  key={row.node.path}
-                  className={[
-                    styles.rowSlot,
-                    mergeTop ? styles.rowSlotMergeTop : null,
-                    mergeBottom ? styles.rowSlotMergeBottom : null
-                  ]
-                    .filter(Boolean)
-                    .join(' ')}
-                  style={{ transform: `translateY(${(windowed.start + index) * ROW_HEIGHT}px)` }}
-                >
-                  {renderRow(row)}
-                </div>
-              )
-            })}
-          </div>
-        ) : null}
+          if (ex.editingPath()) {
+            const box = editInputRect()
+            if (box && x >= box.x && x <= box.x + box.w && y >= box.y && y <= box.y + box.h) {
+              // Native caret placement; shift-click keeps the anchor (selection).
+              ex.setCaret(caretFromX(e.clientX), e.shiftKey)
+              textDragRef.current = true
+              canvas.focus()
+              e.preventDefault()
+              return
+            }
+            // Rename input "blur": commit before the click reaches the row.
+            void commitRename()
+          }
 
-        {!workspace.isLoadingRoot && visibleFlat.length === 0 ? (
-          <div className={styles.empty}>
-            <p className={styles.emptyText}>{t('explorer.carpeta.vacia')}</p>
-          </div>
-        ) : null}
+          canvas.focus()
+
+          // Rows start at x=4 (Scrakk's lateral margin); the margins and the
+          // empty area below the list are tree background → native lasso.
+          const onRow = !!rowAt(e.clientY) && x >= 4 && x <= sizeRef.current.w - 4
+          if (onRow) return
+
+          e.preventDefault()
+          const additive = e.ctrlKey || e.metaKey
+          lassoBaseRef.current = additive ? ex.selection() : []
+          lassoAdditiveRef.current = additive
+          ex.lassoBegin(x, y, additive)
+          lassoDragRef.current = true
+          if (!additive) notifySelection()
+        }}
+        onMouseUp={() => {
+          textDragRef.current = false
+        }}
+        onDoubleClick={(e) => {
+          const box = editInputRect()
+          const canvas = canvasRef.current
+          if (!box || !canvas) return
+          const rect = canvas.getBoundingClientRect()
+          const x = e.clientX - rect.left
+          const y = e.clientY - rect.top
+          if (x >= box.x && x <= box.x + box.w && y >= box.y && y <= box.y + box.h) {
+            explorerRef.current?.selectAll()
+          }
+        }}
+        onClick={(e) => {
+          const now = Date.now()
+          if (now - lastDragRef.current < 300) return
+          // Releasing the lasso over a row must not click it.
+          if (now - lassoClickRef.current < 300) return
+          const ex = explorerRef.current
+          const canvas = canvasRef.current
+          if (!ex || !canvas || ex.editingPath()) return
+          const rect = canvas.getBoundingClientRect()
+          const x = e.clientX - rect.left
+          if (x < 4 || x > sizeRef.current.w - 4) return
+          const row = rowAt(e.clientY)
+          if (!row) return
+          // Ctrl/Cmd = toggle, Shift = range (native core applies the mode).
+          const mode = e.ctrlKey || e.metaKey ? 1 : e.shiftKey ? 2 : 0
+          void (async () => {
+            if (row.isDir) await ex.setDir(row.path)
+            const action = await ex.clickIndex(row.index, mode)
+            if (action === 2) onOpenFile?.(row.path, row.name)
+            notifySelection()
+          })()
+        }}
+        onContextMenu={(e) => {
+          e.preventDefault()
+          const canvas = canvasRef.current
+          const x = canvas ? e.clientX - canvas.getBoundingClientRect().left : 0
+          const insideRow = x >= 4 && x <= sizeRef.current.w - 4
+          const row = insideRow ? rowAt(e.clientY) : null
+          setMenu({ x: e.clientX, y: e.clientY, row })
+        }}
+      />
       </div>
-
+      </div>
       {menu ? (
         <ContextMenu
           items={menuItems}
@@ -900,18 +975,146 @@ export function ExplorerPanel({
           onClose={() => setMenu(null)}
         />
       ) : null}
-
-      {deleteTarget ? (
-        <DeleteModal
-          target={deleteTarget}
-          onCancel={() => setDeleteTarget(null)}
-          onConfirm={confirmDelete}
-        />
-      ) : null}
-
-      <ToolDockHostProvider hostId="explorer">
-        <ToolDock />
-      </ToolDockHostProvider>
     </div>
   )
+}
+
+/**
+ * Byte <-> UTF-16 boundary table. The native core stores caret/selection as
+ * UTF-8 byte offsets; canvas text slicing needs UTF-16 indices.
+ */
+function textBoundaries(value: string): Array<{ u16: number; byte: number }> {
+  const encoder = new TextEncoder()
+  const out = [{ u16: 0, byte: 0 }]
+  let u16 = 0
+  let byte = 0
+  for (const ch of value) {
+    u16 += ch.length
+    byte += encoder.encode(ch).length
+    out.push({ u16, byte })
+  }
+  return out
+}
+
+function u16AtByte(
+  bounds: Array<{ u16: number; byte: number }>,
+  byte: number
+): number {
+  for (const b of bounds) if (b.byte >= byte) return b.u16
+  return bounds[bounds.length - 1]?.u16 ?? 0
+}
+
+const CHEVRON_PATHS: Record<string, string> = {
+  'chevron-down': 'm4.75 9.75 6.19 6.19a1.5 1.5 0 0 0 2.12 0l6.19-6.19',
+  'chevron-right': 'm9.75 4.75 6.19 6.19a1.5 1.5 0 0 1 0 2.12l-6.19 6.19'
+}
+
+function chevronDataUri(id: string, color: string): string {
+  const path = CHEVRON_PATHS[id] ?? CHEVRON_PATHS['chevron-right']
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" ` +
+    `fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">` +
+    `<path d="${path}"/></svg>`
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`
+}
+
+function drawFallbackChevron(
+  ctx: CanvasRenderingContext2D,
+  expanded: boolean,
+  x: number,
+  midY: number,
+  color: string
+): void {
+  ctx.strokeStyle = color
+  ctx.lineWidth = 1.4
+  ctx.beginPath()
+  if (expanded) {
+    ctx.moveTo(x + 4, midY - 2)
+    ctx.lineTo(x + 8, midY + 2)
+    ctx.lineTo(x + 12, midY - 2)
+  } else {
+    ctx.moveTo(x + 6, midY - 4)
+    ctx.lineTo(x + 10, midY)
+    ctx.lineTo(x + 6, midY + 4)
+  }
+  ctx.stroke()
+}
+
+function drawChevron(
+  ctx: CanvasRenderingContext2D,
+  cache: Map<string, HTMLImageElement>,
+  expanded: boolean,
+  x: number,
+  midY: number,
+  color: string
+): void {
+  const id = expanded ? 'chevron-down' : 'chevron-right'
+  const resolved = resolveProductIcon(id)
+
+  if (resolved?.kind === 'font') {
+    ctx.fillStyle = color
+    ctx.font = `12px "${resolved.family}"`
+    ctx.fillText(resolved.char, x, midY + 1)
+    return
+  }
+
+  // Builtin (ProIcons default) or any component theme: rasterize the glyph.
+  const componentId = resolved?.kind === 'component' ? resolved.componentId : id
+  const key = `${componentId}|${color}`
+  let img = cache.get(key)
+  if (!img) {
+    img = new Image()
+    img.src = chevronDataUri(componentId, color)
+    cache.set(key, img)
+  }
+  if (img.complete && img.naturalWidth > 0) {
+    ctx.drawImage(img, x, midY - 6, 12, 12)
+  } else {
+    drawFallbackChevron(ctx, expanded, x, midY, color)
+  }
+}
+
+/** Rounded rect with independent corner radii (merged selection rows). */
+function roundRectCorners(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: { tl: number; tr: number; br: number; bl: number }
+): void {
+  const max = Math.min(w / 2, h / 2)
+  const tl = Math.min(r.tl, max)
+  const tr = Math.min(r.tr, max)
+  const br = Math.min(r.br, max)
+  const bl = Math.min(r.bl, max)
+  ctx.beginPath()
+  ctx.moveTo(x + tl, y)
+  ctx.lineTo(x + w - tr, y)
+  ctx.arcTo(x + w, y, x + w, y + tr, tr)
+  ctx.lineTo(x + w, y + h - br)
+  ctx.arcTo(x + w, y + h, x + w - br, y + h, br)
+  ctx.lineTo(x + bl, y + h)
+  ctx.arcTo(x, y + h, x, y + h - bl, bl)
+  ctx.lineTo(x, y + tl)
+  ctx.arcTo(x, y, x + tl, y, tl)
+  ctx.closePath()
+}
+
+function roundRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number
+): void {
+  const rr = Math.min(r, w / 2, h / 2)
+  ctx.beginPath()
+  ctx.moveTo(x + rr, y)
+  ctx.arcTo(x + w, y, x + w, y + h, rr)
+  ctx.arcTo(x + w, y + h, x, y + h, rr)
+  ctx.arcTo(x, y + h, x, y, rr)
+  ctx.arcTo(x, y, x + w, y, rr)
+  ctx.closePath()
 }

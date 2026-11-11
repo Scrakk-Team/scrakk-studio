@@ -30,6 +30,7 @@
     "postinstall": "node node_modules/electron/install.js",
     "native:build": "napi build --platform --release --config native/search/napi.json --cwd native/search",
     "native:kolargrep": "cargo build --release -p kolargrep-cli --manifest-path native/kolargrep/Cargo.toml",
+    "native:explorer": "bash ../InnertaEngine/InnertaEngine-Linux/src/Core/ui/explorer/wasm/build.sh && cp ../InnertaEngine/InnertaEngine-Linux/emscripten/dist/explorer/explorer.js src/renderer/src/features/explorer/native/explorer.js",
     "native:copy": "node native/copy-node.mjs",
     "desktop:install": "node tools/desktop/install.mjs",
     "docs": "node tools/docs/build.mjs",
