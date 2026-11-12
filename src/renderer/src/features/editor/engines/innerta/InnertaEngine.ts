@@ -182,6 +182,8 @@ export interface InnertaModule {
   getSelectedText?(): string
   /** WASM: contenido completo del buffer (para guardar desde el host). */
   getText?(): string
+  /** WASM: una sola línea (sin '\n'). Vía barata para leer el caret. */
+  getLine?(line: number): string
   /**
    * WASM: literales de color VISIBLES con su rect en pantalla (JSON).
    *

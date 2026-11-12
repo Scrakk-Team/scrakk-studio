@@ -112,8 +112,11 @@ export async function requestCompletion({ module, canvas, path }: CompletionRequ
   if (!cursor || cursor.line < 0) return
 
   const seq = ++requestSeq
-  const text = module.getText?.() ?? ''
-  const prefix = prefixAt(text, cursor.line, cursor.col)
+  // Línea del caret únicamente — llamar a getText() (buffer completo
+  // vía WASM→JS) por cada tecla es el cuello de botella que hacía el
+  // popup inutilizable en archivos grandes.
+  const lineText = module.getLine?.(cursor.line) ?? ''
+  const prefix = prefixAt(lineText, 0, cursor.col)
   // El popup es DOM: pasar la posición del caret a coords de CLIENTE.
   const local = caretCanvasRect(module, canvas)
   const canvasBox = canvas?.getBoundingClientRect()

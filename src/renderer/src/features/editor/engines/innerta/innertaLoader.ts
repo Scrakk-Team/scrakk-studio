@@ -413,6 +413,13 @@ function wrap(raw: Record<string, unknown>): InnertaModule {
       const ptr = _raw._GetInnertaText() as number
       return (_raw.UTF8ToString as (p: number) => string)(ptr)
     },
+    /** Una sola línea (sin '\n'). Barata: O(len); para consumidores que sólo
+     *  necesitan la línea del caret. */
+    getLine(line: number) {
+      if (typeof _raw._GetInnertaLine !== 'function') return ''
+      const ptr = _raw._GetInnertaLine(line | 0) as number
+      return (_raw.UTF8ToString as (p: number) => string)(ptr)
+    },
     /**
      * Literales de color visibles con su rect en pantalla (JSON). La UI del
      * color picker la dibuja el frontend; el motor sólo publica esto.
@@ -1023,6 +1030,13 @@ function wrapIsolated(raw: Record<string, unknown>, canvas: HTMLCanvasElement): 
     getText() {
       if (typeof _raw._GetInnertaText !== 'function') return ''
       const ptr = _raw._GetInnertaText() as number
+      return (_raw.UTF8ToString as (p: number) => string)(ptr)
+    },
+    /** Una sola línea (sin '\n'). Barata: O(len); para consumidores que sólo
+     *  necesitan la línea del caret. */
+    getLine(line: number) {
+      if (typeof _raw._GetInnertaLine !== 'function') return ''
+      const ptr = _raw._GetInnertaLine(line | 0) as number
       return (_raw.UTF8ToString as (p: number) => string)(ptr)
     },
     /**

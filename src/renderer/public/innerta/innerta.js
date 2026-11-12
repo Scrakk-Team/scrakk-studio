@@ -8464,6 +8464,7 @@ var _GetInnertaSelectedText = Module['_GetInnertaSelectedText'] = makeInvalidEar
 var _GetInnertaColorTokensJson = Module['_GetInnertaColorTokensJson'] = makeInvalidEarlyAccess('_GetInnertaColorTokensJson');
 var _ApplyInnertaColorToken = Module['_ApplyInnertaColorToken'] = makeInvalidEarlyAccess('_ApplyInnertaColorToken');
 var _GetInnertaText = Module['_GetInnertaText'] = makeInvalidEarlyAccess('_GetInnertaText');
+var _GetInnertaLine = Module['_GetInnertaLine'] = makeInvalidEarlyAccess('_GetInnertaLine');
 var _GetInnertaRevision = Module['_GetInnertaRevision'] = makeInvalidEarlyAccess('_GetInnertaRevision');
 var _SetInnertaCleanRevision = Module['_SetInnertaCleanRevision'] = makeInvalidEarlyAccess('_SetInnertaCleanRevision');
 var _GetInnertaDirty = Module['_GetInnertaDirty'] = makeInvalidEarlyAccess('_GetInnertaDirty');
@@ -8597,6 +8598,7 @@ function assignWasmExports(wasmExports) {
   assert(typeof wasmExports['GetInnertaColorTokensJson'] != 'undefined', 'missing Wasm export: GetInnertaColorTokensJson');
   assert(typeof wasmExports['ApplyInnertaColorToken'] != 'undefined', 'missing Wasm export: ApplyInnertaColorToken');
   assert(typeof wasmExports['GetInnertaText'] != 'undefined', 'missing Wasm export: GetInnertaText');
+  assert(typeof wasmExports['GetInnertaLine'] != 'undefined', 'missing Wasm export: GetInnertaLine');
   assert(typeof wasmExports['GetInnertaRevision'] != 'undefined', 'missing Wasm export: GetInnertaRevision');
   assert(typeof wasmExports['SetInnertaCleanRevision'] != 'undefined', 'missing Wasm export: SetInnertaCleanRevision');
   assert(typeof wasmExports['GetInnertaDirty'] != 'undefined', 'missing Wasm export: GetInnertaDirty');
@@ -8726,6 +8728,7 @@ function assignWasmExports(wasmExports) {
   _GetInnertaColorTokensJson = Module['_GetInnertaColorTokensJson'] = createExportWrapper('GetInnertaColorTokensJson', wasmExports['GetInnertaColorTokensJson'], 0);
   _ApplyInnertaColorToken = Module['_ApplyInnertaColorToken'] = createExportWrapper('ApplyInnertaColorToken', wasmExports['ApplyInnertaColorToken'], 6);
   _GetInnertaText = Module['_GetInnertaText'] = createExportWrapper('GetInnertaText', wasmExports['GetInnertaText'], 0);
+  _GetInnertaLine = Module['_GetInnertaLine'] = createExportWrapper('GetInnertaLine', wasmExports['GetInnertaLine'], 1);
   _GetInnertaRevision = Module['_GetInnertaRevision'] = createExportWrapper('GetInnertaRevision', wasmExports['GetInnertaRevision'], 0);
   _SetInnertaCleanRevision = Module['_SetInnertaCleanRevision'] = createExportWrapper('SetInnertaCleanRevision', wasmExports['SetInnertaCleanRevision'], 1);
   _GetInnertaDirty = Module['_GetInnertaDirty'] = createExportWrapper('GetInnertaDirty', wasmExports['GetInnertaDirty'], 0);
