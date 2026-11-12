@@ -20,6 +20,7 @@
 import { getOrCreatePaneEngine, listPaneEngines, releasePaneEngineIfEmpty } from './engine'
 import type { InnertaEngine } from './engines/innerta/InnertaEngine'
 import { clearProvidedContent, getProvidedContent, type ProvidedContent } from './providedContent'
+import { diag } from './sessionDiag'
 import { readEncoded, setDetected } from '@services/encodings'
 import { lspNotifyFileChanged } from '@services/lsp'
 
@@ -113,8 +114,13 @@ class FileSessionImpl implements FileSession {
   /** Crea la sesión si no existe (contenido provisto, disco o snapshot) y la activa. */
   private async ensureSession(): Promise<void> {
     const engine = this.engine
-    if (!engine) return
+    if (!engine) {
+      diag('ensureSession: sin engine', this.path)
+      return
+    }
+    diag('ensureSession: start', this.path)
     await engine.whenReady()
+    diag('ensureSession: engine ready', this.path)
     if (!this.engine || this.engine !== engine) return
 
     // Contenido provisto por la app (tab de diff): no se lee el disco con un
@@ -122,6 +128,7 @@ class FileSessionImpl implements FileSession {
     const provided = getProvidedContent(this.path)
 
     if (engine.hasFileSession(this.path)) {
+      diag('ensureSession: already have session', this.path)
       engine.activateFileSession(this.path)
       this.applyReadOnly(engine, provided)
       this.recomputeDirty()
@@ -137,24 +144,39 @@ class FileSessionImpl implements FileSession {
         text = provided.text
       }
       if (text === null) {
+        diag('ensureSession: reading from disk', this.path)
         const res = await readEncoded(this.path)
+        diag('ensureSession: readEncoded result', {
+          success: res.success,
+          hasText: typeof res.text === 'string',
+          textLen: typeof res.text === 'string' ? res.text.length : 0,
+          detected: res.detected ? res.detected.encoding : null,
+          error: res.error ?? null
+        })
         if (res.success && typeof res.text === 'string' && res.detected) {
           setDetected(this.path, res.text, res.detected)
           text = res.text
           void lspNotifyFileChanged(this.path, res.text)
         }
       }
-      if (!this.engine || this.engine !== engine) return
+      if (!this.engine || this.engine !== engine) {
+        diag('ensureSession: engine swapped during load', this.path)
+        return
+      }
       // El contenido viaja por chunks (createFileSession es async): el motor
       // pinta el principio del archivo mientras el resto llega desde disco.
+      diag('ensureSession: createFileSession start', this.path)
       await engine.createFileSession(this.path, text ?? '')
+      diag('ensureSession: createFileSession done', this.path)
       this.applyReadOnly(engine, provided)
       // Recién cargado = limpio.
       const revision = engine.fileSessionRevision(this.path) ?? 0
       engine.markFileSessionClean(this.path, revision)
       this.setDirty(false)
-    } catch {
-      // Lectura fallida: la sesión queda vacía.
+      diag('ensureSession: done', this.path)
+    } catch (err) {
+      // Lectura fallida: la sesión queda vacía — ahora con log.
+      diag('ensureSession: FALLÓ', err instanceof Error ? err : new Error(String(err)))
     } finally {
       this.loading = false
     }

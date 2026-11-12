@@ -18,6 +18,7 @@ import { scheduleEmojiFace } from './emojiFace'
 import { detectLanguageFromPath } from '@features/editor/languages'
 import { resetHostTokens } from './hostTokens'
 import { getBookmarksForPath, subscribeToBookmarks } from '@services/bookmarks'
+import { diag } from '../../sessionDiag'
 import { getDecorations, getDiffDecorations, packDecorations, packDiffDecorations, subscribeToDecorations } from '@services/decorations'
 import {
   closeCompletionPopup,
@@ -863,6 +864,12 @@ export class InnertaEngine implements EditorEngine {
     module.activateSession?.(id)
     // openFile setea contenido + lenguaje + breadcrumb en la sesión ACTIVA.
     await this.feedStreamedContent(module, content)
+    // Setear el lenguaje ANTES de activar rutas de highlight: el motor lo
+    // necesita para su gramática embebida y el puente para la de extensión.
+    const languageId = detectLanguageFromPath(id)
+    if (languageId && module.setLanguage) {
+      module.setLanguage(languageId)
+    }
     this.activatePath(id, content)
     if (typeof cleanRevision === 'number') module.setSessionCleanRevision?.(id, cleanRevision)
     this.host?.querySelector<HTMLCanvasElement>('.scrakk-innerta-canvas')?.focus()
@@ -874,9 +881,11 @@ export class InnertaEngine implements EditorEngine {
    * viewport primero), en vez de congelarse con TODO el texto en un bloque.
    */
   private async feedStreamedContent(module: InnertaModule, content: string): Promise<void> {
+    diag('feed: begin', { length: content.length })
     module.beginContent()
     // ~16 frames como mucho en archivos de decenas de MB; uno o dos en chicos.
     const chunkChars = Math.max(256 * 1024, Math.ceil(content.length / 16))
+    let lastLoggedStep = 0
     for (let offset = 0; offset < content.length;) {
       let end = Math.min(offset + chunkChars, content.length)
       // No partir un surrogate pair (el string JS es UTF-16).
@@ -886,10 +895,16 @@ export class InnertaEngine implements EditorEngine {
       }
       module.appendContent(content.slice(offset, end))
       offset = end
+      const step = Math.floor((offset / Math.max(1, content.length)) * 4)
+      if (step > lastLoggedStep) {
+        lastLoggedStep = step
+        diag('feed: progress', { offset, total: content.length })
+      }
       // Ceder el hilo: el motor pinta lo que haya y el paint loop respira.
       await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
     }
     module.endContent()
+    diag('feed: end')
   }
 
   /** Activa una sesión existente (cambio de tab, sin recargar nada). */
