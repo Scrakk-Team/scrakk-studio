@@ -445,7 +445,11 @@ export class InnertaEngine implements EditorEngine {
         onKeyDelivered: (event, kind) => {
           const path = this.currentPath
           if (!path || !this.module) return
-          if (kind === 'char' || event.key === 'Backspace' || event.key === 'Delete') {
+          // El popup sólo se re-evalúa cuando ya está abierto (decisión del
+          // usuario) o Ctrl+Space lo pidió. Antes se disparaba en CADA tecla
+          // ó Backspace, pateando un request al LSP + getLine al motor por
+          // cada carácter sin motivo.
+          if (isCompletionOpen() && (kind === 'char' || event.key === 'Backspace' || event.key === 'Delete')) {
             scheduleCompletion({ module: this.module, canvas, path })
           } else if (isCompletionOpen()) {
             // Cualquier otra tecla (flechas, Enter, Tab, Esc…) cierra la lista.
