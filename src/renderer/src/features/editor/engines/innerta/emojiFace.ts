@@ -93,8 +93,9 @@ export function pushEmojiFace(module: InnertaModule | null, text: string): void 
  * después de la última edición alcanza. Sólo se va a buscar la fuente si el
  * texto trae algún carácter de presentación emoji.
  */
-export function scheduleEmojiFace(module: InnertaModule | null, text: string): void {
-  if (!module || !text || !EMOJI_PRESENTATION.test(text)) return
+export function scheduleEmojiFace(module: InnertaModule | null, text: string | (() => string)): void {
+  const resolved = typeof text === 'function' ? text() : text
+  if (!module || !resolved || !EMOJI_PRESENTATION.test(resolved)) return
   pendingModule = module
   pendingText = text
   if (timer) return

@@ -261,7 +261,7 @@ function sliceByLines(
 export function refreshDynamicHighlight(
   mod: InnertaModule,
   path: string,
-  text: string,
+  text: string | (() => string),
   options: { immediate?: boolean; languageId?: string } = {}
 ): void {
   const existing = timers.get(mod)
@@ -285,6 +285,9 @@ export function refreshDynamicHighlight(
   }
 
   const run = (): void => {
+    // El texto puede venir como un getter perezoso: se resuelve acá y ahora,
+    // en el debounce, no por tecla.
+    const resolved = typeof text === 'function' ? text() : text
 const extApi = api?.extensions
     if (!extApi?.tokenizeDynamic) {
       explain('el puente nativo no expone tokenizeDynamic')
@@ -342,13 +345,13 @@ const extApi = api?.extensions
     // el resto colorea bajo demanda cuando el usuario se mueva/edite allí.
     // Archivos chicos: la cabeza de siempre + el documento completo en
     // segundo plano (muy barato a esta escala).
-    const bigFile = text.length > 1024 * 1024
+    const bigFile = resolved.length > 1024 * 1024
     const cursorLine =
       bigFile && typeof mod.getCursor === 'function' ? mod.getCursor()?.line ?? 0 : 0
     const windowIndex = Math.floor(Math.max(0, cursorLine) / TOKEN_WINDOW_LINES)
     const windowStart = windowIndex * TOKEN_WINDOW_LINES
-    const head = bigFile ? sliceByLines(text, windowStart, TOKEN_WINDOW_LINES).text : headOf(text)
-    const full = !bigFile && head !== text
+    const head = bigFile ? sliceByLines(resolved, windowStart, TOKEN_WINDOW_LINES).text : headOf(resolved)
+    const full = !bigFile && head !== resolved
     const headRequest = buildRequest(language, grammar, head)
     if (!headRequest) {
       explain(`el paquete ${language.extensionId} no tiene parser o queries usables`)
@@ -492,7 +495,7 @@ const extApi = api?.extensions
     // tokens de la cabeza (son el mismo conjunto, completo). Si falla,
     // se conservan los tokens de la cabeza ya publicados.
     if (full) {
-      const tailRequest = buildRequest(language, grammar, text)
+      const tailRequest = buildRequest(language, grammar, resolved)
       if (tailRequest) fire(tailRequest, true)
     }
   }

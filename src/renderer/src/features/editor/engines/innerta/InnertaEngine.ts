@@ -788,15 +788,24 @@ export class InnertaEngine implements EditorEngine {
    * `setContent` y el engine reportando `RevisionChanged`), siempre debounced
    * en el puente: tipear no puede tokenizar por tecla.
    */
-  private refreshHighlightFromBuffer(text: string | undefined, immediate = false): void {
+  /**
+   * Re-tokeniza con la gramática de la extensión tras un cambio de contenido.
+   *
+   * `text` puede ser un getter perezoso: por REVISION del usuario (cada tecla)
+   * no hay forma de evitar un marshal del buffer entero; con el getter, el
+   * marshal sólo ocurre cuando un debounce realmente dispara. `text` plano se
+   * sigue aceptando tal cual (compat con los call-sites que ya tienen el string).
+   */
+  private refreshHighlightFromBuffer(text: string | (() => string | undefined) | undefined, immediate = false): void {
     const { module, currentPath } = this
     if (!module || !currentPath || text === undefined) return
-    refreshLanguageHighlight(module, currentPath, text, { immediate })
-    refreshDynamicHighlight(module, currentPath, text, { immediate })
+    const lazy = typeof text === 'function' ? text : () => text
+    refreshLanguageHighlight(module, currentPath, lazy, { immediate })
+    refreshDynamicHighlight(module, currentPath, lazy, { immediate })
     // Emoji a color: sólo se le da al motor la fuente del sistema (debounced).
     // El motor decide, por code point, si el carácter es emoji (presentación
     // emoji o VS16) o texto — ver `emojiFace.ts`.
-    scheduleEmojiFace(module, text)
+    scheduleEmojiFace(module, lazy)
   }
 
   loadFile(path: string, content: string): void {
@@ -1142,8 +1151,10 @@ export class InnertaEngine implements EditorEngine {
     this.latestRevision = revision
     // El buffer cambió por dentro del engine (el usuario está escribiendo):
     // hay que re-tokenizar con la gramática de la extensión. El texto se pide
-    // al engine (es la única copia fresca) y el puente hace el debounce.
-    if (this.currentPath) this.refreshHighlightFromBuffer(this.module?.getText?.())
+    // al engine como GETTER perezoso — el puente hace el debounce y sólo lee el
+    // buffer entero (marshal de decenas de MB) cuando el debounce realmente
+    // dispara. Antes esa copia se hacía por CADA tecla, antes del debounce.
+    if (this.currentPath) this.refreshHighlightFromBuffer(() => this.module?.getText?.())
     for (const cb of this.revisionListeners) {
       try {
         cb(revision)

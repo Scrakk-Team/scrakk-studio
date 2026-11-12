@@ -68,13 +68,17 @@ export function applyLanguage(mod: InnertaModule, languageId: string): void {
 export function refreshLanguageHighlight(
   mod: InnertaModule,
   path: string,
-  text: string,
+  text: string | (() => string),
   options: { immediate?: boolean; languageId?: string } = {}
 ): void {
   const existing = timers.get(mod)
   if (existing) clearTimeout(existing)
 
   const run = (): void => {
+    // El texto puede venir como un getter perezoso: tipear no puede disparar
+    // el marshal completo del buffer por cada tecla. Se resuelve acá, cuando
+    // el debounce de verdad dispara.
+    const resolved = typeof text === 'function' ? text() : text
     // El motor de gramática lo elige el USUARIO (Ajustes → Resaltado) y la
     // decisión vive en un solo lugar. Si eligió el árbol del paquete, aquí no se
     // publica nada: los dos puentes pintarían el mismo rango sin desempate.
@@ -94,7 +98,7 @@ export function refreshLanguageHighlight(
     // respeta. Se leen en cada corrida (no se cachean) porque el usuario puede
     // cambiar de tema y el resaltado tiene que seguirlo.
     const rules = currentThemeTokenRules()
-    void tokenizeWithLanguageGrammar({ path, text, languageId: options.languageId, rules })
+    void tokenizeWithLanguageGrammar({ path, text: resolved, languageId: options.languageId, rules })
       .then((highlight) => {
         // Respuesta vieja (el archivo cambió mientras el main tokenizaba): se
         // descarta. Sin esto, un archivo grande podía pintarse con tokens de
