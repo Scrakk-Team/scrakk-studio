@@ -40,7 +40,7 @@ const timers = new WeakMap<InnertaModule, ReturnType<typeof setTimeout>>()
 const currentRun = new WeakMap<InnertaModule, number>()
 let runSeq = 0
 
-const DEBOUNCE_MS = 250
+const DEBOUNCE_MS = 80
 
 /**
  * Aplica el lenguaje resuelto por una extensión al motor.

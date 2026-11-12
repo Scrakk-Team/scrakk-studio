@@ -122,6 +122,15 @@ export interface DynamicTokenizeRequest {
    */
   embedded?: DynamicEmbeddedParserRef[]
   text: string
+  /**
+   * Clave de documento estable (la `path` del renderer): permite al worker
+   * mantener el ÁRBOL tree-sitter vivo entre llamadas y hacer un reparseo
+   * incremental (`tree.edit` + `parse(text, oldTree)`) en vez de re-parsear
+   * el archivo entero por tecla — un typing.py (140 KB) pasa de ~450 a ~8 ms
+   * por edición, y las capturas son idénticas (verificado por tests). Ausente
+   * = camino legacy (reparseo completo y sin cache).
+   */
+  documentId?: string
 }
 
 // ── Datos que produce el ÁRBOL (no sólo color) ────────────────────────────

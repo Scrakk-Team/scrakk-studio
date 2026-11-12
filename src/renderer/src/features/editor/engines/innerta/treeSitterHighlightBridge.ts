@@ -72,7 +72,7 @@ import type {
 } from '@shared/extensions'
 import { api } from '@services/api'
 
-const DEBOUNCE_MS = 250
+const DEBOUNCE_MS = 80
 
 /** Timers y corridas por módulo (igual patrón que el puente TextMate). */
 const timers = new WeakMap<InnertaModule, ReturnType<typeof setTimeout>>()
@@ -175,7 +175,8 @@ function collectEmbeddedRefs(language: RegisteredLanguage): DynamicEmbeddedParse
 function buildRequest(
   language: RegisteredLanguage,
   grammar: { parser: string; sha256?: string; abi?: string },
-  text: string
+  text: string,
+  documentId?: string
 ): DynamicTokenizeRequest | null {
   const parserPath = resolvePackagePath(language.extensionId, grammar.parser)
   if (!parserPath) return null
@@ -189,6 +190,10 @@ function buildRequest(
     abi: grammar.abi,
     queries,
     embedded: collectEmbeddedRefs(language),
+    // Clave estable del documento: el worker mantiene el árbol tree-sitter vivo
+    // y hace reparseo incremental. En archivos grandes, cada VENTANA tiene su
+    // propio árbol (la clave delata qué ventana es).
+    documentId: documentId ?? path,
     text
   }
 }
@@ -490,12 +495,20 @@ const extApi = api?.extensions
     }
 
     // Fase 1: la cabeza (pinta rápido la primera vista). Falla → se borra.
+    // Para archivos grandes la clave porta el índice de ventana: su árbol es
+    // el de la ventana, no el del documento.
+    // Para el documento completo es el path plano.
+    if (bigFile) {
+      headRequest.documentId = `${path}#window-${windowIndex}`
+    } else {
+      headRequest.documentId = path
+    }
     fire(headRequest, false)
     // Fase 2: el documento completo en segundo plano; su éxito pisa los
     // tokens de la cabeza (son el mismo conjunto, completo). Si falla,
     // se conservan los tokens de la cabeza ya publicados.
     if (full) {
-      const tailRequest = buildRequest(language, grammar, resolved)
+      const tailRequest = buildRequest(language, grammar, resolved, path)
       if (tailRequest) fire(tailRequest, true)
     }
   }

@@ -40,7 +40,7 @@
 import * as fs from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import * as path from 'node:path'
-import { Language, Parser, Query, type Node as TsNode } from 'web-tree-sitter'
+import { Edit, Language, Parser, Query, type Node as TsNode, type Tree } from 'web-tree-sitter'
 import { categorizeQueryFile, type QueryCategory } from '@shared/syntax/queries'
 import type {
   DynamicEmbeddedParserRef,
@@ -50,6 +50,7 @@ import type {
   DynamicTokenizeResult
 } from '@shared/extensions'
 import { classifyParserAbi } from './abi'
+import { minimalEdit, pointAt } from './edit'
 import {
   buildScopeTokens,
   lineStarts,
@@ -396,27 +397,45 @@ export function createTreeSitterTokenizer(
     return { tokens, scopeSets, covered, applied }
   }
 
-  async function tokenize(request: DynamicTokenizeRequest): Promise<DynamicTokenizeResult> {
-    if (!request.parserPath) return empty('sin parser')
-    const grammar = await loadGrammar({
-      parserPath: request.parserPath,
-      abi: request.abi,
-      queries: request.queries
-    })
+  const docTrees = new Map<string, DocTreeState>()
+  const MAX_CACHED_TREES = 6
 
-    // El texto va como string: los índices que devuelve el parser son columnas
-    // UTF-16, la misma unidad que la línea del editor (ver `scopes.ts`).
-    const tree = grammar.parser.parse(request.text)
-    if (!tree) return empty('el parser no devolvió árbol')
+  /** Árbol + capturas vivos entre llamadas (ver `documentId` en el pedido). */
+  interface DocTreeState {
+    text: string
+    tree: Tree
+    signature: string
+    starts: number[]
+    capturesByCategory: Map<QueryCategory, RawCapture[]>
+    matchesByCategory: Map<QueryCategory, RawMatch[]>
+    applied: string[]
+    failed: Array<{ file: string; error: string }>
+  }
 
-    try {
-      const { capturesByCategory, matchesByCategory, applied, failed } = collectMatches(
-        grammar,
-        request.queries,
-        tree.rootNode
-      )
+  function rememberTree(docId: string, state: DocTreeState): void {
+    docTrees.delete(docId) // refresca posición: misma clave, al final
+    while (docTrees.size >= MAX_CACHED_TREES) {
+      const oldest = docTrees.keys().next().value
+      if (oldest === undefined) break
+      const evicted = docTrees.get(oldest)
+      docTrees.delete(oldest)
+      try {
+        evicted?.tree.delete()
+      } catch {
+        /* el bindings puede ya estar liberado: no es crítico */
+      }
+    }
+    docTrees.set(docId, state)
+  }
 
-      const starts = lineStarts(request.text)
+  async function assembleFromCaptures(
+    request: DynamicTokenizeRequest,
+    capturesByCategory: Map<QueryCategory, RawCapture[]>,
+    matchesByCategory: Map<QueryCategory, RawMatch[]>,
+    applied: string[],
+    failed: Array<{ file: string; error: string }>
+  ): Promise<DynamicTokenizeResult> {
+    const starts = lineStarts(request.text)
 
       // ── Color: highlights de la raíz ───────────────────────────────────
       const rootCaptures = capturesByCategory.get('highlights') ?? []
@@ -483,16 +502,176 @@ export function createTreeSitterTokenizer(
         failed,
         data
       }
+  }
+
+  function fullTokenize(
+    request: DynamicTokenizeRequest,
+    grammar: LoadedGrammar,
+    docId?: string
+  ): Promise<DynamicTokenizeResult> {
+    // El texto va como string: los índices que devuelve el parser son columnas
+    // UTF-16, la misma unidad que la línea del editor (ver `scopes.ts`).
+    const tree = grammar.parser.parse(request.text)
+    if (!tree) return Promise.resolve(empty('el parser no devolvió árbol'))
+
+    let keepTree = false
+    try {
+      const { capturesByCategory, matchesByCategory, applied, failed } = collectMatches(
+        grammar,
+        request.queries,
+        tree.rootNode
+      )
+      const result = assembleFromCaptures(
+        request,
+        capturesByCategory,
+        matchesByCategory,
+        applied,
+        failed
+      )
+      if (docId) {
+        rememberTree(docId, {
+          text: request.text,
+          tree,
+          signature: grammar.signature,
+          starts: lineStarts(request.text),
+          capturesByCategory,
+          matchesByCategory,
+          applied,
+          failed
+        })
+        keepTree = true
+      }
+      return result
     } finally {
-      tree.delete()
+      if (!keepTree) tree.delete()
     }
+  }
+
+  async function incrementalTokenize(
+    request: DynamicTokenizeRequest,
+    grammar: LoadedGrammar,
+    cached: DocTreeState,
+    docId: string
+  ): Promise<DynamicTokenizeResult> {
+    const edit = minimalEdit(cached.text, request.text)
+    if (!edit) {
+      // Documento intacto desde la última vez: asamblea con lo cacheado.
+      return assembleFromCaptures(
+        request,
+        grammar,
+        cached.capturesByCategory,
+        cached.matchesByCategory,
+        cached.applied,
+        cached.failed
+      )
+    }
+    const oldStarts = cached.starts
+    const newStarts = lineStarts(request.text)
+
+    // 1) tree.edit con las posiciones viejo/nuevo
+    const startPoint = pointAt(oldStarts, edit.startIndex)
+    const oldEndPoint = pointAt(oldStarts, edit.oldEndIndex)
+    const newEndPoint = pointAt(newStarts, edit.newEndIndex)
+    const oldTree = cached.tree
+    oldTree.edit(
+      new Edit({
+        startIndex: edit.startIndex,
+        oldEndIndex: edit.oldEndIndex,
+        newEndIndex: edit.newEndIndex,
+        startPosition: startPoint,
+        oldEndPosition: oldEndPoint,
+        newEndPosition: newEndPoint
+      })
+    )
+    // 2) reparseo incremental (árbol reutilizado)
+    const tree = grammar.parser.parse(request.text, oldTree)
+    if (!tree) throw new Error('el parser no devolvió árbol')
+    oldTree.getChangedRanges(tree)
+    oldTree.delete()
+
+    // 3) re-colectamos sobre el árbol ya fresco: las capturas quedan EXACTAMENTE
+    //    iguales que con un full-parse — cualquier reuso de árbol es válido en
+    //    este punto, el árbol completo es el que manda.
+    if (process.env.TS_BENCH) console.time('collectMatches')
+    const { capturesByCategory, matchesByCategory, applied, failed } = collectMatches(
+      grammar,
+      request.queries,
+      tree.rootNode
+    )
+    if (process.env.TS_BENCH) console.timeEnd('collectMatches')
+
+    docTrees.set(docId, {
+      text: request.text,
+      tree,
+      signature: grammar.signature,
+      starts: newStarts,
+      capturesByCategory,
+      matchesByCategory,
+      applied,
+      failed
+    })
+
+    return assembleFromCaptures(
+      request,
+      capturesByCategory,
+      matchesByCategory,
+      applied,
+      failed
+    )
+  }
+
+  async function tokenize(request: DynamicTokenizeRequest): Promise<DynamicTokenizeResult> {
+    if (!request.parserPath) return empty('sin parser')
+    const grammar = await loadGrammar({
+      parserPath: request.parserPath,
+      abi: request.abi,
+      queries: request.queries
+    })
+
+    const docId = request.documentId
+    const cached = docId ? docTrees.get(docId) : undefined
+    if (docId && cached && cached.signature === grammar.signature) {
+      if (cached.text === request.text) {
+        return assembleFromCaptures(
+          request,
+          cached.capturesByCategory,
+          cached.matchesByCategory,
+          cached.applied,
+          cached.failed
+        )
+      }
+      try {
+        if (docId) return await incrementalTokenize(request, grammar, cached, docId)
+        return fullTokenize(request, grammar, docId)
+      } catch (error) {
+        console.warn('[tree-sitter] incremental reparse failed; full reparse', error)
+        const e = error as Error | undefined
+    console.warn('STACK:', e?.stack ?? String(e))
+        const evicted = docTrees.get(docId)
+        docTrees.delete(docId)
+        try {
+          evicted?.tree.delete()
+        } catch {
+          /* bindings ya liberado */
+        }
+      }
+    }
+    return fullTokenize(request, grammar, docId)
   }
 
   return {
     tokenize,
-    forget: (parserPath?: string) => {
-      if (parserPath) grammars.delete(parserPath)
-      else grammars.clear()
+    forget: (_parserPath?: string) => {
+      // Los árboles cacheados heredan el parser: se sueltan todos.
+      for (const [docId, state] of [...docTrees]) {
+        docTrees.delete(docId)
+        try {
+          state.tree.delete()
+        } catch {
+          /* bindings ya liberado */
+        }
+      }
+      grammars.clear()
     }
   }
 }
