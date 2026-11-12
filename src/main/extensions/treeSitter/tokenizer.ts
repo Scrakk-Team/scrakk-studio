@@ -558,7 +558,6 @@ export function createTreeSitterTokenizer(
       // Documento intacto desde la última vez: asamblea con lo cacheado.
       return assembleFromCaptures(
         request,
-        grammar,
         cached.capturesByCategory,
         cached.matchesByCategory,
         cached.applied,

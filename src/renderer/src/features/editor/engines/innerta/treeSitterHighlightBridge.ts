@@ -176,7 +176,7 @@ function buildRequest(
   language: RegisteredLanguage,
   grammar: { parser: string; sha256?: string; abi?: string },
   text: string,
-  documentId?: string
+  documentId: string
 ): DynamicTokenizeRequest | null {
   const parserPath = resolvePackagePath(language.extensionId, grammar.parser)
   if (!parserPath) return null
@@ -190,10 +190,7 @@ function buildRequest(
     abi: grammar.abi,
     queries,
     embedded: collectEmbeddedRefs(language),
-    // Clave estable del documento: el worker mantiene el árbol tree-sitter vivo
-    // y hace reparseo incremental. En archivos grandes, cada VENTANA tiene su
-    // propio árbol (la clave delata qué ventana es).
-    documentId: documentId ?? path,
+    documentId,
     text
   }
 }
@@ -266,7 +263,7 @@ function sliceByLines(
 export function refreshDynamicHighlight(
   mod: InnertaModule,
   path: string,
-  text: string | (() => string),
+  text: string | (() => string | undefined),
   options: { immediate?: boolean; languageId?: string } = {}
 ): void {
   const existing = timers.get(mod)
@@ -293,6 +290,11 @@ export function refreshDynamicHighlight(
     // El texto puede venir como un getter perezoso: se resuelve acá y ahora,
     // en el debounce, no por tecla.
     const resolved = typeof text === 'function' ? text() : text
+    if (resolved === undefined) {
+      // Buffer todavía sin contenido o aún no marshalizado: no tokenizamos nada.
+      explain('buffer sin resolver', true)
+      return
+    }
 const extApi = api?.extensions
     if (!extApi?.tokenizeDynamic) {
       explain('el puente nativo no expone tokenizeDynamic')
@@ -357,7 +359,7 @@ const extApi = api?.extensions
     const windowStart = windowIndex * TOKEN_WINDOW_LINES
     const head = bigFile ? sliceByLines(resolved, windowStart, TOKEN_WINDOW_LINES).text : headOf(resolved)
     const full = !bigFile && head !== resolved
-    const headRequest = buildRequest(language, grammar, head)
+    const headRequest = buildRequest(language, grammar, head, path)
     if (!headRequest) {
       explain(`el paquete ${language.extensionId} no tiene parser o queries usables`)
       return

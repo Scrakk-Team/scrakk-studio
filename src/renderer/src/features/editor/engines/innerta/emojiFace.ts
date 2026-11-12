@@ -56,7 +56,7 @@ let fetching: Promise<Uint8Array | null> | null = null
 const applied = new WeakSet<InnertaModule>()
 /** Timer del debounce del camino de tecleo. */
 let timer: ReturnType<typeof setTimeout> | undefined
-let pendingText = ''
+let pendingText: string | (() => string | undefined) = ''
 let pendingModule: InnertaModule | null = null
 
 async function apply(module: InnertaModule): Promise<void> {
@@ -93,7 +93,10 @@ export function pushEmojiFace(module: InnertaModule | null, text: string): void 
  * después de la última edición alcanza. Sólo se va a buscar la fuente si el
  * texto trae algún carácter de presentación emoji.
  */
-export function scheduleEmojiFace(module: InnertaModule | null, text: string | (() => string)): void {
+export function scheduleEmojiFace(
+  module: InnertaModule | null,
+  text: string | (() => string | undefined)
+): void {
   const resolved = typeof text === 'function' ? text() : text
   if (!module || !resolved || !EMOJI_PRESENTATION.test(resolved)) return
   pendingModule = module
@@ -101,7 +104,8 @@ export function scheduleEmojiFace(module: InnertaModule | null, text: string | (
   if (timer) return
   timer = setTimeout(() => {
     timer = undefined
-    pushEmojiFace(pendingModule, pendingText)
+    const value = typeof pendingText === 'function' ? pendingText() : pendingText
+    if (typeof value === 'string') pushEmojiFace(pendingModule, value)
     pendingModule = null
     pendingText = ''
   }, 250)

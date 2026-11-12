@@ -68,7 +68,7 @@ export function applyLanguage(mod: InnertaModule, languageId: string): void {
 export function refreshLanguageHighlight(
   mod: InnertaModule,
   path: string,
-  text: string | (() => string),
+  text: string | (() => string | undefined),
   options: { immediate?: boolean; languageId?: string } = {}
 ): void {
   const existing = timers.get(mod)
@@ -79,6 +79,11 @@ export function refreshLanguageHighlight(
     // el marshal completo del buffer por cada tecla. Se resuelve acá, cuando
     // el debounce de verdad dispara.
     const resolved = typeof text === 'function' ? text() : text
+    if (resolved === undefined) {
+      // Buffer todavía sin contenido: no hay nada que tokenizar.
+      timers.delete(mod)
+      return
+    }
     // El motor de gramática lo elige el USUARIO (Ajustes → Resaltado) y la
     // decisión vive en un solo lugar. Si eligió el árbol del paquete, aquí no se
     // publica nada: los dos puentes pintarían el mismo rango sin desempate.
