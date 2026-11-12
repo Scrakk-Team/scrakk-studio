@@ -197,7 +197,36 @@ function buildRequest(
  *
  * `immediate` lo usa la apertura: el usuario está mirando el archivo y esperar
  * se ve como parpadeo.
+ *
+ * ── Ventana ─────────────────────────────────────────────────────────────
+ * Para archivos grandes se tokeniza primero una CABEZA de `WINDOW_LINES`
+ * líneas y después el documento completo en segundo plano. El worker parsea
+ * una línea sin poder paralelizar: pedirle 1M de líneas de una vez tardaba
+ * tanto que el puente agotaba el timeout. La cabeza resuelve la primera vista
+ * en milisegundos; el resto completa sin bloquearla. Ambos requests comparten
+ * la misma `seq`: cualquier edición cancela los dos.
  */
+const WINDOW_LINES = 8000
+
+function headOf(text: string): string {
+  // Cortes por salto de línea; el parseo de una línea gigante (minificada)
+  // cae en el camino completo.
+  if (text.length < 1024 * 1024) return text
+  let idx = -1
+  let count = 0
+  for (let i = 0; i < text.length; i++) {
+    if (text.charCodeAt(i) === 10) {
+      count++
+      if (count === WINDOW_LINES) {
+        idx = i
+        break
+      }
+    }
+  }
+  if (idx === -1) return text
+  return text.substring(0, idx)
+}
+
 export function refreshDynamicHighlight(
   mod: InnertaModule,
   path: string,
@@ -276,8 +305,14 @@ const extApi = api?.extensions
       explain(`el lenguaje ${language.id} no declara un parser tree-sitter .wasm`)
       return
     }
-    const request = buildRequest(language, grammar, text)
-    if (!request) {
+    // 2 fases: primero la cabeza (pinta rápido la primera vista), después el
+    // documento completo en segundo plano. Ambas comparten la misma seq:
+    // cualquier edición del usuario invalida las dos. La cabeza produce un
+    // prefijo de los mismos tokens — la segunda publicación los pisa.
+    const head = headOf(text)
+    const full = head !== text
+    const headRequest = buildRequest(language, grammar, head)
+    if (!headRequest) {
       explain(`el paquete ${language.extensionId} no tiene parser o queries usables`)
       return
     }
@@ -295,20 +330,23 @@ const extApi = api?.extensions
     // SCOPES como los de TextMate, así que el tema decide el color igual.
     const rules = currentThemeTokenRules()
 
-    void extApi
-      .tokenizeDynamic(request)
-      .then((result) => {
+    const fire = (request: DynamicTokenizeRequest, isHead: boolean): void => {
+      void extApi.tokenizeDynamic(request).then((result) => {
         // Respuesta vieja: el archivo cambió mientras el worker tokenizaba.
         if (currentRun.get(mod) !== seq) return
         if (!result.ok) {
           // Un fallo del parser NO borra lo que ya estaba pintado por otra
-          // fuente: se reporta y el editor queda como estaba.
+          // fuente: se reporta y el editor queda como estaba. Si falla el
+          // request completo (background) se conservan los tokens de la
+          // cabeza — el archivo ya puede pintar la primera vista.
           console.warn(
             `[languages] tree-sitter dinámico falló (${language.id}): ${result.error ?? 'sin detalle'}`
           )
-          setSourceTokens(mod, path, 'treeSitterDynamic', null)
-          clearHighlightSnapshot(path, 'treeSitterDynamic')
-          clearDynamicSyntax(path)
+          if (isHead) {
+            setSourceTokens(mod, path, 'treeSitterDynamic', null)
+            clearHighlightSnapshot(path, 'treeSitterDynamic')
+            clearDynamicSyntax(path)
+          }
           return
         }
         for (const failure of result.failed) {
@@ -393,10 +431,22 @@ const extApi = api?.extensions
       })
       .catch((error: unknown) => {
         console.warn('[languages] tree-sitter dinámico lanzó:', error)
-        setSourceTokens(mod, path, 'treeSitterDynamic', null)
-        clearHighlightSnapshot(path, 'treeSitterDynamic')
-        clearDynamicSyntax(path)
+        if (isHead) {
+          setSourceTokens(mod, path, 'treeSitterDynamic', null)
+          clearHighlightSnapshot(path, 'treeSitterDynamic')
+          clearDynamicSyntax(path)
+        }
       })
+    }
+
+    // Fase 1: la cabeza (pinta rápido la primera vista).
+    fire(headRequest, true)
+    // Fase 2: el documento completo en segundo plano; los tokens de la cabeza
+    // son un prefijo de estos. Sólo si el archivo era más grande que la ventana.
+    if (full) {
+      const tailRequest = buildRequest(language, grammar, text)
+      if (tailRequest) fire(tailRequest, false)
+    }
   }
 
   if (options.immediate) {
