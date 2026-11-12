@@ -38,6 +38,40 @@ export type HostTokenSource = Extract<SyntaxSource, 'textMate' | 'semanticTokens
 interface HostTokenState {
   path: string
   sources: Map<HostTokenSource, HostToken[]>
+  /**
+   * Tokens por ventana (archivos grandes, modo viewport). Cada entrada mapea
+   * índice de ventana de `WINDOW_LINES` líneas → tokens con líneas ABSOLUTAS
+   * (el bridge ya las desplazó). Se publican concatenando ventanas vigentes.
+   */
+  windows: Map<HostTokenSource, Map<number, HostToken[]>>
+}
+
+/** Cuántas ventanas se conservan por fuente (los horizontes lejanos se pierden). */
+const MAX_WINDOWS = 6
+
+/** Ventana de `refreshDynamicHighlight` para archivos enormes. */
+export const TOKEN_WINDOW_LINES = 8000
+
+function sourceTokensOf(state: HostTokenState, source: HostTokenSource): HostToken[] {
+  const wins = state.windows.get(source)
+  if (wins && wins.size > 0) {
+    const out: HostToken[] = []
+    for (const win of wins.values()) out.push(...win)
+    out.sort((a, b) => a.line - b.line || a.startChar - b.startChar || a.length - b.length)
+    return out
+  }
+  return state.sources.get(source) ?? []
+}
+
+function sourceKeyUnion(state: HostTokenState): HostTokenSource[] {
+  // Orden de publicación histórico: primero las del `sources` (flat) en el
+  // orden de inserción, después las que sólo tienen ventanas. mergeHostTokens
+  // decide prioridades, así que el orden sólo rompe empates.
+  const keys: HostTokenSource[] = [...state.sources.keys()]
+  for (const source of state.windows.keys()) {
+    if (!keys.includes(source)) keys.push(source)
+  }
+  return keys
 }
 
 const states = new WeakMap<InnertaModule, HostTokenState>()
@@ -45,7 +79,7 @@ const states = new WeakMap<InnertaModule, HostTokenState>()
 function stateOf(mod: InnertaModule, path: string): HostTokenState {
   const existing = states.get(mod)
   if (existing && existing.path === path) return existing
-  const fresh: HostTokenState = { path, sources: new Map() }
+  const fresh: HostTokenState = { path, sources: new Map(), windows: new Map() }
   states.set(mod, fresh)
   return fresh
 }
@@ -94,7 +128,7 @@ export function getHighlightDiagnostics(): HighlightDiagnostics {
 function publish(mod: InnertaModule, state: HostTokenState): void {
   if (typeof mod.setHostTokens !== 'function') return
   const merged = mergeHostTokens(
-    [...state.sources.entries()].map(([source, tokens]) => ({ source, tokens }))
+    sourceKeyUnion(state).map((source) => ({ source, tokens: sourceTokensOf(state, source) }))
   )
   const source = resolveHighlightSource(merged.length > 0)
   mod.setHostTokens(encodeHostTokens(merged), source)
@@ -102,9 +136,9 @@ function publish(mod: InnertaModule, state: HostTokenState): void {
     mode: source,
     tokens: merged.length,
     sources: {
-      textMate: state.sources.get('textMate')?.length ?? 0,
-      semanticTokens: state.sources.get('semanticTokens')?.length ?? 0,
-      treeSitterDynamic: state.sources.get('treeSitterDynamic')?.length ?? 0
+      textMate: sourceTokensOf(state, 'textMate').length,
+      semanticTokens: sourceTokensOf(state, 'semanticTokens').length,
+      treeSitterDynamic: sourceTokensOf(state, 'treeSitterDynamic').length
     }
   }
 }
@@ -119,6 +153,7 @@ function publish(mod: InnertaModule, state: HostTokenState): void {
 export function resetHostTokens(mod: InnertaModule, path: string): void {
   const state = stateOf(mod, path)
   state.sources.clear()
+  state.windows.clear()
   publish(mod, state)
 }
 
@@ -138,13 +173,67 @@ export function setSourceTokens(
   const state = stateOf(mod, path)
   if (tokens === null || tokens.length === 0) {
     state.sources.delete(source)
+    state.windows.delete(source)
   } else {
     state.sources.set(source, tokens)
+    // Un set plano reemplaza la franja completa: las ventanas viejas sobran.
+    state.windows.delete(source)
+  }
+  publish(mod, state)
+}
+
+/**
+ * Publica los tokens de UNA fuente SOLO para la ventana de líneas que empieza
+ * en `startLine` (múltiplo de `TOKEN_WINDOW_LINES`). Los tokens que llegan son
+ * RELATIVOS al inicio de la ventana; acá se desplazan a coordenadas absolutas.
+ *
+ * Sirve para archivos enormes: la extensión tokeniza solo la ventana visible
+ * (o la que pidan más adelante) en lugar del documento entero, y las ventanas
+ * ya coloreadas no se pierden al pedir la siguiente. Se conservan las últimas
+ * MAX_WINDOWS ventanas por fuente; el LRU descarta las más lejanas.
+ *
+ * `tokens = null` borra la fuente (el LSP murió, la gramática falló).
+ */
+export function setSourceTokensWindow(
+  mod: InnertaModule,
+  path: string,
+  source: HostTokenSource,
+  startLine: number,
+  tokens: HostToken[] | null
+): void {
+  const state = stateOf(mod, path)
+  if (tokens === null) {
+    state.sources.delete(source)
+    state.windows.delete(source)
+    publish(mod, state)
+    return
+  }
+  const windowIndex = Math.floor(Math.max(0, startLine) / TOKEN_WINDOW_LINES)
+  const wins = state.windows.get(source) ?? new Map<number, HostToken[]>()
+  state.windows.set(source, wins)
+  // Borra los tokens planos de la fuente: las ventanas mandan.
+  state.sources.delete(source)
+  wins.delete(windowIndex) // refrescar recencia
+  wins.set(
+    windowIndex,
+    tokens.map((token) => ({
+      line: token.line + startLine,
+      startChar: token.startChar,
+      length: token.length,
+      slot: token.slot
+    }))
+  )
+  while (wins.size > MAX_WINDOWS) {
+    const oldest = wins.keys().next().value
+    if (oldest === undefined) break
+    wins.delete(oldest)
   }
   publish(mod, state)
 }
 
 /** Para tests: cuántas fuentes están publicando en un módulo. */
 export function sourceCount(mod: InnertaModule): number {
-  return states.get(mod)?.sources.size ?? 0
+  const state = states.get(mod)
+  if (!state) return 0
+  return new Set([...state.sources.keys(), ...state.windows.keys()]).size
 }

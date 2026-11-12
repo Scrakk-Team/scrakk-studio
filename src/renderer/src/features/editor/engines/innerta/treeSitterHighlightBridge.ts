@@ -42,9 +42,10 @@
 
 import type { InnertaModule } from './InnertaEngine'
 import { applyLanguage } from './languageHighlightBridge'
-import { setSourceTokens } from './hostTokens'
+import { setSourceTokens, setSourceTokensWindow, TOKEN_WINDOW_LINES } from './hostTokens'
 import { clearHighlightSnapshot, recordHighlightSnapshot } from './highlightSnapshot'
 import { currentThemeTokenRules } from './themeTokenRules'
+import type { HostToken } from '@shared/syntax'
 import { applyInnertaFolds, innertaFoldsState } from './hostBridge'
 import {
   dynamicGrammarOf,
@@ -227,6 +228,36 @@ function headOf(text: string): string {
   return text.substring(0, idx)
 }
 
+/**
+ * Devuelve el texto de las líneas [startLine, startLine + count) y el offset
+ * de la primera línea del slice dentro de `text`. O(n) pero con corte temprano
+ * — para archivos enormes alcanza con escanear hasta el inicio de la ventana.
+ */
+function sliceByLines(
+  text: string,
+  startLine: number,
+  count: number
+): { text: string; startLine: number } {
+  let start = 0
+  let line = 0
+  if (startLine > 0) {
+    for (let i = 0; i < text.length && line < startLine; i++) {
+      if (text.charCodeAt(i) === 10) line++
+      if (line === startLine) {
+        start = i + 1
+        break
+      }
+    }
+  }
+  let end = start
+  line = 0
+  while (end < text.length && line < count) {
+    if (text.charCodeAt(end) === 10) line++
+    end++
+  }
+  return { text: text.slice(start, end), startLine }
+}
+
 export function refreshDynamicHighlight(
   mod: InnertaModule,
   path: string,
@@ -305,12 +336,19 @@ const extApi = api?.extensions
       explain(`el lenguaje ${language.id} no declara un parser tree-sitter .wasm`)
       return
     }
-    // 2 fases: primero la cabeza (pinta rápido la primera vista), después el
-    // documento completo en segundo plano. Ambas comparten la misma seq:
-    // cualquier edición del usuario invalida las dos. La cabeza produce un
-    // prefijo de los mismos tokens — la segunda publicación los pisa.
-    const head = headOf(text)
-    const full = head !== text
+    // ── Decidir qué tokenizar ─────────────────────────────────────────
+    // Archivos grandes: sólo la VENTANA de la ventana actual (la del cursor).
+    // Las 33 MB restantes se saltean como si no existieran para el parser:
+    // el resto colorea bajo demanda cuando el usuario se mueva/edite allí.
+    // Archivos chicos: la cabeza de siempre + el documento completo en
+    // segundo plano (muy barato a esta escala).
+    const bigFile = text.length > 1024 * 1024
+    const cursorLine =
+      bigFile && typeof mod.getCursor === 'function' ? mod.getCursor()?.line ?? 0 : 0
+    const windowIndex = Math.floor(Math.max(0, cursorLine) / TOKEN_WINDOW_LINES)
+    const windowStart = windowIndex * TOKEN_WINDOW_LINES
+    const head = bigFile ? sliceByLines(text, windowStart, TOKEN_WINDOW_LINES).text : headOf(text)
+    const full = !bigFile && head !== text
     const headRequest = buildRequest(language, grammar, head)
     if (!headRequest) {
       explain(`el paquete ${language.extensionId} no tiene parser o queries usables`)
@@ -329,8 +367,17 @@ const extApi = api?.extensions
     // Las reglas del tema entran al resolutor: las capturas de tree-sitter son
     // SCOPES como los de TextMate, así que el tema decide el color igual.
     const rules = currentThemeTokenRules()
+    // Los tokens del worker están relativos a la sección tokenizada; el canal
+    // los desplaza antes de publicar.
+    const publish = (tokens: HostToken[] | null): void => {
+      if (bigFile) {
+        setSourceTokensWindow(mod, path, 'treeSitterDynamic', windowStart, tokens)
+      } else {
+        setSourceTokens(mod, path, 'treeSitterDynamic', tokens)
+      }
+    }
 
-    const fire = (request: DynamicTokenizeRequest, isHead: boolean): void => {
+    const fire = (request: DynamicTokenizeRequest, keepOnFailure: boolean): void => {
       void extApi.tokenizeDynamic(request).then((result) => {
         // Respuesta vieja: el archivo cambió mientras el worker tokenizaba.
         if (currentRun.get(mod) !== seq) return
@@ -342,8 +389,8 @@ const extApi = api?.extensions
           console.warn(
             `[languages] tree-sitter dinámico falló (${language.id}): ${result.error ?? 'sin detalle'}`
           )
-          if (isHead) {
-            setSourceTokens(mod, path, 'treeSitterDynamic', null)
+          if (!keepOnFailure) {
+            publish(null)
             clearHighlightSnapshot(path, 'treeSitterDynamic')
             clearDynamicSyntax(path)
           }
@@ -356,7 +403,7 @@ const extApi = api?.extensions
         }
 
         const tokens = tokensFromScopes(result.scopeSets, result.tokens, rules)
-        setSourceTokens(mod, path, 'treeSitterDynamic', tokens.length > 0 ? tokens : null)
+        publish(tokens.length > 0 ? tokens : null)
         if (tokens.length > 0) {
           recordHighlightSnapshot({
             path,
@@ -431,21 +478,22 @@ const extApi = api?.extensions
       })
       .catch((error: unknown) => {
         console.warn('[languages] tree-sitter dinámico lanzó:', error)
-        if (isHead) {
-          setSourceTokens(mod, path, 'treeSitterDynamic', null)
+        if (!keepOnFailure) {
+          publish(null)
           clearHighlightSnapshot(path, 'treeSitterDynamic')
           clearDynamicSyntax(path)
         }
       })
     }
 
-    // Fase 1: la cabeza (pinta rápido la primera vista).
-    fire(headRequest, true)
-    // Fase 2: el documento completo en segundo plano; los tokens de la cabeza
-    // son un prefijo de estos. Sólo si el archivo era más grande que la ventana.
+    // Fase 1: la cabeza (pinta rápido la primera vista). Falla → se borra.
+    fire(headRequest, false)
+    // Fase 2: el documento completo en segundo plano; su éxito pisa los
+    // tokens de la cabeza (son el mismo conjunto, completo). Si falla,
+    // se conservan los tokens de la cabeza ya publicados.
     if (full) {
       const tailRequest = buildRequest(language, grammar, text)
-      if (tailRequest) fire(tailRequest, false)
+      if (tailRequest) fire(tailRequest, true)
     }
   }
 
