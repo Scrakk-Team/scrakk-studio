@@ -91,8 +91,8 @@ function snapshotOf(path: string, text: string, dirty: boolean, version: number)
  */
 export function initExtensionDocuments(sink: DocumentSink = defaultSink): ExtensionDocumentsHandle {
   const open = new Map<string, OpenDocument>()
-  /** Cambios pendientes de mandar, por path. */
-  const pending = new Map<string, DocumentSnapshot>()
+  /** Cambios pendientes de mandar (se pide el texto en el flush, no por tecla). */
+  const pending = new Set<string>()
   let flushTimer: ReturnType<typeof setTimeout> | null = null
   let disposed = false
 
@@ -103,9 +103,33 @@ export function initExtensionDocuments(sink: DocumentSink = defaultSink): Extens
     }
     if (pending.size === 0) return
     const events: DocumentEvent[] = []
-    for (const document of pending.values()) events.push({ kind: 'change', document })
+    const paths = [...pending]
     pending.clear()
-    sink.send(events)
+    for (const path of paths) {
+      const entry = open.get(path)
+      if (!entry) continue
+      const session = getFileSession(path)
+      if (!session) continue
+      const text = session.getText?.()
+      if (typeof text !== 'string') continue
+      if (!entry.announced) {
+        entry.announced = true
+        entry.lastText = text
+        entry.version += 1
+        events.push({
+          kind: 'open',
+          document: snapshotOf(path, text, session.isDirty?.() ?? false, entry.version)
+        })
+        continue
+      }
+      if (text === entry.lastText) continue
+      entry.lastText = text
+      events.push({
+        kind: 'change',
+        document: snapshotOf(path, text, session.isDirty?.() ?? false, entry.version)
+      })
+    }
+    if (events.length > 0) sink.send(events)
   }
 
   function scheduleFlush(): void {
@@ -159,20 +183,12 @@ export function initExtensionDocuments(sink: DocumentSink = defaultSink): Extens
     // módulo YA está vivo, el callback de abajo emite el texto y esto no corre.
     if (!session.hasLiveModule()) announceFromDisk(path, entry)
 
-    entry.unsubscribeContent = session.onDidChangeContent((text) => {
+    entry.unsubscribeContent = session.onDidChangeContent(() => {
       if (disposed) return
+      // Sin re-marshalear el buffer entero por tecla: en el flush se pide
+      // el texto y se dedupea por contenido.
       entry.version += 1
-      const document = snapshotOf(path, text, session.isDirty(), entry.version)
-
-      if (!entry.announced) {
-        entry.announced = true
-        entry.lastText = text
-        sink.send([{ kind: 'open', document }])
-        return
-      }
-      if (text === entry.lastText) return
-      entry.lastText = text
-      pending.set(path, document)
+      pending.add(path)
       scheduleFlush()
     })
 

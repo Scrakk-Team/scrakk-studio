@@ -103,8 +103,8 @@ interface TrackedFile {
  */
 export function initLspFileSync(sink: LspFileSyncSink = defaultSink): LspFileSyncHandle {
   const tracked = new Map<string, TrackedFile>()
-  /** Cambios pendientes de mandar: ruta → texto. */
-  const pending = new Map<string, string>()
+  /** Cambios pendientes de mandar (se pide el texto en el flush, no por tecla). */
+  const pending = new Set<string>()
   let flushTimer: ReturnType<typeof setTimeout> | null = null
   /** Cuándo se mandó lo último (0 = todavía nada). */
   let lastFlushAt = 0
@@ -116,10 +116,17 @@ export function initLspFileSync(sink: LspFileSyncSink = defaultSink): LspFileSyn
       flushTimer = null
     }
     if (pending.size === 0) return
-    const batch = [...pending.entries()]
+    const paths = [...pending]
     pending.clear()
     lastFlushAt = nowMs()
-    for (const [path, text] of batch) {
+    for (const path of paths) {
+      const session = getFileSession(path)
+      if (!session) continue
+      const entry = tracked.get(path)
+      if (!entry) continue
+      const text = session.getText?.()
+      if (typeof text !== 'string' || text === entry.lastText) continue
+      entry.lastText = text
       try {
         void sink.notify(path, text)
       } catch {
@@ -147,11 +154,11 @@ export function initLspFileSync(sink: LspFileSyncSink = defaultSink): LspFileSyn
     const entry: TrackedFile = { path, lastText: null, unsubscribeContent: () => undefined }
     tracked.set(path, entry)
     const session = getFileSession(path)
-    entry.unsubscribeContent = session.onDidChangeContent((text) => {
+    entry.unsubscribeContent = session.onDidChangeContent(() => {
       if (disposed) return
-      if (text === entry.lastText) return
-      entry.lastText = text
-      pending.set(path, text)
+      // Sin re-marshalear el buffer entero por keystroke: el flush lo pide
+      // cuando toca (con su debounce/coalesce) y dedupea por contenido.
+      pending.add(path)
       scheduleFlush()
     })
   }

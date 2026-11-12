@@ -44,8 +44,9 @@ export interface FileSession {
   hasLiveModule(): boolean
   /** Cambios de dirty (punto en tab / guardia de cierre). */
   onDidChangeDirty(cb: (dirty: boolean) => void): () => void
-  /** Cambios de contenido (texto completo + revisión). */
-  onDidChangeContent(cb: (text: string, revision: number) => void): () => void
+  /** Cambios de contenido (getter del texto + revisión). El texto completo NO
+   *  se re-serializa por cada tecla: se pide on-demand al vencimiento. */
+  onDidChangeContent(cb: (getText: () => string | undefined, revision: number) => void): () => void
 }
 
 class FileSessionImpl implements FileSession {
@@ -60,7 +61,8 @@ class FileSessionImpl implements FileSession {
 
   private dirty = false
   private dirtyListeners = new Set<(dirty: boolean) => void>()
-  private contentListeners = new Set<(text: string, revision: number) => void>()
+  private contentListeners = new Set<(getText: () => string | undefined, revision: number) => void>()
+  private lastContentRevision = -1
   private unsubRevision: (() => void) | null = null
 
   constructor(path: string) {
@@ -182,14 +184,25 @@ class FileSessionImpl implements FileSession {
     }
   }
 
+  /**
+   * Emite el cambio SIN re-marshalear el buffer entero en cada tecla.
+   *
+   * El texto completo viaja por un getter: quien lo necesite lo pide cuando
+   * lo necesite (típicamente en un debounce). Antes de esto, cada keystroke
+   * copiaba 33 MB dentro WASM → JS, y como los únicos consumidores (LSP y
+   * extension host) además debounceean, ese marshal era puro desperdicio y
+   * explicaba por qué tipear en archivos enormes se sentía trabado.
+   */
   private emitContent(): void {
     if (this.contentListeners.size === 0) return
     const revision = this.engine?.fileSessionRevision(this.path)
-    const text = this.engine?.fileSessionText(this.path)
-    if (typeof revision !== 'number' || typeof text !== 'string') return
+    if (typeof revision !== 'number') return
+    if (revision === this.lastContentRevision) return
+    this.lastContentRevision = revision
+    const getText = (): string | undefined => this.engine?.fileSessionText(this.path)
     for (const listener of [...this.contentListeners]) {
       try {
-        listener(text, revision)
+        listener(getText, revision)
       } catch {
         // Un listener roto no tumba la sesión.
       }
@@ -260,7 +273,7 @@ class FileSessionImpl implements FileSession {
     }
   }
 
-  onDidChangeContent(cb: (text: string, revision: number) => void): () => void {
+  onDidChangeContent(cb: (getText: () => string | undefined, revision: number) => void): () => void {
     this.contentListeners.add(cb)
     // Estado actual (el archivo puede estar cargado y quieto hace rato).
     this.emitContent()
