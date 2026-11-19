@@ -16,8 +16,8 @@
  */
 
 import { useEffect, useMemo, useState, type JSX } from 'react'
+import { IconButton } from '@ui'
 import { ProductIcon } from '@services/productIcons/components'
-import { IconButton, SegmentedTabs } from '@ui'
 import { getEditorFiles, openFileInEditor, subscribeToEditorFiles } from '@features/editor'
 import { revealInnertaPosition } from '@features/editor/engines/innerta/hostBridge'
 import { usePanelTitleOptional } from '@features/layout'
@@ -93,18 +93,43 @@ export default function BookmarksPanel({ currentFile }: ToolDockPanelProps): JSX
 
   // El toggle de ámbito vive en el header del PanelFrame del ToolDock. Sólo lo
   // declara este panel: outline/timeline no lo ven (se limpia al desmontar).
+  // ICONOS (proicons), sin texto: el header del dock es angosto y los labels
+  // se cortaban. `globe` = global, `file` = archivo abierto.
   useEffect(() => {
     if (!setHeaderActions) return undefined
     setHeaderActions(() => (
-      <SegmentedTabs
-        items={[
-          { id: 'global', label: t('layout.ambito.global') },
-          { id: 'file', label: t('features.ambito.este.archivo') }
-        ]}
-        activeId={scope}
-        onChange={(id) => setScope(id === 'file' ? 'file' : 'global')}
-        ariaLabel={t('features.ambito.de.marcadores')}
-      />
+      <div
+        className={styles.scopeToggle}
+        role="group"
+        aria-label={t('features.ambito.de.marcadores')}
+      >
+        <button
+          type="button"
+          className={[
+            styles.scopeBtn,
+            scope === 'global' ? styles.scopeActive : null
+          ].filter(Boolean).join(' ')}
+          aria-label={t('layout.ambito.global')}
+          aria-pressed={scope === 'global'}
+          title={t('layout.ambito.global')}
+          onClick={() => setScope('global')}
+        >
+          <ProductIcon id="globe" size={16} />
+        </button>
+        <button
+          type="button"
+          className={[
+            styles.scopeBtn,
+            scope === 'file' ? styles.scopeActive : null
+          ].filter(Boolean).join(' ')}
+          aria-label={t('features.ambito.este.archivo')}
+          aria-pressed={scope === 'file'}
+          title={t('features.ambito.este.archivo')}
+          onClick={() => setScope('file')}
+        >
+          <ProductIcon id="file" size={16} />
+        </button>
+      </div>
     ))
     return () => setHeaderActions(null)
   }, [setHeaderActions, scope])

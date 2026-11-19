@@ -70,6 +70,40 @@
   white-space: nowrap;
 }
 
+/* Toggle de ámbito en el header: dos ICONOS proicons (sin texto, el header del
+   dock es angosto), un poco más grandes y corridos a la izquierda del botón de
+   cierre para que no se corten. */
+.scopeToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-right: 10px;
+}
+
+.scopeToggle .scopeBtn {
+  width: 26px;
+  height: 26px;
+  left: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.scopeToggle .scopeBtn:hover {
+  background: var(--color-hover);
+  color: var(--color-text);
+}
+
+.scopeToggle .scopeActive {
+  background: color-mix(in srgb, var(--color-accent) 18%, transparent);
+  color: var(--color-accent);
+}
+
 .empty {
   padding: 16px;
   text-align: center;
