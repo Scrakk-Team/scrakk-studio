@@ -26,6 +26,7 @@ import { getFileIconUrl, subscribeToFileIcons } from '@services/fileIcons'
 import { resolveProductIcon, subscribeToProductIcons } from '@services/productIcons'
 import type { LassoContext } from './hooks/useSelectionBox'
 import { createNativeExplorer, type NativeExplorer } from './native/nativeExplorer'
+import { ToolDock, ToolDockHostProvider } from '@features/tooldock'
 import styles from './ExplorerCanvas.module.css'
 
 const ROW_HEIGHT = 22
@@ -975,6 +976,16 @@ export function ExplorerPanel({
           onClose={() => setMenu(null)}
         />
       ) : null}
+
+      {/* ToolDock del Explorer (outline / timeline / bookmarks + botones
+          dockeados de la ActivityBar). Estaba en el explorer React y se perdió
+          al pasar el árbol al core nativo WASM: se remonta acá, igual que antes.
+          Los items no dependen del estado del árbol React: leen el archivo
+          activo del bus del editor (ToolDockHostProvider) y el contextmenu
+          nativo sigue funcionando por su propio canal. */}
+      <ToolDockHostProvider hostId="explorer">
+        <ToolDock />
+      </ToolDockHostProvider>
     </div>
   )
 }
