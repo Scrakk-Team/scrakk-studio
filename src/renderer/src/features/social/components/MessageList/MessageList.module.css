@@ -4,11 +4,20 @@
  * Licencia completa en LICENSE (Apache License 2.0).
  */
 
+.root {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .list {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  height: 100%;
+  flex: 1;
   min-height: 0;
   overflow-y: auto;
   /* El aire va adentro (el scroller llega al borde del panel: ver SocialPanel
@@ -46,11 +55,61 @@
   font-weight: 500;
 }
 
+/* Indicador de escritura DENTRO del scroll: no empuja el composer ni tapa el
+   último mensaje. Se muestra como una fila más al final de la conversación. */
 .typing {
-  padding: 6px 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px 8px;
   font-size: var(--text-xs);
   color: var(--color-text-muted);
   font-style: italic;
+}
+
+.typingDots {
+  display: inline-flex;
+  gap: 2px;
+  align-items: center;
+}
+
+.typingDots span {
+  width: 4px;
+  height: 4px;
+  background: var(--color-text-muted);
+  border-radius: 50%;
+  animation: typingBounce 1.2s infinite;
+}
+
+.typingDots span:nth-child(2) { animation-delay: 0.2s; }
+.typingDots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes typingBounce {
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.5; }
+  40% { transform: translateY(-4px); opacity: 1; }
+}
+
+/* "Ir al último mensaje": aparece sólo cuando el usuario subió por el history. */
+.jumpBottom {
+  position: absolute;
+  right: 20px;
+  bottom: 12px;
+  z-index: 5;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-capsule);
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+}
+
+.jumpBottom:hover {
+  background: var(--color-hover);
 }
 
 .placeholder {

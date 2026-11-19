@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // Licencia completa en LICENSE (Apache License 2.0).
 
-import { memo, useEffect, useMemo, useRef, type JSX, type UIEvent } from 'react'
+import { memo, useEffect, useMemo, useRef, useState, type JSX, type UIEvent } from 'react'
+import { ProductIcon } from '@services/productIcons/components'
 import type { DirectMessage, Friend } from '@shared/social'
 import type { MyProfile } from '../../state/types'
 import { MessageBubble, type SenderProfile } from '../MessageBubble/MessageBubble'
@@ -28,18 +29,19 @@ interface MessageListProps {
   onLoadMore?: () => void
   /** Id de la conversación (amigo): clave de la memoria de scroll. */
   conversationId?: string
+  /** El peer está escribiendo: se pinta DENTRO del scroller, al final. */
+  isTyping?: boolean
+  /** Nombre del peer para el indicador de escritura. */
+  typingName?: string
 }
 
-/** Recuerda dónde quedó el usuario en cada conversación. */
-interface ScrollMemory {
-  distanceFromBottom: number
-  atBottom: boolean
-  at: number
-}
+/**
+ * El indicador vive adentro del scroller: afuera ocupaba alto entre la lista y
+ * el composer, achicaba la vista y "tapaba" el último mensaje cada vez que
+ * aparecía/desaparecía. Al ser contenido del scroll, respeta la posición del
+ * usuario y el auto-scroll al fondo lo deja visible sin saltos.
+ */
 
-const scrollMemory = new Map<string, ScrollMemory>()
-/** Si el usuario salió hace menos que esto, se respeta su posición; si no, al final. */
-const RESTORE_WINDOW_MS = 10 * 60 * 1000
 /** A qué distancia del fondo se considera "está al final". */
 const BOTTOM_THRESHOLD = 120
 /** A qué distancia del techo se pide la página anterior. */
@@ -123,47 +125,37 @@ const GROUP_WINDOW_MS = 5 * 60 * 1000
  * sólo depende de los mensajes y de los perfiles. Con esto, un cambio que no
  * toca los mensajes (presencia, typing, cuentas) no la recorre.
  */
-function MessageListImpl({ messages, meId, friends, meName, meAvatar, meProfile, friendsPresence, className, onReply, onEdit, onDelete, hasMore, loadingMore, onLoadMore, conversationId }: MessageListProps): JSX.Element {
+function MessageListImpl({ messages, meId, friends, meName, meAvatar, meProfile, friendsPresence, className, onReply, onEdit, onDelete, hasMore, loadingMore, onLoadMore, conversationId, isTyping, typingName }: MessageListProps): JSX.Element {
   const listRef = useRef<HTMLDivElement>(null)
   const prevHeightRef = useRef(0)
-  const pendingScrollRef = useRef<
-    { mode: 'bottom' } | { mode: 'restore'; distanceFromBottom: number } | null
-  >(null)
+  const pendingScrollRef = useRef<{ mode: 'bottom' } | null>(null)
   const lastProgrammaticAtRef = useRef(0)
-  const saveHandleRef = useRef<number | null>(null)
+  const [atBottom, setAtBottom] = useState(true)
 
-  // Al cambiar de conversación: decidir dónde posicionarse. Si el usuario salió
-  // hace poco y no estaba al final, se respeta su zona; si no, va al último
-  // mensaje. Se aplica cuando llega el primer lote (efecto de abajo).
+  // Al entrar en una conversación SIEMPRE al último mensaje. Antes se restauraba
+  // una posición vieja (ventana de 10 min) y el usuario aparecía "arriba" sin
+  // saber por qué. Si quiere volver a leer history, puede subir: el botón de
+  // "ir al último" aparece cuando se aleja del fondo.
   useEffect(() => {
-    const saved = conversationId ? scrollMemory.get(conversationId) : undefined
-    const recent = saved ? Date.now() - saved.at < RESTORE_WINDOW_MS : false
-    pendingScrollRef.current =
-      recent && saved && !saved.atBottom
-        ? { mode: 'restore', distanceFromBottom: saved.distanceFromBottom }
-        : { mode: 'bottom' }
+    pendingScrollRef.current = { mode: 'bottom' }
     prevHeightRef.current = 0
-    return () => {
-      if (saveHandleRef.current !== null) cancelAnimationFrame(saveHandleRef.current)
-      saveHandleRef.current = null
-    }
+    setAtBottom(true)
   }, [conversationId])
 
   // Posicionamiento: aplicar el pendiente, anclar al prepend y seguir el fondo
-  // solo si el usuario ya estaba cerca del final.
+  // solo si el usuario ya estaba cerca del final. El typing también dispara:
+  // aparece como contenido al final del scroll y queremos que se vea si estábamos abajo.
   useEffect(() => {
     const el = listRef.current
     if (!el) return
     const pending = pendingScrollRef.current
     if (pending) {
-      if (messages.length === 0) return
+      if (messages.length === 0 && !isTyping) return
       lastProgrammaticAtRef.current = performance.now()
-      el.scrollTop =
-        pending.mode === 'bottom'
-          ? el.scrollHeight
-          : Math.max(0, el.scrollHeight - el.clientHeight - pending.distanceFromBottom)
+      el.scrollTop = el.scrollHeight
       pendingScrollRef.current = null
       prevHeightRef.current = 0
+      setAtBottom(true)
       return
     }
     // Recién se prependió una página: mantener la vista en el mismo mensaje.
@@ -174,38 +166,35 @@ function MessageListImpl({ messages, meId, friends, meName, meAvatar, meProfile,
       return
     }
     const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight
-    if (distanceFromBottom < BOTTOM_THRESHOLD) {
+    const nearBottom = distanceFromBottom < BOTTOM_THRESHOLD
+    if (nearBottom) {
       lastProgrammaticAtRef.current = performance.now()
       el.scrollTop = el.scrollHeight
     }
-  }, [messages])
+    setAtBottom((prev) => (prev === nearBottom ? prev : nearBottom))
+  }, [messages, isTyping])
 
-  // Guardar la posición recordada y pedir la página anterior SOLO cuando el
-  // usuario sube a mano. Antes se usaba un IntersectionObserver en el centinela
-  // de arriba: con contenido corto quedaba visible y encadenaba páginas hasta
-  // agotar el historial (el "carga todo lo de arriba").
+  // Pedir la página anterior SOLO cuando el usuario sube a mano. Antes se usaba
+  // un IntersectionObserver en el centinela de arriba: con contenido corto
+  // quedaba visible y encadenaba páginas hasta agotar el historial.
   const handleScroll = (event: UIEvent<HTMLDivElement>): void => {
     const el = event.currentTarget
     // Ignorar el scroll que provocamos nosotros (posicionar/anclar).
     if (performance.now() - lastProgrammaticAtRef.current < 64) return
-
-    if (conversationId) {
-      if (saveHandleRef.current !== null) cancelAnimationFrame(saveHandleRef.current)
-      saveHandleRef.current = requestAnimationFrame(() => {
-        saveHandleRef.current = null
-        const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight
-        scrollMemory.set(conversationId, {
-          distanceFromBottom,
-          atBottom: distanceFromBottom < 24,
-          at: Date.now()
-        })
-      })
-    }
-
+    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < BOTTOM_THRESHOLD
+    setAtBottom((prev) => (prev === nearBottom ? prev : nearBottom))
     if (el.scrollTop <= LOAD_MORE_THRESHOLD && hasMore && !loadingMore && onLoadMore) {
       prevHeightRef.current = el.scrollHeight
       onLoadMore()
     }
+  }
+
+  const jumpToBottom = (): void => {
+    const el = listRef.current
+    if (!el) return
+    lastProgrammaticAtRef.current = performance.now()
+    el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' })
+    setAtBottom(true)
   }
 
   // ── Datos derivados, memoizados ────────────────────────────────────────────
@@ -296,14 +285,15 @@ function MessageListImpl({ messages, meId, friends, meName, meAvatar, meProfile,
   const yesterdayKey = dayKey(yesterday)
 
   return (
-    <div
-      ref={listRef}
-      className={className ? `${styles.list} ${className}` : styles.list}
-      role="log"
-      aria-live="polite"
-      onScroll={handleScroll}
-    >
-      {loadingMore
+    <div className={className ? `${styles.root} ${className}` : styles.root}>
+      <div
+        ref={listRef}
+        className={styles.list}
+        role="log"
+        aria-live="polite"
+        onScroll={handleScroll}
+      >
+        {loadingMore
         ? Array.from({ length: 3 }).map((_, i) => (
             <div key={`ph-${i}`} className={styles.placeholder}>
               <div className={styles.phAvatar} />
@@ -365,6 +355,28 @@ function MessageListImpl({ messages, meId, friends, meName, meAvatar, meProfile,
           )
         })
       )}
+        {isTyping ? (
+          <div className={styles.typing}>
+            <span>{typingName} {t('layout.esta.escribiendo')}</span>
+            <span className={styles.typingDots}>
+              <span />
+              <span />
+              <span />
+            </span>
+          </div>
+        ) : null}
+      </div>
+      {!atBottom ? (
+        <button
+          type="button"
+          className={styles.jumpBottom}
+          onClick={jumpToBottom}
+          title={t('social.ir.ultimo.mensaje')}
+          aria-label={t('social.ir.ultimo.mensaje')}
+        >
+          <ProductIcon id="chevron-down" size={14} />
+        </button>
+      ) : null}
     </div>
   )
 }

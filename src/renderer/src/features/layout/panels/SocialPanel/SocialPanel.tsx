@@ -274,8 +274,6 @@ function SocialPanelInner(): JSX.Element {
 
   // Chat directo.
   if (view === 'chat' && activePeer) {
-    const isTyping = !!typingByPeer[activePeer.id]
-    const typingName = activePeer.displayName ?? activePeer.handle ?? t('layout.alguien')
     const replySender = replyTo ? (replyTo.senderId === me.dni ? me.name : friends.find((f) => f.id === replyTo.senderId)?.displayName ?? t('layout.usuario')) : undefined
     return (
       <main className={styles.screen}>
@@ -297,18 +295,10 @@ function SocialPanelInner(): JSX.Element {
             hasMore={hasMore}
             loadingMore={loadingMore}
             onLoadMore={loadMore}
+            isTyping={!!typingByPeer[activePeer.id]}
+            typingName={activePeer.displayName ?? activePeer.handle ?? t('layout.alguien')}
           />
         </div>
-        {isTyping ? (
-          <div className={styles.typing}>
-            <span>{typingName} {t('layout.esta.escribiendo')}</span>
-            <span className={styles.typingDots}>
-              <span />
-              <span />
-              <span />
-            </span>
-          </div>
-        ) : null}
         <div className={styles.composer}>
           <MessageComposer
             onSend={sendMessage}

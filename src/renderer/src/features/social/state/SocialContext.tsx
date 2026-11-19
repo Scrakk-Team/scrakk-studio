@@ -231,6 +231,8 @@ export function SocialProvider({
   const [view, setViewState] = useState<SocialView>('home')
   const [replyTo, setReplyTo] = useState<DirectMessage | null>(null)
   const [typingByPeer, setTypingByPeer] = useState<Record<string, boolean>>({})
+  /** Timers de auto-expire por usuario: uno viejo no puede apagar un typing nuevo. */
+  const typingTimersRef = useRef<Record<string, number>>({})
   const [hasMore, setHasMore] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   /**
@@ -518,7 +520,13 @@ export function SocialProvider({
     })
     const unsubTyping = social.onTypingChanged(({ accountId: acc, userId, typing }) => {
       if (acc !== accountIdRef.current) return
-      if (userId === acc) return
+      // Ignorar el eco de nuestro propio typing (viene con nuestro user id).
+      if (userId === accountIdRef.current) return
+      const timers = typingTimersRef.current
+      if (timers[userId]) {
+        clearTimeout(timers[userId])
+        delete timers[userId]
+      }
       setTypingByPeer((prev) => {
         if (typing) return { ...prev, [userId]: true }
         const next = { ...prev }
@@ -526,8 +534,9 @@ export function SocialProvider({
         return next
       })
       if (typing) {
-        // Auto-expire after 3s
-        setTimeout(() => {
+        // Auto-expire después de 3s SIN typing nuevo (cada evento reinicia el timer).
+        timers[userId] = window.setTimeout(() => {
+          delete timers[userId]
           setTypingByPeer((prev) => {
             if (!prev[userId]) return prev
             const next = { ...prev }
@@ -574,6 +583,8 @@ export function SocialProvider({
       unsubRequests()
       unsubFriends()
       unsubPresence()
+      for (const timer of Object.values(typingTimersRef.current)) clearTimeout(timer)
+      typingTimersRef.current = {}
     }
     // Sin dependencias: los handlers leen SIEMPRE lo fresco por ref (arriba).
   }, [])
