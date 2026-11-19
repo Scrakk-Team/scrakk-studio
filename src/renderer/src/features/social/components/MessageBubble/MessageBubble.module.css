@@ -9,22 +9,21 @@
   display: flex;
   gap: 12px;
   width: 100%;
-  padding: 2px 8px 2px 12px;
+  padding: 1px 8px 1px 12px;
   border-radius: var(--radius-sm);
-  isolation: isolate;
 }
 
 .row:hover {
   background: color-mix(in srgb, var(--color-hover) 60%, transparent);
-  z-index: 3;
+  z-index: 20;
 }
 
 .groupStart {
-  margin-top: 12px;
+  margin-top: 8px;
 }
 
 .groupCont {
-  margin-top: 1px;
+  margin-top: 0;
 }
 
 .avatarCol {
@@ -204,7 +203,7 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  z-index: 10;
+  z-index: 30;
   opacity: 0;
   pointer-events: none;
   transition: opacity var(--duration-fast) var(--ease-out);

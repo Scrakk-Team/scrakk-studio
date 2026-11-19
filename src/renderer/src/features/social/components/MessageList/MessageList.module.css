@@ -16,7 +16,9 @@
 .list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  /* Discord-style: los mensajes se pegan; el aire lo dan los márgenes del
+     group start, no un gap entre TODAS las filas. */
+  gap: 0;
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -31,24 +33,32 @@
 .item {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: 0;
+  position: relative;
+  z-index: 0;
   contain: layout style;
   /* Los mensajes fuera de pantalla no se pintan: con historial largo, solo
      cuesta lo visible. `contain-intrinsic-size` evita saltos de scroll. */
   content-visibility: auto;
-  contain-intrinsic-size: auto 80px;
+  contain-intrinsic-size: auto 44px;
 }
 
-/* Separador de día: píldora centrada. */
+/* El hover de una fila vecina no debe tapar la barra de acciones/tooltip. */
+.item:hover {
+  z-index: 10;
+}
+
+/* Separador de día: píldora centrada. Radio DINÁMICO del tema (como el resto
+   de la UI): en temas "rect" se aplana con los demás. */
 .day {
   display: flex;
   justify-content: center;
-  margin: var(--space-1) 0;
+  margin: 6px 0 2px;
 }
 
 .dayPill {
   padding: 2px 10px;
-  border-radius: var(--radius-capsule);
+  border-radius: var(--radius-input);
   background: var(--color-hover);
   color: var(--color-text-muted);
   font-size: 10px;

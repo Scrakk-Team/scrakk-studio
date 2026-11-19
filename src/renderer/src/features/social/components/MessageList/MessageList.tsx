@@ -114,7 +114,7 @@ function statusLabel(status: string): string {
   }
 }
 
-const GROUP_WINDOW_MS = 5 * 60 * 1000
+const GROUP_WINDOW_MS = 7 * 60 * 1000
 
 /**
  * Lista Discord-style: agrupa mensajes del mismo autor dentro de 5m.
