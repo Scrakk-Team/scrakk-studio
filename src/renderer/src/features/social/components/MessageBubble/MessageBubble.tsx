@@ -12,6 +12,7 @@ import { UserAvatar } from '../UserAvatar/UserAvatar'
 import { ProfileView } from '../ProfileView/ProfileView'
 import { VerifiedCheck } from '../VerifiedCheck/VerifiedCheck'
 import { showFloatingProfile } from '../ProfileFloating/ProfileFloating'
+import { ImageLightbox } from '../ImageLightbox/ImageLightbox'
 import styles from './MessageBubble.module.css'
 
 import { t } from '@core/i18n'
@@ -131,6 +132,7 @@ export const MessageBubble = memo(function MessageBubble({
 }: MessageBubbleProps): JSX.Element {
   const [editing, setEditing] = useState(false)
   const [editValue, setEditValue] = useState(message.body)
+  const [lightbox, setLightbox] = useState<string | null>(null)
   const jumbo = emojiOnlyCount(message.body)
 
   const handleEdit = () => {
@@ -255,7 +257,7 @@ export const MessageBubble = memo(function MessageBubble({
                 key={a.id}
                 type="button"
                 className={styles.attachThumb}
-                onClick={() => window.open(a.url, '_blank', 'noopener')}
+                onClick={() => setLightbox(a.url)}
                 title={t('social.abrir.imagen.en.tamano.completo')}
               >
                 <img src={a.url} alt={t('social.imagen.adjunta')} loading="lazy" />
@@ -264,6 +266,10 @@ export const MessageBubble = memo(function MessageBubble({
           </div>
         ) : null}
       </div>
+
+      {lightbox ? (
+        <ImageLightbox url={lightbox} onClose={() => setLightbox(null)} />
+      ) : null}
 
       <div className={styles.actions}>
         <button className={styles.actionBtn} onClick={() => onReply?.(message)} title={t('social.responder')}>
