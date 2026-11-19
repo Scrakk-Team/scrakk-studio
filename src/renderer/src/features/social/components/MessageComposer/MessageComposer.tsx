@@ -429,10 +429,26 @@ export function MessageComposer({
     }, 0)
   }
 
-  const filteredFriends = friends.filter((f) => {
+  /** Handle tageable de un amigo: sin espacios, apto para el regex de @menciones. */
+function mentionHandleOf(friend: Friend): string {
+  return (friend.handle ?? friend.displayName ?? '')
+    .trim()
+    .replace(/\s+/g, '_')
+    .replace(/[^A-Za-z0-9_]/g, '')
+    .toLowerCase()
+}
+
+const filteredFriends = friends
+  .map((friend) => ({ friend, handle: mentionHandleOf(friend) }))
+  .filter(({ friend, handle }) => {
+    if (handle.length < 3) return false
     if (!mentionQuery) return true
-    return (f.handle ?? '').toLowerCase().includes(mentionQuery) || (f.displayName ?? '').toLowerCase().includes(mentionQuery)
-  }).slice(0, 5)
+    return (
+      handle.includes(mentionQuery) ||
+      (friend.displayName ?? '').toLowerCase().includes(mentionQuery)
+    )
+  })
+  .slice(0, 5)
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault()
@@ -500,9 +516,13 @@ export function MessageComposer({
       ) : null}
       {showMentions && filteredFriends.length > 0 ? (
         <div className={styles.mentionList}>
-          {filteredFriends.map((f) => (
-            <button key={f.id} className={styles.mentionItem} onClick={() => insertMention(f.handle ?? '')}>
-              @{f.handle ?? f.displayName}
+          {filteredFriends.map(({ friend, handle }) => (
+            <button
+              key={friend.id}
+              className={styles.mentionItem}
+              onClick={() => insertMention(handle)}
+            >
+              @{handle}
             </button>
           ))}
         </div>

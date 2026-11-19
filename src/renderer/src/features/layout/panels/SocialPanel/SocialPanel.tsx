@@ -308,7 +308,9 @@ function SocialPanelInner(): JSX.Element {
             replyTo={replyTo}
             replySenderName={replySender}
             onCancelReply={() => setReplyTo(null)}
-            friends={friends}
+            // Sólo se puede tagear a quien está en ESTA conversación, no a toda
+            // la lista de amigos (antes aparecían todos y no tenía sentido).
+            friends={[activePeer]}
             onTyping={sendTyping}
           />
         </div>
