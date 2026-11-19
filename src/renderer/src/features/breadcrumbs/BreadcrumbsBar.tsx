@@ -89,6 +89,25 @@ export function BreadcrumbsBar({
   const openSymbolRef = useRef<string | null>(null)
   const barRef = useRef<HTMLElement | null>(null)
 
+  // Rueda del mouse = scroll horizontal del breadcrumb (el scrollbar es
+  // invisible). El nav tiene overflow-x auto, pero Chromium sólo mueve el
+  // scroll horizontal con shift+rueda; acá convertimos deltaY en scrollLeft.
+  useEffect(() => {
+    const bar = barRef.current
+    if (!bar) return undefined
+    const onWheel = (event: WheelEvent): void => {
+      if (bar.scrollWidth <= bar.clientWidth) return
+      const delta = Math.abs(event.deltaX) > Math.abs(event.deltaY)
+        ? event.deltaX
+        : event.deltaY
+      if (delta === 0) return
+      bar.scrollLeft += delta
+      event.preventDefault()
+    }
+    bar.addEventListener('wheel', onWheel, { passive: false })
+    return () => bar.removeEventListener('wheel', onWheel)
+  }, [])
+
   const root = rootProp !== undefined ? rootProp : workspaceRoot
   const activePath = pathProp !== undefined ? pathProp : editorActive
   const segments: CrumbSegment[] = buildSegments(root, activePath)
