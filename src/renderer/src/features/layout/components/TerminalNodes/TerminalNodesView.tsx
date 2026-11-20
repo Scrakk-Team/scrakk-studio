@@ -16,7 +16,11 @@ import {
   portPositions,
   portSide,
   smartEdgePath,
-  type Link
+  spawnPosition,
+  isRectVisible,
+  cameraCenteredOn,
+  type Link,
+  type NodeRect
 } from './terminalNodesModel'
 import styles from './TerminalNodesView.module.css'
 
@@ -28,6 +32,7 @@ interface Cam { x: number; y: number; k: number }
 const POS_KEY = 'scrakk:term-nodes-pos'
 const CAM_KEY = 'scrakk:term-nodes-cam'
 const LINKS_KEY = 'scrakk:term-nodes-links'
+const LAST_KEY = 'scrakk:term-nodes-last'
 const FALLBACK_SIZE: NodeSize = { w: 560, h: 340 }
 /** Umbral px para distinguir clic (seleccionar puerto) de arrastre (crear enlace). */
 const CLICK_SLOP = 5
@@ -49,6 +54,7 @@ function loadCam(): Cam {
 }
 
 function loadLinks(): Link[] {
+
   try {
     const raw = localStorage.getItem(LINKS_KEY)
     if (!raw) return []
@@ -57,6 +63,23 @@ function loadLinks(): Link[] {
       .filter((l) => typeof l.a === 'string' && typeof l.b === 'string' && l.a !== l.b)
       .map((l) => ({ id: [l.a, l.b].sort().join('~'), a: l.a, b: l.b, ap: l.ap ?? 0, bp: l.bp ?? 0 }))
   } catch { return [] }
+}
+
+/** Última terminal que el usuario manipuló (persiste entre visitas al lienzo). */
+function loadLast(): string | null {
+  try {
+    return localStorage.getItem(LAST_KEY)
+  } catch {
+    return null
+  }
+}
+
+function saveLast(id: string): void {
+  try {
+    localStorage.setItem(LAST_KEY, id)
+  } catch {
+    /* sin persistencia */
+  }
 }
 
 /** Todas las tabs de terminal vivas (cualquier strip): son las transportables al lienzo. */
@@ -87,7 +110,11 @@ export function TerminalNodesView({ onBack }: { onBack: () => void }): JSX.Eleme
   const [links, setLinks] = useState<Link[]>(loadLinks)
   const [pending, setPending] = useState<{ node: string; port: number } | null>(null)
   const [linkDrag, setLinkDrag] = useState<{ from: { node: string; port: number }; x: number; y: number } | null>(null)
-  const [front, setFront] = useState<string | null>(null)
+  const [front, setFront] = useState<string | null>(() => loadLast())
+  const markFront = useCallback((id: string): void => {
+    setFront(id)
+    saveLast(id)
+  }, [])
 
   const viewRef = useRef<HTMLDivElement>(null)
   const nodeEls = useRef(new Map<string, HTMLDivElement>())
@@ -104,27 +131,111 @@ export function TerminalNodesView({ onBack }: { onBack: () => void }): JSX.Eleme
   const linksRef = useRef(new Map(links.map((l) => [l.id, l])))
   useEffect(() => { linksRef.current = new Map(links.map((l) => [l.id, l])) }, [links])
 
+  const camRef = useRef(cam)
+  useEffect(() => { camRef.current = cam }, [cam])
+  const frontRef = useRef(front)
+  useEffect(() => { frontRef.current = front }, [front])
+  const camAnimRef = useRef<number | null>(null)
+
+  /** Cámara suave hacia un rect del mundo (ease-out, ~360ms). */
+  const animateCameraTo = useCallback((target: Cam): void => {
+    if (camAnimRef.current !== null) cancelAnimationFrame(camAnimRef.current)
+    const from = camRef.current
+    const t0 = performance.now()
+    const DURATION = 360
+    const tick = (now: number): void => {
+      const t = Math.min(1, (now - t0) / DURATION)
+      const e = 1 - Math.pow(1 - t, 3) // ease-out cúbico
+      const next: Cam = {
+        x: from.x + (target.x - from.x) * e,
+        y: from.y + (target.y - from.y) * e,
+        k: from.k + (target.k - from.k) * e
+      }
+      camRef.current = next
+      setCam(next)
+      if (t < 1) camAnimRef.current = requestAnimationFrame(tick)
+      else camAnimRef.current = null
+    }
+    camAnimRef.current = requestAnimationFrame(tick)
+  }, [])
+
+  /** Cualquier gesto del usuario cancela la animación de cámara. */
+  const cancelCameraAnim = useCallback((): void => {
+    if (camAnimRef.current !== null) {
+      cancelAnimationFrame(camAnimRef.current)
+      camAnimRef.current = null
+    }
+  }, [])
+
+  useEffect(() => () => cancelCameraAnim(), [cancelCameraAnim])
+
   const tabs = useMemo(() => collectTerminalTabs(), [version]) // eslint-disable-line react-hooks/exhaustive-deps
   const tabIds = useMemo(() => tabs.map((t) => t.id), [tabs])
 
-  // Posición inicial en cascada para nodos nuevos.
+  // Nodos nuevos: se ubican cerca de la ÚLTIMA terminal manipulada (si está a
+  // la vista) o del centro de la cámara; siempre en el hueco libre más cercano
+  // para no tapar a los demás. Si quedan fuera de pantalla, la cámara viaja
+  // suavemente hasta centrarlos — el usuario nunca pierde la terminal nueva.
   useEffect(() => {
-    setPositions((prev) => {
-      let changed = false
-      const next = { ...prev }
-      tabs.forEach((tab, i) => {
-        if (!next[tab.id]) {
-          next[tab.id] = { x: 40 + i * 48, y: 40 + i * 48 }
-          changed = true
+    const view = viewRef.current
+    const vp = view
+      ? { w: view.clientWidth, h: view.clientHeight }
+      : { w: window.innerWidth, h: window.innerHeight }
+    const camNow = camRef.current
+    const sizeOf = (id: string): NodeSize => sizesRef.current[id] ?? FALLBACK_SIZE
+    const focus = {
+      x: (vp.w / 2 - camNow.x) / camNow.k,
+      y: (vp.h / 2 - camNow.y) / camNow.k
+    }
+    const lastId = frontRef.current
+    const lastPos = lastId ? positionsRef.current[lastId] : undefined
+    const anchor = lastId && lastPos
+      ? {
+          rect: { ...lastPos, ...sizeOf(lastId) },
+          visible: isRectVisible(
+            { ...lastPos, ...sizeOf(lastId) }, vp, camNow
+          )
         }
-      })
-      if (changed) {
-        try { localStorage.setItem(POS_KEY, JSON.stringify(next)) } catch { /* noop */ }
-        return next
+      : null
+
+    const next = { ...positionsRef.current }
+    const occupied: NodeRect[] = []
+    for (const id of tabIds) {
+      const p = next[id]
+      if (p) occupied.push({ ...p, ...sizeOf(id) })
+    }
+    const newIds: string[] = []
+    for (const tab of tabs) {
+      if (next[tab.id]) continue
+      const pos = spawnPosition(anchor, focus, sizeOf(tab.id), occupied)
+      next[tab.id] = pos
+      occupied.push({ ...pos, ...sizeOf(tab.id) })
+      newIds.push(tab.id)
+    }
+    if (newIds.length > 0) {
+      try { localStorage.setItem(POS_KEY, JSON.stringify(next)) } catch { /* noop */ }
+      positionsRef.current = next
+      setPositions(next)
+    }
+
+    if (newIds.length === 0) return
+    // La animación se agenda al frame siguiente: el state de posiciones ya
+    // está commiteado y los rects son los definitivos.
+    requestAnimationFrame(() => {
+      const camNow2 = camRef.current
+      let target: Cam | null = null
+      for (const id of newIds) {
+        const p = positionsRef.current[id]
+        if (!p) continue
+        const rect = { ...p, ...sizeOf(id) }
+        if (!isRectVisible(rect, vp, camNow2)) {
+          target = cameraCenteredOn(rect, vp, camNow2)
+          break
+        }
       }
-      return prev
+      if (target) animateCameraTo(target)
     })
-  }, [tabs])
+  }, [tabs, tabIds, animateCameraTo])
 
   // Podar enlaces (y tamaños) de terminales ya cerradas + persistir.
   useEffect(() => {
@@ -387,6 +498,7 @@ export function TerminalNodesView({ onBack }: { onBack: () => void }): JSX.Eleme
   const onBackgroundPointerDown = (e: ReactPointerEvent<HTMLDivElement>): void => {
     const target = e.target as HTMLElement
     if (target.closest?.('[data-nopan]') || target.closest?.(`.${styles.node}`)) return
+    cancelCameraAnim()
     panRef.current = { startX: e.clientX, startY: e.clientY, camX: cam.x, camY: cam.y }
     e.currentTarget.setPointerCapture(e.pointerId)
   }
@@ -431,6 +543,7 @@ export function TerminalNodesView({ onBack }: { onBack: () => void }): JSX.Eleme
   }
 
   const onWheel = (e: ReactWheelEvent<HTMLDivElement>): void => {
+    cancelCameraAnim()
     if (e.ctrlKey || e.metaKey) {
       // Zoom centrado en el cursor.
       const rect = viewRef.current?.getBoundingClientRect()
@@ -453,7 +566,7 @@ export function TerminalNodesView({ onBack }: { onBack: () => void }): JSX.Eleme
     const w = screenToWorld(e.clientX, e.clientY)
     linkStartRef.current = { x: e.clientX, y: e.clientY }
     setLinkDrag({ from: { node, port }, x: w.x, y: w.y })
-    setFront(node)
+    markFront(node)
   }
 
   const onPortKeyDown = (e: ReactKeyboardEvent<HTMLButtonElement>, node: string, port: number): void => {
@@ -474,7 +587,7 @@ export function TerminalNodesView({ onBack }: { onBack: () => void }): JSX.Eleme
   const onNodeHeaderPointerDown = (e: ReactPointerEvent<HTMLDivElement>, tabId: string): void => {
     const pos = positions[tabId]
     if (!pos) return
-    setFront(tabId)
+    markFront(tabId)
     // dx/dy en coords de mundo (dividir por zoom).
     const rect = (e.currentTarget.closest(`.${styles.node}`) as HTMLElement)?.getBoundingClientRect()
     const originX = rect ? e.clientX - rect.left : 0
@@ -654,9 +767,13 @@ export function TerminalNodesView({ onBack }: { onBack: () => void }): JSX.Eleme
   }
 
   const zoomBy = (factor: number): void => {
+    cancelCameraAnim()
     setCam((c) => ({ ...c, k: Math.min(2, Math.max(0.4, c.k * factor)) }))
   }
-  const resetView = (): void => setCam({ x: 24, y: 24, k: 1 })
+  const resetView = (): void => {
+    cancelCameraAnim()
+    setCam({ x: 24, y: 24, k: 1 })
+  }
 
   /**
    * Zoom del lienzo → resolución del MOTOR.
@@ -757,7 +874,7 @@ export function TerminalNodesView({ onBack }: { onBack: () => void }): JSX.Eleme
               ref={setNodeEl(tab.id)}
               className={styles.node}
               style={{ left: pos.x, top: pos.y, zIndex: tab.id === front ? 10 : 1 }}
-              onPointerDown={() => setFront(tab.id)}
+              onPointerDown={() => markFront(tab.id)}
             >
               <div
                 className={styles.nodeHeader}

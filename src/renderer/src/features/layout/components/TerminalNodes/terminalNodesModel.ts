@@ -43,6 +43,100 @@ export function portPositions(w: number, h: number): PortPos[] {
 export type PortSide = 'top' | 'right' | 'bottom' | 'left'
 
 export interface NodeRect { x: number; y: number; w: number; h: number }
+export interface NodePos { x: number; y: number }
+export interface ViewportSize { w: number; h: number }
+
+/** ¿Dos rects se solapan (con `gap` de aire)? */
+export function rectsOverlap(a: NodeRect, b: NodeRect, gap = 0): boolean {
+  return (
+    a.x < b.x + b.w + gap &&
+    a.x + a.w + gap > b.x &&
+    a.y < b.y + b.h + gap &&
+    a.y + a.h + gap > b.y
+  )
+}
+
+/**
+ * Posición de un nodo NUEVO cerca del último que el usuario manipuló, o del
+ * centro de la cámara si no hay / está fuera de vista. Prueba derecha, abajo,
+ * izquierda, arriba y después un anillo creciente: siempre el hueco LIBRE más
+ * cercano al ancla, para que la terminal nueva nunca se monte sobre otra.
+ */
+export function spawnPosition(
+  anchor: { rect: NodeRect; visible: boolean } | null,
+  focus: NodePos,
+  size: NodeSizeLike,
+  occupied: NodeRect[],
+  gap = 28
+): NodePos {
+  const W = size.w
+  const H = size.h
+  const base = anchor?.visible ? anchor.rect : null
+  const stepX = W + gap
+  const stepY = H + gap
+  const center = base
+    ? { x: base.x + base.w / 2 - W / 2, y: base.y + base.h / 2 - H / 2 }
+    : { x: focus.x - W / 2, y: focus.y - H / 2 }
+  // Ancla visible: primero pegado a sus lados (el hueco "más cercano").
+  const candidates: NodePos[] = base
+    ? [
+        { x: base.x + base.w + gap, y: base.y },
+        { x: base.x, y: base.y + base.h + gap },
+        { x: base.x - W - gap, y: base.y },
+        { x: base.x, y: base.y - H - gap }
+      ]
+    : [{ x: center.x, y: center.y }]
+  // Después, anillos alrededor del centro (tanto con ancla como sin ella).
+  for (let ring = 1; ring <= 5; ring++) {
+    for (const [dx, dy] of [
+      [ring, 0], [0, ring], [-ring, 0], [0, -ring],
+      [ring, ring], [ring, -ring], [-ring, ring], [-ring, -ring]
+    ]) {
+      candidates.push({ x: center.x + dx * stepX, y: center.y + dy * stepY })
+    }
+  }
+  const free = candidates.find((p) =>
+    !occupied.some((r) => rectsOverlap({ ...p, w: W, h: H }, r, gap))
+  )
+  return free ?? candidates[0] ?? { x: center.x, y: center.y }
+}
+
+interface NodeSizeLike { w: number; h: number }
+
+/** Rect en coordenadas de PANTALLA según la cámara. */
+export function rectToScreen(rect: NodeRect, cam: { x: number; y: number; k: number }): NodeRect {
+  return {
+    x: rect.x * cam.k + cam.x,
+    y: rect.y * cam.k + cam.y,
+    w: rect.w * cam.k,
+    h: rect.h * cam.k
+  }
+}
+
+/** ¿El nodo cabe en el viewport con `margin` de aire? */
+export function isRectVisible(
+  rect: NodeRect,
+  viewport: ViewportSize,
+  cam: { x: number; y: number; k: number },
+  margin = 16
+): boolean {
+  const s = rectToScreen(rect, cam)
+  return s.x >= margin && s.y >= margin &&
+    s.x + s.w <= viewport.w - margin && s.y + s.h <= viewport.h - margin
+}
+
+/** Cámara que CENTRA el nodo en el viewport (sin cambiar zoom). */
+export function cameraCenteredOn(
+  rect: NodeRect,
+  viewport: ViewportSize,
+  cam: { x: number; y: number; k: number }
+): { x: number; y: number; k: number } {
+  return {
+    k: cam.k,
+    x: viewport.w / 2 - (rect.x + rect.w / 2) * cam.k,
+    y: viewport.h / 2 - (rect.y + rect.h / 2) * cam.k
+  }
+}
 
 export function portSide(w: number, h: number, p: PortPos): PortSide {
   const dTop = Math.abs(p.y)

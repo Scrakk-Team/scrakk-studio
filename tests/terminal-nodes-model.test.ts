@@ -10,7 +10,11 @@ import {
   portCountForSize,
   portPositions,
   portSide,
-  smartEdgePath
+  smartEdgePath,
+  spawnPosition,
+  rectsOverlap,
+  isRectVisible,
+  cameraCenteredOn
 } from '@features/layout/components/TerminalNodes/terminalNodesModel'
 
 describe('portCountForSize', () => {
@@ -110,5 +114,47 @@ describe('smartEdgePath', () => {
     const m = d.match(/M ([\d.-]+) ([\d.-]+) C ([\d.-]+) ([\d.-]+),/)
     expect(m).not.toBeNull()
     expect(Number(m?.[3])).toBeGreaterThan(560)
+  })
+})
+
+describe('spawnPosition / cámara del lienzo', () => {
+  const size = { w: 560, h: 340 }
+  it('nuevo nodo va AL LADO del último manipulado si está libre', () => {
+    const anchor = { rect: { x: 100, y: 100, w: 560, h: 340 }, visible: true }
+    const p = spawnPosition(anchor, { x: 800, y: 500 }, size, [anchor.rect])
+    expect(p).toEqual({ x: 688, y: 100 })
+    expect(rectsOverlap({ ...p, ...size }, anchor.rect, 28)).toBe(false)
+  })
+  it('si el lugar inmediato está ocupado, busca el hueco más cercano', () => {
+    const a = { x: 100, y: 100, w: 560, h: 340 }
+    const right = { x: 688, y: 100, w: 560, h: 340 }
+    const p = spawnPosition(
+      { rect: a, visible: true },
+      { x: 900, y: 500 },
+      size,
+      [a, right]
+    )
+    expect(rectsOverlap({ ...p, ...size }, a, 28)).toBe(false)
+    expect(rectsOverlap({ ...p, ...size }, right, 28)).toBe(false)
+  })
+  it('sin ancla visible usa el centro de la cámara', () => {
+    const p = spawnPosition(null, { x: 1000, y: 700 }, size, [])
+    expect(p.x).toBe(720)
+    expect(p.y).toBe(530)
+  })
+  it('isRectVisible: fuera de cámara → false,dentro → true', () => {
+    const vp = { w: 800, h: 600 }
+    const cam = { x: 0, y: 0, k: 1 }
+    expect(isRectVisible({ x: 20, y: 20, w: 560, h: 340 }, vp, cam)).toBe(true)
+    expect(isRectVisible({ x: 900, y: 20, w: 560, h: 340 }, vp, cam)).toBe(false)
+    expect(isRectVisible({ x: -30, y: 20, w: 560, h: 340 }, vp, cam)).toBe(false)
+  })
+  it('cameraCenteredOn deja el nodo en el centro del viewport', () => {
+    const c = cameraCenteredOn(
+      { x: 500, y: 300, w: 560, h: 340 },
+      { w: 800, h: 600 },
+      { x: 0, y: 0, k: 1 }
+    )
+    expect(c).toEqual({ x: 800 / 2 - 780, y: 600 / 2 - 470, k: 1 })
   })
 })
