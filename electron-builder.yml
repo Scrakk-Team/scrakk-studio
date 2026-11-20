@@ -145,6 +145,35 @@ linux:
   icon: assets/scrakk-studio-b.png
   # Asocia las ventanas al .desktop (WM_CLASS) en Linux.
   syncDesktopName: true
+  # Tipos MIME que hacen aparecer "Open with Scrakk Studio" en el menú
+  # contextual del gestor de archivos. `inode/directory` cubre las carpetas;
+  # el resto son los tipos de código/texto más habituales. electron-builder
+  # añade `%U` al Exec del .desktop, así que la ruta llega como argumento.
+  mimeTypes:
+    - inode/directory
+    - text/plain
+    - text/html
+    - text/css
+    - text/xml
+    - text/markdown
+    - text/javascript
+    - application/javascript
+    - application/json
+    - application/xml
+    - application/typescript
+    - application/x-yaml
+    - application/x-sh
+    - text/x-csrc
+    - text/x-chdr
+    - text/x-c++src
+    - text/x-python
+    - text/x-java
+    - text/x-go
+    - text/x-rust
+    - text/x-sql
+    - text/x-php
+    - text/x-ruby
+    - text/x-shellscript
   # Dependencias de runtime de Electron en Debian/Ubuntu.
   depends:
     - libnss3
@@ -180,5 +209,8 @@ win:
 nsis:
   # Explícito para que `latest.yml` y el asset real usen el MISMO nombre.
   artifactName: "Scrakk-Studio-${version}.${ext}"
+  # Registro del menú contextual de Explorer (archivos y carpetas) + borrado
+  # al desinstalar. Resuelto desde la raíz del proyecto por electron-builder.
+  include: build/installer.nsh
 
 # Solo Windows y Linux. No hay target macOS ni se publican artefactos para él.

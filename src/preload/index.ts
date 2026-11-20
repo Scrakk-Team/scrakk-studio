@@ -45,7 +45,11 @@ import {
   type WorkspaceRootRequest
 } from '@shared/lsp'
 import { WINDOW_CONTROLS_IPC, I18N_IPC, type WindowApi } from '@shared/window-controls'
-import { APP_IPC, type UninstallResult } from '@shared/app'
+import {
+  APP_IPC,
+  type OpenPathsPayload,
+  type UninstallResult
+} from '@shared/app'
 import { SCREENSHOT_IPC } from '@shared/screenshot'
 import { ACCOUNT_IPC } from '@shared/account'
 import { MARKET_IPC, type MarketApi } from '@shared/market'
@@ -682,7 +686,15 @@ const api: WindowApi = {
     fetch: (request: WebFetchRequest) => ipcRenderer.invoke(WEB_IPC.fetch, request)
   },
   app: {
-    uninstall: () => ipcRenderer.invoke(APP_IPC.uninstall) as Promise<UninstallResult>
+    uninstall: () => ipcRenderer.invoke(APP_IPC.uninstall) as Promise<UninstallResult>,
+    onOpenPaths: (listener) => {
+      const handler = (_event: IpcRendererEvent, payload: OpenPathsPayload): void => {
+        listener(payload)
+      }
+      ipcRenderer.on(APP_IPC.openPaths, handler)
+      return () => ipcRenderer.removeListener(APP_IPC.openPaths, handler)
+    },
+    takeOpenPaths: () => ipcRenderer.invoke(APP_IPC.takeOpenPaths) as Promise<OpenPathsPayload>
   }
 }
 

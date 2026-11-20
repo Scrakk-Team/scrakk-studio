@@ -8,11 +8,17 @@ import {
   setSkipFilesOnExpandAll,
   subscribeExplorerSettings
 } from '@services/explorerSettings'
+import {
+  isExternalOpenHidePanels,
+  setExternalOpenHidePanels,
+  subscribeExternalOpenSettings
+} from '@services/externalOpenSettings'
 import { t } from '@core/i18n'
 import styles from './ExperimentalSection.module.css'
 
 export function ExperimentalSection(): JSX.Element {
   const [skipFiles, setSkipFiles] = useState<boolean>(() => isSkipFilesOnExpandAll())
+  const [hidePanels, setHidePanels] = useState<boolean>(() => isExternalOpenHidePanels())
 
   useEffect(
     () =>
@@ -21,6 +27,8 @@ export function ExperimentalSection(): JSX.Element {
       }),
     []
   )
+
+  useEffect(() => subscribeExternalOpenSettings(() => setHidePanels(isExternalOpenHidePanels())), [])
 
   return (
     <div className={styles.section}>
@@ -47,6 +55,25 @@ export function ExperimentalSection(): JSX.Element {
             setSkipFiles(next)
           }}
           label={t('settings.expandir.todo.omitir.archivos')}
+        />
+      </div>
+
+      <div className={styles.row}>
+        <div className={styles.rowText}>
+          <span className={styles.rowTitle}>
+            {t('settings.abrir.desde.so.ocultar.paneles')}
+          </span>
+          <span className={styles.rowHint}>
+            {t('settings.abrir.desde.so.ocultar.paneles.hint')}
+          </span>
+        </div>
+        <ToggleSwitch
+          checked={hidePanels}
+          onChange={(next) => {
+            setExternalOpenHidePanels(next)
+            setHidePanels(next)
+          }}
+          label={t('settings.abrir.desde.so.ocultar.paneles')}
         />
       </div>
     </div>

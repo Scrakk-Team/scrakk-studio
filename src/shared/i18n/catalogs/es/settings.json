@@ -2,6 +2,8 @@
   "settings.0.mb": "0 MB",
   "settings.abre.una.carpeta.con.codigo": "Abre una carpeta con código o instala una extensión con",
   "settings.abrir.agentes": "Abrir agentes",
+  "settings.abrir.desde.so.ocultar.paneles": "Ocultar paneles al abrir desde el sistema",
+  "settings.abrir.desde.so.ocultar.paneles.hint": "Al abrir un archivo con «Abrir con Scrakk Studio» desde el explorador del sistema, oculta los paneles izquierdo y derecho para dejar el editor a ancho completo.",
   "settings.abrir.herramientas": "Abrir herramientas",
   "settings.abrir.permisos": "Abrir permisos",
   "settings.abrir.proveedores": "Abrir proveedores",

@@ -174,6 +174,18 @@ published are not edited. The file goes per version:
   character short by then: `#fff` had become `#ffffff`), and the writes are
   throttled to one per frame so dragging stays smooth.
 
+### OS integration (Windows / Linux)
+- **"Open with Scrakk Studio" in the file manager context menu.** Both installers
+  register the app for files and folders. On Windows the NSIS installer writes
+  the `*` and `Directory` shell verbs (and removes them on uninstall); on Linux
+  the `.desktop` entry declares the usual code/text MIME types plus
+  `inode/directory`, so files and folders offer Scrakk Studio in "Open With".
+  A path from the OS is parsed in the main process, routed through the
+  single-instance lock and delivered to the renderer with a push + pull IPC so
+  it is never lost on a cold start. Files open in the editor (with the left and
+  right panels hidden by a new preference, on by default); folders open the
+  explorer on that root with the centre panel active.
+
 ### Explorer (UI)
 - **Hovering a row no longer re-renders the whole tree.** The rows are
   memoised, but the panel passed freshly-created callbacks on every render, so

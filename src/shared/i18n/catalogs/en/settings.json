@@ -2,6 +2,8 @@
   "settings.0.mb": "0 MB",
   "settings.abre.una.carpeta.con.codigo": "Open a folder containing code or install an extension with",
   "settings.abrir.agentes": "Open agents",
+  "settings.abrir.desde.so.ocultar.paneles": "Hide panels when opening from the system",
+  "settings.abrir.desde.so.ocultar.paneles.hint": "When opening a file with \"Open with Scrakk Studio\" from the system file manager, hide the left and right panels so the editor takes the full width.",
   "settings.abrir.herramientas": "Open Tools",
   "settings.abrir.permisos": "Open permissions",
   "settings.abrir.proveedores": "Open providers",

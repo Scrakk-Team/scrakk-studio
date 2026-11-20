@@ -36,6 +36,12 @@ import { createMainWindow, isAppLocalUrl } from './windows/main-window'
 import { stopKolargrepServers } from './search/kolargrepServer'
 import { applyPathAugmentation } from './binaries'
 import { applyChromiumSwitches, registerGpuFallback } from './perf/startup'
+import {
+  extractLaunchArgs,
+  parseOpenPaths,
+  pushOpenPaths,
+  registerOpenPaths
+} from './openPaths'
 
 // PATH ANTES QUE NADA: lanzada desde el menú, la app hereda el PATH pelado de la
 // sesión (sin nvm/fnm/volta/~/.local/bin), y entonces `npm`, `node` y `git` no
@@ -68,7 +74,18 @@ const gotTheLock = app.requestSingleInstanceLock()
 if (!gotTheLock) {
   app.quit()
 } else {
-  app.on('second-instance', () => {
+  // Rutas pasadas por el menú contextual del SO en el arranque (y en macOS).
+  const launchArgs = (argv: string[]): string[] =>
+    extractLaunchArgs(argv, app.getAppPath(), process.execPath)
+  pushOpenPaths(parseOpenPaths(launchArgs(process.argv)))
+  app.on('open-file', (_event, path) => {
+    pushOpenPaths(parseOpenPaths([path]))
+  })
+
+  app.on('second-instance', (_event, argv) => {
+    // El explorador del SO lanza un nuevo proceso con la ruta; el lock de
+    // instancia única lo redirige acá. Hay que abrir el archivo/carpeta.
+    pushOpenPaths(parseOpenPaths(launchArgs(argv)))
     const main = BrowserWindow.getAllWindows()[0]
     if (main) {
       if (main.isMinimized()) main.restore()
@@ -140,7 +157,7 @@ if (!gotTheLock) {
       })
     })
 
-    createMainWindow()
+    registerOpenPaths(createMainWindow())
 
     // Auto-update (en background) de las extensiones instaladas desde la tienda.
     setTimeout(() => {

@@ -54,6 +54,11 @@ import {
   setMinimapVisibleEverywhere
 } from '@features/editor/engines/innerta/InnertaEngine'
 import { api } from '@services/api'
+import type { OpenPathEntry } from '@shared/app'
+import { initLaunchPaths, subscribeLaunchPaths } from '@services/launchPaths'
+import { isExternalOpenHidePanels } from '@services/externalOpenSettings'
+import { openPanelTab, reconcileFileTabs, setSlotPanel } from '@features/layout/actions'
+import { openFileInEditor } from '@features/editor'
 import { restorePersistedKeymap } from '@services/keybindings'
 import { recordWorkspace } from '@services/workspaces'
 
@@ -238,6 +243,33 @@ export function App() {
   // Comando de paleta para abrir el changelog a mano ("Ver el changelog").
   useEffect(() => {
     registerChangelogCommands()
+  }, [])
+
+  // "Abrir con Scrakk Studio" desde el explorador del SO (Windows / Linux).
+  // Archivos: se abren en el editor (y, según preferencia, sin paneles).
+  // Carpetas: se abre el explorer con esa raíz y el centro queda activo.
+  useEffect(() => {
+    const onPaths = (paths: OpenPathEntry[]): void => {
+      for (const entry of paths) {
+        if (entry.isDirectory) {
+          setWorkspaceRoot(entry.path)
+          openPanelTab('left', 'explorer')
+        } else {
+          const name = entry.path.split(/[\\/]/).pop() ?? entry.path
+          const parent = entry.path.replace(/[\\/][^\\/]+$/, '')
+          if (parent && parent !== entry.path) setWorkspaceRoot(parent)
+          openFileInEditor(entry.path, name)
+        }
+        setSlotPanel('center', 'editor')
+      }
+      reconcileFileTabs()
+      if (paths.some((entry) => !entry.isDirectory) && isExternalOpenHidePanels()) {
+        setSlotPanel('left', null)
+        setSlotPanel('right', null)
+      }
+    }
+    initLaunchPaths()
+    return subscribeLaunchPaths(onPaths)
   }, [])
 
   // Modos propios (`.scrakk/modes.json`) y luego las reglas de permisos
