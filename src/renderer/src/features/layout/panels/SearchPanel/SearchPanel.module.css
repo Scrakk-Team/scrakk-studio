@@ -106,11 +106,50 @@
   flex-shrink: 0;
 }
 
-/* El segmented nunca se comprime: "Contenido" y "Archivos" se leen completos.
-   Si el panel es angosto, el botón de filtros pasa a la línea siguiente. */
+/* Tabs del panel: NO usamos el SegmentedTabs global porque aplica ellipsis a
+   las etiquetas y recortaba "Contenido" en paneles angostos. Acá cada pestaña
+   es nowrap y el grupo no se comprime; si no entra, el botón de filtros baja. */
 .mode {
-  flex: 0 1 auto;
-  min-width: max-content;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--radius-sm);
+  background: var(--color-hover);
+}
+
+.modeTab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  flex-shrink: 0;
+  padding: 5px 10px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-family: inherit;
+  font-size: var(--text-xs);
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.modeTab:hover {
+  color: var(--color-text);
+}
+
+.modeTabActive {
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+/* El grupo de tipo tiene 3 pestañas: si no entran, envuelve dentro del grupo. */
+.typeMode {
+  flex-wrap: wrap;
+  max-width: 100%;
 }
 
 .filterToggle {
@@ -169,10 +208,6 @@
   align-items: center;
   gap: var(--space-1);
   flex-wrap: wrap;
-}
-
-.typeMode {
-  min-width: max-content;
 }
 
 .chip {

@@ -22,7 +22,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type JSX } from 'react'
 import { ProductIcon } from '@services/productIcons/components'
-import { SegmentedTabs } from '@ui'
 import { HeaderActionButton, usePanelTitle } from '@features/layout'
 import { openFileInEditor } from '@features/editor'
 import { setWorkspaceRoot } from '@features/explorer'
@@ -347,16 +346,31 @@ export function SearchPanel(): JSX.Element {
 
       {/* Modo + filtros (Notas / Git). */}
       <div className={styles.controls}>
-        <div className={styles.mode}>
-          <SegmentedTabs
-            items={[
-              { id: 'content', label: t('layout.busqueda.contenido') },
-              { id: 'files', label: t('layout.busqueda.archivos') }
-            ]}
-            activeId={mode}
-            onChange={(id) => setMode(id === 'files' ? 'files' : 'content')}
-            ariaLabel={t('layout.busqueda.modo')}
-          />
+        <div className={styles.mode} role="tablist" aria-label={t('layout.busqueda.modo')}>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mode === 'content'}
+            className={[styles.modeTab, mode === 'content' ? styles.modeTabActive : null]
+              .filter(Boolean)
+              .join(' ')}
+            onClick={() => setMode('content')}
+          >
+            <ProductIcon id="search" size={12} />
+            <span>{t('layout.busqueda.contenido')}</span>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mode === 'files'}
+            className={[styles.modeTab, mode === 'files' ? styles.modeTabActive : null]
+              .filter(Boolean)
+              .join(' ')}
+            onClick={() => setMode('files')}
+          >
+            <ProductIcon id="file" size={12} />
+            <span>{t('layout.busqueda.archivos')}</span>
+          </button>
         </div>
         <button
           type="button"
@@ -395,17 +409,29 @@ export function SearchPanel(): JSX.Element {
               .*
             </button>
             {mode === 'files' ? (
-              <div className={styles.typeMode}>
-                <SegmentedTabs
-                  items={[
-                    { id: 'all', label: t('layout.busqueda.todos') },
-                    { id: 'files', label: t('layout.busqueda.solo.archivos') },
-                    { id: 'folders', label: t('layout.busqueda.solo.carpetas') }
-                  ]}
-                  activeId={fileType}
-                  onChange={(id) => setFileType(id as FileType)}
-                  ariaLabel={t('layout.busqueda.tipo')}
-                />
+              <div
+                className={[styles.mode, styles.typeMode].join(' ')}
+                role="tablist"
+                aria-label={t('layout.busqueda.tipo')}
+              >
+                {([
+                  ['all', t('layout.busqueda.todos')],
+                  ['files', t('layout.busqueda.solo.archivos')],
+                  ['folders', t('layout.busqueda.solo.carpetas')]
+                ] as Array<[FileType, string]>).map(([id, label]) => (
+                  <button
+                    key={id}
+                    type="button"
+                    role="tab"
+                    aria-selected={fileType === id}
+                    className={[styles.modeTab, fileType === id ? styles.modeTabActive : null]
+                      .filter(Boolean)
+                      .join(' ')}
+                    onClick={() => setFileType(id)}
+                  >
+                    <span>{label}</span>
+                  </button>
+                ))}
               </div>
             ) : null}
           </div>
