@@ -187,6 +187,15 @@ published are not edited. The file goes per version:
   explorer on that root with the centre panel active.
 
 ### Explorer (UI)
+- **The native tree no longer hides behind the ToolDock.** The dock pill is an
+  absolute overlay at the bottom of the panel, so the WASM canvas used to run
+  all the way down and its last rows were unreachable under the pill. The panel
+  now measures the pill and reserves its height with a CSS variable, ending the
+  canvas and its scroller right above the dock; the core gets the reduced
+  viewport from its normal resize path, so hit-testing and scrolling stay in
+  sync.
+
+### Explorer (UI)
 - **Hovering a row no longer re-renders the whole tree.** The rows are
   memoised, but the panel passed freshly-created callbacks on every render, so
   the memo could never skip anything and each hover re-rendered every visible

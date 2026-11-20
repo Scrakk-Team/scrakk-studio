@@ -781,6 +781,40 @@ export function ExplorerPanel({
     }
   }, [root])
 
+  // El ToolDock es un overlay absoluto pegado al fondo del panel: si el canvas
+  // WASM ocupa todo el alto, la última fila queda tapada por la píldora. Medimos
+  // la píldora y reservamos su altura con una variable CSS; el `.scroller`
+  // termina ahí, así que el viewport que ve el core nativo ya excluye el dock.
+  useEffect(() => {
+    const wrap = wrapRef.current
+    if (!wrap) return
+    let pill: HTMLElement | null = null
+    let ro: ResizeObserver | null = null
+
+    const applyHeight = (): void => {
+      const height = pill?.getBoundingClientRect().height ?? 0
+      wrap.style.setProperty('--tooldock-h', `${Math.round(height)}px`)
+    }
+    const watch = (): void => {
+      const found = wrap.querySelector<HTMLElement>('[data-tool-dock]')
+      if (found === pill) return
+      ro?.disconnect()
+      pill = found
+      ro = pill ? new ResizeObserver(applyHeight) : null
+      if (pill && ro) ro.observe(pill)
+      applyHeight()
+    }
+
+    const mo = new MutationObserver(watch)
+    mo.observe(wrap, { childList: true, subtree: true })
+    watch()
+    return () => {
+      mo.disconnect()
+      ro?.disconnect()
+      wrap.style.removeProperty('--tooldock-h')
+    }
+  }, [])
+
   const rowAt = (
     clientY: number
   ): { path: string; name: string; isDir: boolean; index: number; level: number } | null => {

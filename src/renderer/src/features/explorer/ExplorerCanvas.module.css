@@ -9,10 +9,12 @@
 }
 
 /* Native scroll container: the browser draws and styles the scrollbar
-   (global Scrakk skin), and its scrollTop drives the WASM core. */
+   (global Scrakk skin), and its scrollTop drives the WASM core.
+   `--tooldock-h` lo pone ExplorerPanel con la altura real de la píldora del
+   ToolDock: el árbol termina justo encima del dock en vez de quedar tapado. */
 .scroller {
   position: absolute;
-  inset: 0;
+  inset: 0 0 var(--tooldock-h, 0px) 0;
   overflow-y: auto;
   overflow-x: hidden;
 }
