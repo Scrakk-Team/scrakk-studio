@@ -533,6 +533,16 @@ published are not edited. The file goes per version:
   the text tabs were clipped. They are now larger proicons (`globe` / `file`)
   with accessible labels, moved away from the close button.
 
+### Problems (UI)
+- **The Problems panel was redesigned with the language of the other panels.**
+  A severity scoreboard (click a chip to filter, like Git's status bar) replaces
+  the cramped filter row; the search box follows the Search panel, and a
+  **By file / By severity** segmented switch (Notes) groups the same diagnostics
+  into collapsible sections with counts. Rows are now two-line — message on top,
+  source, code and `line:col` below — with a hover button to copy the problem,
+  a proper empty state, header refresh/collapse actions, and fully localised
+  footer. Hover stays instant, with no transitions.
+
 ### Notes (UI)
 - **Notes can be read as markdown with the same renderer as the AI chat.** An
   **Edit | View** switch uses the chat's `Markdown` component in preview mode,

@@ -25,10 +25,21 @@
  * (`services/lsp/decorations.ts` → `@services/decorations` → Innerta). El panel
  * LISTA, el editor MUESTRA; los dos leen el MISMO store, así que no pueden
  * discrepar.
+ *
+ * ─────────────────────────────────────────────────────────────────────────
+ * DISEÑO
+ *
+ * Lenguaje de los otros paneles: scoreboard de severidades como la barra de
+ * Git (clicable = filtro), buscador con icono como Búsqueda, segmented para
+ * agrupar como Notas, y filas agrupadas con acción en hover como Git/chat.
+ * Todo en tipografía calmada, sin transiciones en el hover y con números
+ * tabulares.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState, type JSX } from 'react'
 import { ProductIcon } from '@services/productIcons/components'
+import { SegmentedTabs } from '@ui'
+import { HeaderActionButton, usePanelTitle } from '@features/layout'
 import { getEditorFiles, openFileInEditor } from '@features/editor'
 import { revealInnertaPosition } from '@features/editor/engines/innerta/hostBridge'
 import {
@@ -37,6 +48,7 @@ import {
   subscribeToDiagnostics,
   type StoredFileDiagnostics
 } from '@services/lsp'
+import { notify } from '@services/notifications'
 import type { LspDiagnostic } from '@shared/lsp'
 import styles from './ProblemsPanel.module.css'
 
@@ -89,20 +101,39 @@ function openProblemAt(path: string, line: number, column: number): void {
   attempt()
 }
 
+interface ProblemRow {
+  diagnostic: LspDiagnostic
+  origin: string
+  path: string
+}
+
+interface ProblemSection {
+  key: string
+  title: string
+  subtitle?: string
+  icon?: string
+  color?: string
+  filePath?: string
+  rows: ProblemRow[]
+}
+
 export function ProblemsPanel(): JSX.Element {
+  const { setActions } = usePanelTitle()
   const [groups, setGroups] = useState<StoredFileDiagnostics[]>(() => getAllStoredDiagnostics())
   const [enabled, setEnabled] = useState<Set<number>>(() => new Set([1, 2, 3, 4]))
   const [query, setQuery] = useState('')
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
+  const [groupBy, setGroupBy] = useState<'file' | 'severity'>('file')
   /** El foco del input no se pierde al refrescar (los diagnósticos llegan en vivo). */
   const queryRef = useRef(query)
   queryRef.current = query
 
+  const refresh = useCallback((): void => setGroups(getAllStoredDiagnostics()), [])
+
   useEffect(() => {
-    const refresh = (): void => setGroups(getAllStoredDiagnostics())
     refresh()
     return subscribeToDiagnostics(refresh)
-  }, [])
+  }, [refresh])
 
   const toggleSeverity = useCallback((id: number): void => {
     setEnabled((previous) => {
@@ -113,7 +144,12 @@ export function ProblemsPanel(): JSX.Element {
     })
   }, [])
 
-  /** Conteo por severidad sobre TODO lo conocido (para los filtros). */
+  const clearFilters = useCallback((): void => {
+    setEnabled(new Set([1, 2, 3, 4]))
+    setQuery('')
+  }, [])
+
+  /** Conteo por severidad sobre TODO lo conocido (para el scoreboard). */
   const counts = useMemo(() => {
     const out = new Map<number, number>()
     for (const group of groups) {
@@ -157,19 +193,93 @@ export function ProblemsPanel(): JSX.Element {
   }, [groups, enabled, query])
 
   const totalVisible = filtered.reduce((total, group) => total + group.rows.length, 0)
+  const anyFilter = enabled.size < SEVERITIES.length || query.trim().length > 0
 
-  const toggleGroup = useCallback((path: string): void => {
+  /** Agrupación: por archivo (default) o por severidad, con el mismo conjunto de filas. */
+  const sections = useMemo<ProblemSection[]>(() => {
+    if (groupBy === 'file') {
+      const errorsOf = (group: (typeof filtered)[number]): number =>
+        group.rows.filter((row) => severityOf(row.diagnostic) === 1).length
+      return [...filtered]
+        .sort((a, b) => errorsOf(b) - errorsOf(a) || baseName(a.path).localeCompare(baseName(b.path)))
+        .map((group) => ({
+          key: `file:${group.path}`,
+          title: baseName(group.path),
+          subtitle: dirName(group.path),
+          filePath: group.path,
+          rows: group.rows.map((row) => ({ ...row, path: group.path }))
+        }))
+    }
+    const rows = filtered.flatMap((group) =>
+      group.rows.map((row) => ({ ...row, path: group.path }))
+    )
+    return SEVERITIES.map((severity) => ({
+      key: `sev:${severity.id}`,
+      title: severity.label,
+      icon: severity.icon,
+      color: severity.color,
+      rows: rows.filter((row) => severityOf(row.diagnostic) === severity.id)
+    })).filter((section) => section.rows.length > 0)
+  }, [filtered, groupBy])
+
+  const allKeys = useMemo(() => sections.map((section) => section.key), [sections])
+  const allCollapsed = allKeys.length > 0 && allKeys.every((key) => collapsed.has(key))
+
+  const toggleGroup = useCallback((key: string): void => {
     setCollapsed((previous) => {
       const next = new Set(previous)
-      if (next.has(path)) next.delete(path)
-      else next.add(path)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
       return next
     })
   }, [])
 
+  const toggleAll = useCallback((): void => {
+    setCollapsed(allCollapsed ? new Set() : new Set(allKeys))
+  }, [allCollapsed, allKeys])
+
+  const copyProblem = useCallback((row: ProblemRow): void => {
+    const text = `${row.diagnostic.message}${row.origin ? ` (${row.origin})` : ''} — ${row.path}:${
+      row.diagnostic.range.start.line + 1
+    }:${row.diagnostic.range.start.character + 1}`
+    const clip = navigator.clipboard
+    if (!clip?.writeText) {
+      notify({ title: t('git.no.se.pudo.copiar'), severity: 'error' })
+      return
+    }
+    void clip.writeText(text).then(
+      () => notify({ title: t('layout.problemas.copiado'), severity: 'success' }),
+      () => notify({ title: t('git.no.se.pudo.copiar'), severity: 'error' })
+    )
+  }, [])
+
+  // Header actions: mismo patrón que Git/Chat (botones arrastrables del título).
+  useEffect(() => {
+    setActions(() => (
+      <>
+        <HeaderActionButton
+          id="problems.refresh"
+          label={t('git.actualizar')}
+          icon="refresh"
+          size="sm"
+          onClick={refresh}
+        />
+        <HeaderActionButton
+          id="problems.toggle-collapse"
+          label={allCollapsed ? t('layout.problemas.expandir') : t('layout.problemas.contraer')}
+          icon={allCollapsed ? 'expand-all' : 'collapse-all'}
+          size="sm"
+          onClick={toggleAll}
+        />
+      </>
+    ))
+    return () => setActions(null)
+  }, [setActions, refresh, allCollapsed, toggleAll])
+
   return (
     <div className={styles.problems}>
-      <div className={styles.filters}>
+      {/* Scoreboard: cliquear una severidad la filtra (como los chips de Git). */}
+      <div className={styles.scoreboard} role="group" aria-label={t('layout.problemas.filtrar.por.tipo')}>
         {SEVERITIES.map((severity) => {
           const count = counts.get(severity.id) ?? 0
           const active = enabled.has(severity.id)
@@ -177,97 +287,182 @@ export function ProblemsPanel(): JSX.Element {
             <button
               key={severity.id}
               type="button"
-              className={[styles.filter, active ? styles.filterOn : null].filter(Boolean).join(' ')}
+              className={[styles.chip, active ? styles.chipOn : null].filter(Boolean).join(' ')}
               aria-pressed={active}
-              title={active ? `Ocultar ${severity.label.toLowerCase()}` : `Mostrar ${severity.label.toLowerCase()}`}
+              title={active
+                ? `${t('layout.problemas.ocultar')} ${severity.label.toLowerCase()}`
+                : `${t('layout.problemas.mostrar')} ${severity.label.toLowerCase()}`}
               onClick={() => toggleSeverity(severity.id)}
             >
-              <span style={{ color: severity.color, display: 'inline-flex' }}>
+              <span className={styles.chipIcon} style={{ color: severity.color }}>
                 <ProductIcon id={severity.icon} size={12} />
               </span>
-              <span className={styles.filterCount}>{count}</span>
+              <span className={styles.chipLabel}>{severity.label}</span>
+              <span className={styles.chipCount}>{count}</span>
             </button>
           )
         })}
-        <input
-          className={styles.query}
-          value={query}
-          placeholder={t('layout.filtrar.problemas')}
-          aria-label={t('layout.filtrar.problemas-2')}
-          onChange={(event) => setQuery(event.target.value)}
+      </div>
+
+      {/* Buscador + agrupación (Búsqueda + Notas). */}
+      <div className={styles.controls}>
+        <div className={styles.box}>
+          <ProductIcon id="search" size={14} className={styles.boxIcon} aria-hidden="true" />
+          <input
+            className={styles.boxInput}
+            value={query}
+            placeholder={t('layout.filtrar.problemas')}
+            aria-label={t('layout.filtrar.problemas-2')}
+            spellCheck={false}
+            onChange={(event) => setQuery(event.target.value)}
+          />
+          {query ? (
+            <button
+              type="button"
+              className={styles.clearBtn}
+              aria-label={t('layout.problemas.limpiar.filtros')}
+              title={t('layout.problemas.limpiar.filtros')}
+              onClick={clearFilters}
+            >
+              <ProductIcon id="close" size={12} />
+            </button>
+          ) : null}
+        </div>
+        <SegmentedTabs
+          items={[
+            { id: 'file', label: t('layout.problemas.por.archivo') },
+            { id: 'severity', label: t('layout.problemas.por.severidad') }
+          ]}
+          activeId={groupBy}
+          onChange={(id) => setGroupBy(id === 'severity' ? 'severity' : 'file')}
+          ariaLabel={t('layout.problemas.agrupar')}
         />
       </div>
 
-      {filtered.length === 0 ? (
-        <p className={styles.empty}>
-          {groups.length === 0
-            ? t('layout.no.hay.problemas.en.el')
-            : t('layout.ningun.problema.coincide.con.el')}
-        </p>
+      {sections.length === 0 ? (
+        <div className={styles.placeholder}>
+          <ProductIcon
+            id={anyFilter ? 'search' : 'check'}
+            size={26}
+            className={styles.placeholderIcon}
+            aria-hidden="true"
+          />
+          <p className={styles.empty}>
+            {anyFilter
+              ? t('layout.ningun.problema.coincide.con.el')
+              : t('layout.no.hay.problemas.en.el')}
+          </p>
+          {anyFilter ? (
+            <button type="button" className={styles.linkBtn} onClick={clearFilters}>
+              {t('layout.problemas.limpiar.filtros')}
+            </button>
+          ) : null}
+        </div>
       ) : (
-        <div className={styles.list}>
-          {filtered.map((group) => {
-            const isCollapsed = collapsed.has(group.path)
-            const active = getEditorFiles().activePath === group.path
+        <div className={styles.list} role="list">
+          {sections.map((section) => {
+            const isCollapsed = collapsed.has(section.key)
+            const active = section.filePath
+              ? getEditorFiles().activePath === section.filePath
+              : false
             return (
-              <div key={group.path} className={styles.group}>
+              <section key={section.key} className={styles.group} role="listitem">
                 <button
                   type="button"
                   className={[styles.groupHeader, active ? styles.groupActive : null]
                     .filter(Boolean)
                     .join(' ')}
-                  title={group.path}
-                  onClick={() => toggleGroup(group.path)}
+                  aria-expanded={!isCollapsed}
+                  title={section.filePath ?? section.title}
+                  onClick={() => toggleGroup(section.key)}
                 >
-                  <span className={styles.arrow}>
-                    <ProductIcon id={isCollapsed ? 'chevron-right' : 'chevron-down'} size={12} />
-                  </span>
-                  <span className={styles.fileName}>{baseName(group.path)}</span>
-                  <span className={styles.fileDir}>{dirName(group.path)}</span>
-                  <span className={styles.groupCount}>{group.rows.length}</span>
+                  <ProductIcon
+                    id={isCollapsed ? 'chevron-right' : 'chevron-down'}
+                    size={12}
+                    className={styles.arrow}
+                  />
+                  {section.icon ? (
+                    <span className={styles.groupIcon} style={{ color: section.color }}>
+                      <ProductIcon id={section.icon} size={12} />
+                    </span>
+                  ) : null}
+                  <span className={styles.groupTitle}>{section.title}</span>
+                  {section.subtitle ? (
+                    <span className={styles.groupSubtitle}>{section.subtitle}</span>
+                  ) : null}
+                  <span className={styles.count}>{section.rows.length}</span>
                 </button>
 
                 {isCollapsed
                   ? null
-                  : group.rows.map(({ diagnostic, origin }, index) => {
-                      const meta = severityMeta(severityOf(diagnostic))
+                  : section.rows.map((row, index) => {
+                      const meta = severityMeta(severityOf(row.diagnostic))
+                      const position = `${row.diagnostic.range.start.line + 1}:${
+                        row.diagnostic.range.start.character + 1
+                      }`
                       return (
-                        <button
-                          key={`${group.path}:${index}:${diagnostic.range.start.line}:${diagnostic.range.start.character}`}
-                          type="button"
+                        <div
+                          key={`${row.path}:${index}:${row.diagnostic.range.start.line}:${row.diagnostic.range.start.character}`}
                           className={styles.row}
-                          title={`${diagnostic.message}${origin ? `\nOrigen: ${origin}` : ''}`}
+                          role="button"
+                          tabIndex={0}
+                          title={`${row.diagnostic.message}${row.origin ? `\n${t('layout.problemas.origen')}: ${row.origin}` : ''}`}
                           onClick={() =>
                             openProblemAt(
-                              group.path,
-                              diagnostic.range.start.line,
-                              diagnostic.range.start.character
+                              row.path,
+                              row.diagnostic.range.start.line,
+                              row.diagnostic.range.start.character
                             )
                           }
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter') {
+                              openProblemAt(
+                                row.path,
+                                row.diagnostic.range.start.line,
+                                row.diagnostic.range.start.character
+                              )
+                            }
+                          }}
                         >
                           <span className={styles.rowIcon} style={{ color: meta.color }}>
                             <ProductIcon id={meta.icon} size={12} />
                           </span>
-                          <span className={styles.message}>{diagnostic.message}</span>
-                          <span className={styles.origin}>{origin}</span>
-                          {diagnostic.code !== undefined ? (
-                            <span className={styles.code}>{String(diagnostic.code)}</span>
-                          ) : null}
-                          <span className={styles.position}>
-                            {diagnostic.range.start.line + 1}:{diagnostic.range.start.character + 1}
+                          <span className={styles.rowBody}>
+                            <span className={styles.message}>{row.diagnostic.message}</span>
+                            <span className={styles.meta}>
+                              <span className={styles.origin}>{row.origin}</span>
+                              {row.diagnostic.code !== undefined ? (
+                                <span className={styles.code}>{String(row.diagnostic.code)}</span>
+                              ) : null}
+                              <span className={styles.position}>{position}</span>
+                            </span>
                           </span>
-                        </button>
+                          <button
+                            type="button"
+                            className={styles.rowBtn}
+                            aria-label={t('layout.problemas.copiar')}
+                            title={t('layout.problemas.copiar')}
+                            onClick={(event) => {
+                              event.stopPropagation()
+                              copyProblem(row)
+                            }}
+                          >
+                            <ProductIcon id="copy" size={12} />
+                          </button>
+                        </div>
                       )
                     })}
-              </div>
+              </section>
             )
           })}
         </div>
       )}
 
       <div className={styles.footer}>
-        {totalVisible} problema{totalVisible === 1 ? '' : 's'} · los aportan los language servers y las
-        extensiones; los subrayados se pintan en el editor
+        <span className={styles.footerCount}>{totalVisible}</span>
+        <span>{t('layout.problemas.total')}</span>
+        <span className={styles.footerDot}>·</span>
+        <span className={styles.footerHint}>{t('layout.problemas.pie')}</span>
       </div>
     </div>
   )

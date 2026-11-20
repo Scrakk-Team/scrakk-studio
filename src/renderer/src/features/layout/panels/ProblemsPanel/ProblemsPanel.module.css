@@ -1,88 +1,194 @@
 /*
  * Copyright 2026 Scrakk Studio
  * SPDX-License-Identifier: Apache-2.0
- * Licencia completa en LICENSE (Apache License 2.0).
  */
+
+/* ==========================================================================
+   ProblemsPanel — lenguaje compartido con Git / Búsqueda / Notas / Chat.
+   · scoreboard de severidades como la barra de estado de Git (chips clicables);
+   · buscador con icono y foco suave como Búsqueda;
+   · segmented de agrupación como Notas;
+   · grupos colapsables con contador y filas con acción en hover como Git/chat.
+   Plano: sin sombras, sin glow, sin gradientes. Hover directo (sin transiciones)
+   para que no haya retardo percibido al pasar el cursor.
+   ========================================================================== */
 
 .problems {
   display: flex;
   flex-direction: column;
+  gap: var(--space-2);
   flex: 1;
   min-height: 0;
   overflow: hidden;
+  padding: var(--space-3);
   font-size: var(--text-sm);
-}
-
-/* Barra de filtros: severidades (con su conteo) + búsqueda. */
-.filters {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-  padding: var(--space-2) var(--space-2);
-  border-bottom: 1px solid var(--color-border);
-  flex-shrink: 0;
-}
-
-.filter {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 6px;
-  border: 1px solid transparent;
-  border-radius: var(--radius-input);
-  background: transparent;
-  color: var(--color-text-muted);
-  font-size: var(--text-xs);
-  cursor: pointer;
-  opacity: 0.45;
-}
-
-.filter:hover {
-  background: var(--color-surface-raised);
-}
-
-/* Encendido = esa severidad se muestra (apagado = filtrada). */
-.filterOn {
-  opacity: 1;
-  border-color: var(--color-border);
-}
-
-.filterCount {
-  color: var(--color-text);
   font-variant-numeric: tabular-nums;
 }
 
-.query {
+.problems,
+.problems *,
+.problems *::before,
+.problems *::after {
+  transition: none !important;
+}
+
+/* Excepción: el buscador conserva la transición del borde al enfocar. */
+.problems .box {
+  transition: border-color var(--duration-fast) var(--ease-out) !important;
+}
+
+/* ── Scoreboard de severidades ──────────────────────────────────────────── */
+
+.scoreboard {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  padding: 3px;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-raised);
+}
+
+.chip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex: 1 1 0;
+  min-width: 0;
+  height: 28px;
+  padding: 0 7px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-family: inherit;
+  font-size: var(--text-xs);
+  cursor: pointer;
+  opacity: 0.5;
+}
+
+.chip:hover {
+  background: var(--color-hover);
+  opacity: 0.85;
+}
+
+/* Apagado = esa severidad se filtró; prendido = se muestra. */
+.chipOn {
+  opacity: 1;
+  color: var(--color-text-secondary);
+}
+
+.chipIcon {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.chipLabel {
   flex: 1;
   min-width: 0;
-  margin-left: var(--space-2);
-  padding: var(--space-1) var(--space-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+}
+
+.chipCount {
+  flex-shrink: 0;
+  min-width: 18px;
+  padding: 1px 5px;
+  border-radius: var(--radius-capsule);
+  background: var(--color-hover);
+  color: var(--color-text);
+  font-size: 10px;
+  font-weight: 500;
+  text-align: center;
+}
+
+.chipOn .chipCount {
+  background: var(--color-active);
+}
+
+/* ── Buscador + agrupación ──────────────────────────────────────────────── */
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.box {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
   background: var(--color-surface-raised);
   border: 1px solid transparent;
   border-radius: var(--radius-input);
-  color: var(--color-text);
-  font-size: var(--text-xs);
-  outline: none;
 }
 
-.query:focus {
+.box:focus-within {
   border-color: var(--color-border-strong);
 }
 
-.query::placeholder {
+.boxIcon {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.boxInput {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--color-text);
+  font-family: inherit;
+  font-size: var(--text-sm);
+  padding: var(--space-1) 0;
+}
+
+.boxInput::placeholder {
   color: var(--color-text-muted);
 }
 
+.clearBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.clearBtn:hover {
+  background: var(--color-hover);
+  color: var(--color-text);
+}
+
+/* ── Lista agrupada ─────────────────────────────────────────────────────── */
+
 .list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: var(--space-1) 0;
+  padding-right: 2px;
 }
 
 .group {
   display: flex;
   flex-direction: column;
+  gap: 1px;
 }
 
 .groupHeader {
@@ -90,35 +196,53 @@
   align-items: center;
   gap: 6px;
   width: 100%;
-  padding: 3px var(--space-2);
+  padding: 5px 6px;
   border: none;
-  background: none;
-  color: var(--color-text);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-family: inherit;
+  font-size: var(--text-xs);
   text-align: left;
   cursor: pointer;
-  font-size: var(--text-xs);
 }
 
 .groupHeader:hover {
-  background: var(--color-surface-raised);
+  background: var(--color-hover);
+  color: var(--color-text-secondary);
 }
 
-.groupActive .fileName {
-  font-weight: 600;
+.groupHeader[aria-expanded='true'] {
+  color: var(--color-text-secondary);
+}
+
+/* El archivo activo en el editor se marca con el acento suave de Git. */
+.groupActive {
+  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+  color: var(--color-text);
 }
 
 .arrow {
   display: inline-flex;
-  width: 12px;
   flex-shrink: 0;
   color: var(--color-text-muted);
 }
 
-.fileName {
+.groupIcon {
+  display: inline-flex;
   flex-shrink: 0;
 }
 
-.fileDir {
+.groupTitle {
+  flex-shrink: 0;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.groupSubtitle {
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -129,74 +253,201 @@
   font-size: 10px;
 }
 
-.groupCount {
+.count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: var(--radius-capsule);
+  background: var(--color-hover);
   color: var(--color-text-muted);
-  font-variant-numeric: tabular-nums;
+  font-size: 10px;
+  font-weight: 500;
 }
 
-/* Fila de un problema: icono, mensaje, origen/código y posición. */
+.groupHeader:hover .count,
+.groupHeader[aria-expanded='true'] .count {
+  background: var(--color-active);
+  color: var(--color-text-secondary);
+}
+
+/* ── Fila de problema ───────────────────────────────────────────────────── */
+
 .row {
   display: flex;
-  align-items: center;
-  gap: 6px;
+  align-items: flex-start;
+  gap: var(--space-2);
   width: 100%;
-  padding: 2px var(--space-2) 2px calc(var(--space-2) + 18px);
-  border: none;
-  background: none;
-  color: var(--color-text);
-  text-align: left;
+  padding: 5px var(--space-2) 5px calc(var(--space-2) + 18px);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-secondary);
   cursor: pointer;
-  font-size: var(--text-xs);
 }
 
-.row:hover {
-  background: var(--color-surface-raised);
+.row:hover,
+.row:focus-visible {
+  background: var(--color-hover);
+  color: var(--color-text);
+  outline: none;
 }
 
 .rowIcon {
   display: inline-flex;
   flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.rowBody {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
 }
 
 .message {
-  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-xs);
+  color: var(--color-text);
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  font-size: 10px;
+  color: var(--color-text-muted);
+}
+
+.origin {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.origin,
 .code {
   flex-shrink: 0;
-  color: var(--color-text-muted);
-  font-size: 10px;
-}
-
-.code {
-  font-family: var(--font-mono, monospace);
+  padding: 0 4px;
+  border-radius: 3px;
+  background: var(--color-hover);
+  font-family: var(--font-mono, ui-monospace, monospace);
 }
 
 .position {
   flex-shrink: 0;
-  color: var(--color-text-muted);
-  font-size: 10px;
+  margin-left: auto;
   font-variant-numeric: tabular-nums;
+}
+
+/* Acción en hover, como el "…" del explorer / Git. */
+.rowBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  opacity: 0;
+  cursor: pointer;
+}
+
+.row:hover .rowBtn,
+.row:focus-within .rowBtn,
+.rowBtn:focus-visible {
+  opacity: 1;
+}
+
+.rowBtn:hover {
+  background: var(--color-active);
+  color: var(--color-text);
+}
+
+/* ── Estado vacío (Git / Notas) ─────────────────────────────────────────── */
+
+.placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  flex: 1;
+  min-height: 0;
+  padding: var(--space-5) var(--space-3);
+  text-align: center;
+}
+
+.placeholderIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-lg);
+  color: var(--color-success, #3fb950);
+  background: var(--color-surface-raised);
 }
 
 .empty {
   margin: 0;
-  padding: var(--space-4);
   color: var(--color-text-muted);
-  font-size: var(--text-sm);
-  text-align: center;
+  font-size: var(--text-xs);
+  line-height: var(--leading-normal);
 }
 
+.linkBtn {
+  padding: 3px 8px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--color-hover);
+  color: var(--color-text-secondary);
+  font-family: inherit;
+  font-size: var(--text-xs);
+  cursor: pointer;
+}
+
+.linkBtn:hover {
+  background: var(--color-active);
+  color: var(--color-text);
+}
+
+/* ── Pie ────────────────────────────────────────────────────────────────── */
+
 .footer {
+  display: flex;
+  align-items: center;
+  gap: 5px;
   flex-shrink: 0;
-  padding: 4px var(--space-2);
+  padding: 5px 6px 0;
   border-top: 1px solid var(--color-border);
   color: var(--color-text-muted);
   font-size: 10px;
+}
+
+.footerCount {
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+.footerDot {
+  opacity: 0.5;
+}
+
+.footerHint {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
