@@ -265,6 +265,7 @@ export function ToolDock(): JSX.Element | null {
       {activePanelItem && anchor
         ? createPortal(
             <div
+              data-tool-dock-panel={hostId}
               className={[styles.panel, closing ? styles.closing : null].filter(Boolean).join(' ')}
               style={{
                 left: anchor.left,

@@ -189,9 +189,11 @@ published are not edited. The file goes per version:
 ### Explorer (UI)
 - **The native tree no longer hides behind the ToolDock.** The dock pill is an
   absolute overlay at the bottom of the panel, so the WASM canvas used to run
-  all the way down and its last rows were unreachable under the pill. The panel
-  now measures the pill and reserves its height with a CSS variable, ending the
-  canvas and its scroller right above the dock; the core gets the reduced
+  all the way down and its last rows were unreachable under it. The panel now
+  measures both the pill and the floating panel it deploys (Outline / Timeline /
+  Bookmarks, portaled to `document.body` and tagged with its host id) and
+  reserves the greater height with a CSS variable, ending the canvas and its
+  scroller right above whichever layer is visible; the core gets the reduced
   viewport from its normal resize path, so hit-testing and scrolling stay in
   sync.
 

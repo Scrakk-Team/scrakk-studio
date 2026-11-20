@@ -781,36 +781,50 @@ export function ExplorerPanel({
     }
   }, [root])
 
-  // El ToolDock es un overlay absoluto pegado al fondo del panel: si el canvas
-  // WASM ocupa todo el alto, la última fila queda tapada por la píldora. Medimos
-  // la píldora y reservamos su altura con una variable CSS; el `.scroller`
-  // termina ahí, así que el viewport que ve el core nativo ya excluye el dock.
+  // El ToolDock tapa la parte baja del árbol con DOS capas: la píldora fija y,
+  // cuando se abre (Outline/Timeline/Bookmarks), un panel flotante portaleado a
+  // `document.body` justo encima de ella. Reservamos AMBAS alturas con una
+  // variable CSS para que el canvas WASM (y su scroller) terminen por encima:
+  // el viewport que recibe el core nativo ya excluye todo el dock.
   useEffect(() => {
     const wrap = wrapRef.current
     if (!wrap) return
     let pill: HTMLElement | null = null
-    let ro: ResizeObserver | null = null
+    let panel: HTMLElement | null = null
+    let lastHeight = -1
+    const ro = new ResizeObserver(() => applyHeight())
 
     const applyHeight = (): void => {
-      const height = pill?.getBoundingClientRect().height ?? 0
-      wrap.style.setProperty('--tooldock-h', `${Math.round(height)}px`)
+      const pillH = pill?.getBoundingClientRect().height ?? 0
+      const panelH = panel?.getBoundingClientRect().height ?? 0
+      // El panel flotante se apoya en la píldora: su altura ya incluye la franja
+      // de ésta, así que reservamos la mayor de las dos (no la suma).
+      const height = Math.round(Math.max(pillH, panelH))
+      if (height === lastHeight) return
+      lastHeight = height
+      wrap.style.setProperty('--tooldock-h', `${height}px`)
     }
     const watch = (): void => {
-      const found = wrap.querySelector<HTMLElement>('[data-tool-dock]')
-      if (found === pill) return
-      ro?.disconnect()
-      pill = found
-      ro = pill ? new ResizeObserver(applyHeight) : null
-      if (pill && ro) ro.observe(pill)
+      const newPill = wrap.querySelector<HTMLElement>('[data-tool-dock]')
+      // El panel se porta al body con el hostId; así no reservamos el panel de
+      // otro explorer que pueda estar abierto en otra pestaña del layout.
+      const newPanel = document.querySelector<HTMLElement>('[data-tool-dock-panel="explorer"]')
+      if (newPill !== pill || newPanel !== panel) {
+        ro.disconnect()
+        pill = newPill
+        panel = newPanel
+        if (pill) ro.observe(pill)
+        if (panel) ro.observe(panel)
+      }
       applyHeight()
     }
 
     const mo = new MutationObserver(watch)
-    mo.observe(wrap, { childList: true, subtree: true })
+    mo.observe(document.body, { childList: true, subtree: true })
     watch()
     return () => {
       mo.disconnect()
-      ro?.disconnect()
+      ro.disconnect()
       wrap.style.removeProperty('--tooldock-h')
     }
   }, [])
