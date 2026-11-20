@@ -95,6 +95,32 @@ published are not edited. The file goes per version:
   metrics are re-synced with it, so the rows stay aligned instead of keeping
   the previous font's height.
 
+### Editor (syntax & stability)
+- **Typing in a large file no longer kills the editor.** Prepending a character
+  at the top of a large buffer corrupted the rope's internal tree: the recursive
+  prepend path wrote past its child array, left stale summaries behind, and the
+  buffer's reported line count became garbage (~123 million instead of 1,430).
+  That made folding reserve almost a gigabyte and made the text getters ask for
+  nearly four gigabytes, so the WASM aborted with `bad_alloc` — and because the
+  frame loop kept running against a dead module, the editor looked permanently
+  frozen. The prepend now inserts into the correct free slot without underflow,
+  with a strict boundary at the edit point. AddressSanitizer is clean, and a
+  native test replays the exact keystroke sequence over a real 1,430-line file.
+- **Dynamic grammars reuse their parse tree between revisions.** The tokenize
+  worker re-parsed the whole document from scratch on every keystroke: ~700 ms
+  on a 140 KB Python file, plus a 250 ms debounce, so colours arrived late and
+  in bursts. The tree is now kept per document and updated with `tree.edit()`
+  before an incremental reparse, which costs ~8 ms and produces the same
+  captures. A fuzz test compares incremental and full parse token by token over
+  many consecutive edits; the bridge debounce is down to 80 ms and the tokenize
+  request carries a stable document id.
+- **A stale path in the tokenize request no longer breaks file open.** The
+  request builder referenced a `path` variable that was not in scope, so every
+  file open threw a `ReferenceError` inside `ensureSession`. `markFileSessionClean`
+  never ran (the tab showed as modified without any edit) and the highlight
+  pipeline never applied (the file sat half-painted). The path is now passed
+  explicitly by both call sites.
+
 ### Breadcrumbs (UI)
 - **The breadcrumb now shows where you are in the code, not only the file
   path.** Above the editor, after `root > folders > file`, it appends the
@@ -108,6 +134,11 @@ published are not edited. The file goes per version:
   instead of a hardcoded look. Only the focused editor gets symbols: the cursor
   bus now carries the file path, so an inactive tab or split cannot borrow
   another editor's cursor.
+- **The breadcrumb scrolls with the mouse wheel.** With a deep path and a symbol
+  chain the bar overflowed, but Chromium only moved it horizontally with
+  Shift+wheel; the scrollbar is hidden, so the extra segments were unreachable.
+  The wheel now translates both vertical and horizontal deltas into horizontal
+  scrolling, with the invisible scrollbar kept as before.
 - **TypeScript and TSX files actually provide the symbols.** Their `tags.scm`
   only had signatures and was expected to inherit the ecma declarations from
   Helix, which this pack does not carry. Normal classes, methods, functions,
@@ -164,6 +195,21 @@ published are not edited. The file goes per version:
   moving the project folder keeps its explorer state. Only the main explorer
   writes it; spawned explorer views (Git changes, search results, etc.) keep
   their own in-memory trees.
+- **The ToolDock is back on the native explorer.** The rewrite of the tree to
+  the C++/WASM core dropped the dock that the React explorer mounted, so Outline,
+  Timeline, Bookmarks and the docked ActivityBar buttons disappeared. It is
+  mounted again in the native panel and reads the active file from the editor
+  bus; the native right-click menu keeps working through its own bridge.
+- **The selection rectangle follows the theme.** The lasso painted by the native
+  explorer had a hardcoded 3px radius, so it looked square in round themes and
+  unchanged in `rect` themes. It now takes the same `--radius-sm` token as the
+  selected rows, clamped to half the rectangle's short side.
+- **Right-click on a multi-selection acts on all of it.** With several files
+  selected (lasso, Ctrl or Shift), the explorer's context menu now offers
+  **Delete N elements** and **Copy paths** instead of the single-file actions —
+  the same bulk actions the React explorer had. Deletion uses the shared modal
+  (with the list of paths), removes every file, clears the native selection and
+  refreshes the tree.
 
 ### Command palette (UI)
 - **The shortcuts look like the welcome page's badges.** Every command in the
@@ -198,6 +244,21 @@ published are not edited. The file goes per version:
 - Switching the shell restarts the preview (a PTY keeps the shell it was born
   with); typing a custom path does not restart it on every keystroke — that
   change still applies to new terminals, as the row's hint says.
+
+### Terminal (canvas)
+- **The toolbar stays above the terminal text in small panels.** Nodes in the
+  terminal canvas carried a z-index, so their text painted over the floating
+  button strip when the panel was narrow. The strip now sits in a higher layer
+  with an opaque background.
+- **A new terminal appears next to the last one you touched, and the camera
+  follows it.** Terminals added to the canvas used a fixed cascade position and
+  could land off-screen. New nodes now take the nearest free slot around the
+  last manipulated terminal (persisted across visits), or around the camera's
+  focus when there is no anchor. If the node lands outside the viewport, the
+  camera eases toward it (~360 ms) until it is centred; if it is already visible
+  the camera does not move. Any pan, wheel or zoom cancels the animation.
+- **The bottom drag hint is gone.** The "drag the background to move" line under
+  the canvas was taking space and reading as clutter.
 
 ### Settings (UI)
 - **Every section now shares the same title+info header.** Each settings
@@ -440,6 +501,45 @@ published are not edited. The file goes per version:
   textarea only refit itself when the text changed, so opening the panel at its
   minimum width and widening it afterwards left the field stuck at the taller
   two-line height. A `ResizeObserver` now refits it when its width changes.
+
+### ToolDock (UI)
+- **Bookmarks can be scoped to the project or to the open file.** The bookmark
+  panel listed every path ever bookmarked, including files from projects that
+  were no longer open. It now has a **Global | This file** switch: Global shows
+  only bookmarks under the current workspace root, and This file shows only the
+  open file's. Clicking a bookmark now opens its file **and** jumps to the line
+  (retrying while the editor session mounts), instead of only opening the tab.
+- **The scope switch is two icons, not two labels.** In the narrow dock header
+  the text tabs were clipped. They are now larger proicons (`globe` / `file`)
+  with accessible labels, moved away from the close button.
+
+### Notes (UI)
+- **Notes can be read as markdown with the same renderer as the AI chat.** An
+  **Edit | View** switch uses the chat's `Markdown` component in preview mode,
+  so a note gets the same GFM, tables, code blocks and sanitized HTML as an
+  assistant message, with compact margins for a small panel.
+
+### Social (chat)
+- **The typing indicator lives inside the conversation.** It used to be a stripe
+  between the message list and the composer: when it appeared it shrank the list
+  and covered the last message, and an old expiry timer could clear a newer
+  "is typing" event. It is now a row at the end of the scroll, with a per-user
+  timer that restarts on every event.
+- **Chats always open at the latest message, with a way back down.** Returning
+  to a conversation no longer restores an old scroll position from up to ten
+  minutes earlier. When you scroll up through the history, a floating
+  **jump to latest** button appears.
+- **Messages sit closer together, like Discord.** The gaps between rows were
+  removed, group starts are tighter, and messages from the same sender group
+  over seven minutes instead of five. The day pill's radius now follows the
+  theme token and the hover toolbar sits above neighbouring rows so it is not
+  clipped on single-line messages.
+- **Images open in a viewer, not in the browser.** Clicking an attachment now
+  opens a full-screen overlay with the image at full size; click outside or
+  press Escape to close it.
+- **@mentions only suggest people in this conversation.** The composer was
+  given the whole friends list, so all friends appeared as mention candidates.
+  It now offers only the active participant, with a normalised handle.
 
 ### Tooltips (UI)
 - **A tooltip stays put while the pointer is on it.** The hover an LSP sends —
