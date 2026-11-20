@@ -15,6 +15,7 @@ import {
   subscribeToDecorations
 } from './decorations'
 import { HeaderActionButton, usePanelTitle } from '@features/layout'
+import { DeleteModal, type DeleteTarget } from './components/DeleteModal'
 import { t } from '@core/i18n'
 import { ContextMenu, type ContextMenuItem } from '@ui'
 import { openFileInEditor } from '@features/editor'
@@ -68,6 +69,7 @@ export function ExplorerPanel({
   const chevronCache = useRef(new Map<string, HTMLImageElement>())
   const { setTitle, setActions } = usePanelTitle()
   const [gitBadges, setGitBadges] = useState(() => isGitDecorationsVisible())
+  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null)
   const [menu, setMenu] = useState<{
     x: number
     y: number
@@ -196,13 +198,30 @@ export function ExplorerPanel({
     }
   }, [])
 
-  const deleteRow = useCallback(
-    async (row: { path: string; name: string }): Promise<void> => {
-      if (!window.confirm(`Eliminar "${row.name}"?`)) return
-      await api.fs.deleteFile(row.path)
+  const deletePaths = useCallback(
+    async (paths: string[]): Promise<void> => {
+      for (const path of paths) {
+        const res = await api.fs.deleteFile(path)
+        if (!res.success) {
+          throw new Error(res.error ?? `No se pudo eliminar "${path}".`)
+        }
+      }
+      explorerRef.current?.clearSelection()
       await reopen()
     },
     [reopen]
+  )
+
+  const deleteRow = useCallback(
+    (row: { path: string; name: string }): void => {
+      const selected = explorerRef.current?.selection() ?? []
+      if (selected.length > 1 && selected.includes(row.path)) {
+        setDeleteTarget({ label: `${selected.length} elementos`, paths: selected })
+      } else {
+        setDeleteTarget({ label: row.name, paths: [row.path] })
+      }
+    },
+    []
   )
 
   const startRename = useCallback(
@@ -305,6 +324,25 @@ export function ExplorerPanel({
       ]
     }
     const items: ContextMenuItem[] = []
+    const selected = explorerRef.current?.selection() ?? []
+    const multi = selected.length > 1 && selected.includes(row.path)
+    if (multi) {
+      // Igual que el explorer React: con varios seleccionados, el menú debe
+      // actuar sobre TODOS, no sólo sobre la fila bajo el cursor.
+      items.push(
+        {
+          label: `${t('explorer.eliminar')} ${selected.length} ${t('explorer.elementos')}`,
+          danger: true,
+          onClick: () => setDeleteTarget({ label: `${selected.length} elementos`, paths: selected })
+        },
+        {
+          label: t('explorer.copiar.rutas'),
+          separatorBefore: true,
+          onClick: () => void copyPath(selected.join('\n'))
+        }
+      )
+      return items
+    }
     if (row.isDir) {
       items.push(
         {
@@ -598,7 +636,7 @@ export function ExplorerPanel({
             box.y + 0.5,
             Math.max(0, box.w - 1),
             Math.max(0, box.h - 1),
-            3
+            Math.min(itemRadius, Math.max(0, Math.min(box.w, box.h) / 2))
           )
           ctx.fill()
           ctx.stroke()
@@ -976,6 +1014,11 @@ export function ExplorerPanel({
           onClose={() => setMenu(null)}
         />
       ) : null}
+      <DeleteModal
+        target={deleteTarget}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={deletePaths}
+      />
 
       {/* ToolDock del Explorer (outline / timeline / bookmarks + botones
           dockeados de la ActivityBar). Estaba en el explorer React y se perdió
