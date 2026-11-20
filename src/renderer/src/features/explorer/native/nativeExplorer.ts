@@ -26,6 +26,12 @@ interface NativeModule {
   _explorer_row_name(i: number): number
   _explorer_row_level(i: number): number
   _explorer_row_flags(i: number): number
+  _explorer_set_git_visible(visible: number): void
+  _explorer_git_visible(): number
+  _explorer_clear_git_badges(): void
+  _explorer_set_git_badges(dataPtr: number): void
+  _explorer_row_badge(i: number): number
+  _explorer_row_badge_color(i: number): number
   _explorer_set_viewport(w: number, h: number): void
   _explorer_content_height(): number
   _explorer_scroll_y(): number
@@ -93,6 +99,10 @@ export interface NativeRow {
   mergeTop: boolean
   /** Selected and the row below is selected too (flatten bottom corners). */
   mergeBottom: boolean
+  /** Git status letter for this row (empty when hidden or clean), from native. */
+  badge: string
+  /** CSS colour of the badge, computed by the native core. */
+  badgeColor: string
 }
 
 export interface NativeExplorer {
@@ -107,6 +117,11 @@ export interface NativeExplorer {
   clearSelection(): void
   setSelection(paths: string[]): void
   selection(): string[]
+  /** Git badges live in the native core: push status and the header toggle. */
+  setGitVisible(visible: boolean): void
+  gitVisible(): boolean
+  /** Newline-separated "absPath\tLETTER" entries; empty string clears them. */
+  setGitBadges(data: string): void
   lassoBegin(x: number, y: number, additive: boolean): void
   lassoUpdate(x: number, y: number): void
   lassoEnd(): void
@@ -201,7 +216,9 @@ export async function createNativeExplorer(): Promise<NativeExplorer> {
         hovered: (flags & 4) !== 0,
         selected: (flags & 8) !== 0,
         mergeTop: (flags & 16) !== 0,
-        mergeBottom: (flags & 32) !== 0
+        mergeBottom: (flags & 32) !== 0,
+        badge: mod.UTF8ToString(mod._explorer_row_badge(i)),
+        badgeColor: mod.UTF8ToString(mod._explorer_row_badge_color(i))
       })
     }
     return out
@@ -281,6 +298,13 @@ export async function createNativeExplorer(): Promise<NativeExplorer> {
       mod._free(p)
     },
     selection,
+    setGitVisible: (visible) => mod._explorer_set_git_visible(visible ? 1 : 0),
+    gitVisible: () => mod._explorer_git_visible() !== 0,
+    setGitBadges: (data) => {
+      const p = allocString(mod, data)
+      mod._explorer_set_git_badges(p)
+      mod._free(p)
+    },
     lassoBegin: (x, y, additive) => mod._explorer_lasso_begin(x, y, additive ? 1 : 0),
     lassoUpdate: (x, y) => mod._explorer_lasso_update(x, y),
     lassoEnd: () => mod._explorer_lasso_end(),

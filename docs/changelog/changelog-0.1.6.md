@@ -195,6 +195,14 @@ published are not edited. The file goes per version:
   moving the project folder keeps its explorer state. Only the main explorer
   writes it; spawned explorer views (Git changes, search results, etc.) keep
   their own in-memory trees.
+- **Git badges are now owned and painted by the native explorer.** The native
+  C++/WASM explorer showed no Git status at all — the badges belonged to the old
+  React tree. The core now stores the status letter per path and the badge
+  palette, exposes per-row badge/colour getters, and paints the letters natively
+  in its C++ renderer. The header button drives a native visibility flag, and the
+  host only feeds the current repo status into the core and blits the glyph it
+  reports, so toggling and refreshing behave like the old explorer without any
+  decoration logic in the React tree.
 - **The ToolDock is back on the native explorer.** The rewrite of the tree to
   the C++/WASM core dropped the dock that the React explorer mounted, so Outline,
   Timeline, Bookmarks and the docked ActivityBar buttons disappeared. It is

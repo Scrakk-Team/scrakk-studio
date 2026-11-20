@@ -21,6 +21,13 @@ import { ContextMenu, type ContextMenuItem } from '@ui'
 import { openFileInEditor } from '@features/editor'
 import { setResourceDragData } from '@features/dnd'
 import { api } from '@services/api'
+import {
+  getActiveRoot,
+  getRepoState,
+  gitFileDecoration,
+  subscribeToGit,
+  toRepoRel
+} from '@services/git'
 import { isSkipFilesOnExpandAll } from '@services/explorerSettings'
 import { baseNameOf } from '@services/workspaces/history'
 import { getFileIconUrl, subscribeToFileIcons } from '@services/fileIcons'
@@ -121,6 +128,48 @@ export function ExplorerPanel({
   }, [notifySelection, onLasso])
 
   useEffect(() => subscribeToDecorations(() => setGitBadges(isGitDecorationsVisible())), [])
+
+  // Git badges are pushed into the native core (not painted by React). The
+  // core owns the palette, the visibility flag and the per-row lookup; we only
+  // feed it the current repo status as "absPath\tLETTER" lines.
+  const pushGitRef = useRef<() => void>(() => {})
+  const pushGitBadges = useCallback((): void => {
+    const ex = explorerRef.current
+    if (!ex) return
+    ex.setGitVisible(gitBadges)
+    if (!gitBadges) {
+      ex.setGitBadges('')
+      return
+    }
+    const activeRoot = getActiveRoot() ?? root
+    if (!activeRoot) {
+      ex.setGitBadges('')
+      return
+    }
+    const repo = getRepoState(activeRoot)
+    if (!repo) {
+      ex.setGitBadges('')
+      return
+    }
+    const entries: string[] = []
+    const prefix = activeRoot.endsWith('/') ? activeRoot : `${activeRoot}/`
+    const changed = [...repo.staged, ...repo.unstaged, ...repo.untracked]
+    for (const f of changed) {
+      const rel = toRepoRel(activeRoot, f.path)
+      if (rel === null) continue
+      const decoration = gitFileDecoration(repo, rel)
+      if (!decoration) continue
+      entries.push(`${prefix}${rel}\t${decoration.badge}`)
+    }
+    ex.setGitBadges(entries.join('\n'))
+  }, [gitBadges, root])
+  pushGitRef.current = pushGitBadges
+
+  useEffect(() => {
+    const unsubscribe = subscribeToGit(pushGitBadges)
+    pushGitBadges()
+    return unsubscribe
+  }, [pushGitBadges])
 
   // Drags continue outside the canvas (mouse leaves the panel): the native
   // core keeps receiving the pointer and the release always ends both drags.
@@ -619,6 +668,18 @@ export function ExplorerPanel({
         } else {
           ctx.fillStyle = text
           ctx.fillText(row.name, cx, midY)
+          // Git badge: the native core owns the status, the palette and the
+          // toggle; the canvas only blits the glyph it reports for this row.
+          if (row.badge) {
+            const nameW = ctx.measureText(row.name).width
+            const bx = cx + nameW + 6
+            if (bx + 10 < w - 6) {
+              ctx.fillStyle = row.badgeColor || muted
+              ctx.font = 'bold 11px Inter, system-ui, sans-serif'
+              ctx.fillText(row.badge, bx, midY)
+              ctx.font = '12px Inter, system-ui, sans-serif'
+            }
+          }
         }
       }
 
@@ -702,6 +763,7 @@ export function ExplorerPanel({
         const explorer = await createNativeExplorer()
         explorerRef.current = explorer
         if (root) await explorer.open(root)
+        pushGitRef.current()
         onResize()
         raf = requestAnimationFrame(loop)
       } catch (err) {
