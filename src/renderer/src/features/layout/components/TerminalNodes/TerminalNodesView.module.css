@@ -184,17 +184,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-.hint {
-  position: absolute;
-  right: 12px;
-  bottom: 12px;
-  z-index: 40;
-  font-size: 11px;
-  color: var(--color-text-muted);
-  opacity: 0.8;
-  pointer-events: none;
-}
-
 /* Puntos de unión alrededor del nodo: cantidad dinámica según su tamaño
    (medido por ResizeObserver). Ocultos hasta hover para no ensuciar,
    visibles siempre mientras se arrastra un enlace. */

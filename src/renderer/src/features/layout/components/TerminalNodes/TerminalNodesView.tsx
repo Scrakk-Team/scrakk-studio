@@ -972,7 +972,6 @@ export function TerminalNodesView({ onBack }: { onBack: () => void }): JSX.Eleme
           <ProductIcon id="plus" size={14} aria-hidden="true" />
         </button>
       </div>
-      <div className={styles.hint}>{t('layout.arrastra.el.fondo.para.mover')}</div>
     </div>
   )
 }
