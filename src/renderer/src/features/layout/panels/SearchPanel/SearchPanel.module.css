@@ -152,7 +152,6 @@
   gap: var(--space-2);
   flex-shrink: 0;
   padding: var(--space-2);
-  border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-surface-raised);
 }
@@ -212,21 +211,29 @@
   font-weight: 500;
 }
 
+/* Mismo criterio que el buscador de arriba: sin borde en reposo, fondo suave
+   y sólo un borde tenue al enfocar (nada de recuadros dobles). */
 .fieldInput {
   width: 100%;
   min-width: 0;
-  padding: 5px var(--space-2);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-bg, transparent);
+  height: 26px;
+  padding: 0 var(--space-2);
+  border: 1px solid transparent;
+  border-radius: var(--radius-input);
+  background: var(--color-hover);
   color: var(--color-text);
   font-family: var(--font-mono, ui-monospace, monospace);
   font-size: 11px;
   outline: none;
 }
 
+.fieldInput:hover {
+  background: var(--color-active);
+}
+
 .fieldInput:focus {
   border-color: var(--color-border-strong);
+  background: var(--color-hover);
 }
 
 .fieldInput::placeholder {
