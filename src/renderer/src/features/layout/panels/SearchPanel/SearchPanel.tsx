@@ -347,15 +347,17 @@ export function SearchPanel(): JSX.Element {
 
       {/* Modo + filtros (Notas / Git). */}
       <div className={styles.controls}>
-        <SegmentedTabs
-          items={[
-            { id: 'content', label: t('layout.busqueda.contenido') },
-            { id: 'files', label: t('layout.busqueda.archivos') }
-          ]}
-          activeId={mode}
-          onChange={(id) => setMode(id === 'files' ? 'files' : 'content')}
-          ariaLabel={t('layout.busqueda.modo')}
-        />
+        <div className={styles.mode}>
+          <SegmentedTabs
+            items={[
+              { id: 'content', label: t('layout.busqueda.contenido') },
+              { id: 'files', label: t('layout.busqueda.archivos') }
+            ]}
+            activeId={mode}
+            onChange={(id) => setMode(id === 'files' ? 'files' : 'content')}
+            ariaLabel={t('layout.busqueda.modo')}
+          />
+        </div>
         <button
           type="button"
           className={[styles.filterToggle, activeFilters > 0 ? styles.filterToggleOn : null]
@@ -393,16 +395,18 @@ export function SearchPanel(): JSX.Element {
               .*
             </button>
             {mode === 'files' ? (
-              <SegmentedTabs
-                items={[
-                  { id: 'all', label: t('layout.busqueda.todos') },
-                  { id: 'files', label: t('layout.busqueda.solo.archivos') },
-                  { id: 'folders', label: t('layout.busqueda.solo.carpetas') }
-                ]}
-                activeId={fileType}
-                onChange={(id) => setFileType(id as FileType)}
-                ariaLabel={t('layout.busqueda.tipo')}
-              />
+              <div className={styles.typeMode}>
+                <SegmentedTabs
+                  items={[
+                    { id: 'all', label: t('layout.busqueda.todos') },
+                    { id: 'files', label: t('layout.busqueda.solo.archivos') },
+                    { id: 'folders', label: t('layout.busqueda.solo.carpetas') }
+                  ]}
+                  activeId={fileType}
+                  onChange={(id) => setFileType(id as FileType)}
+                  ariaLabel={t('layout.busqueda.tipo')}
+                />
+              </div>
             ) : null}
           </div>
           <div className={styles.filterFields}>
