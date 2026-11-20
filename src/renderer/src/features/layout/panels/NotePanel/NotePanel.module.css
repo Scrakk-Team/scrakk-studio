@@ -188,6 +188,22 @@
   color: var(--color-text-secondary);
 }
 
+.preview {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-input);
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+  font-size: var(--text-sm);
+}
+
+/* El markdown del chat trae márgenes pensados para mensajes grandes: acá se
+   compacta para que una nota en un panel chico no quede medio vacía. */
+.previewMd > *:first-child { margin-top: 0; }
+.previewMd > *:last-child { margin-bottom: 0; }
+
 .editorInput {
   flex: 1;
   min-height: 0;

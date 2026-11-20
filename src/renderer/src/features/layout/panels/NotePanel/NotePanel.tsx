@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState, type JSX } from 'react'
 import { ProductIcon } from '@services/productIcons/components'
 import { SegmentedTabs, ToggleSwitch } from '@ui'
 import { HeaderActionButton, usePanelTitle } from '@features/layout'
+import { Markdown } from '@features/chat/components/Markdown'
 import {
   createNote,
   deleteNote,
@@ -57,6 +58,8 @@ export function NotePanel(): JSX.Element {
   const [activeId, setActiveId] = useState<string | null>(
     () => listVisibleNotes(projectRoot)[0]?.id ?? null
   )
+  /** Modo del contenido: edición en crudo o visor del mismo markdown del chat IA. */
+  const [mode, setMode] = useState<'edit' | 'view'>('edit')
 
   useEffect(() => {
     setTitle(t('layout.panel.notes'))
@@ -204,15 +207,32 @@ export function NotePanel(): JSX.Element {
                   </div>
                 </div>
               </div>
-              <textarea
-                key={active.id}
-                className={styles.editorInput}
-                defaultValue={active.content}
-                placeholder={t('layout.escribe.tu.nota')}
-                aria-label={t('layout.contenido.de.la.nota')}
-                spellCheck={false}
-                onChange={(event) => updateNote(active.id, event.target.value)}
+              {/* Mismo renderizador que el chat con IA: editar en crudo o ver
+                  el contenido formateado (GFM, codeblocks, tablas, HTML seguro). */}
+              <SegmentedTabs
+                items={[
+                  { id: 'edit', label: t('layout.editar') },
+                  { id: 'view', label: t('layout.ver') }
+                ]}
+                activeId={mode}
+                onChange={(id) => setMode(id === 'view' ? 'view' : 'edit')}
+                ariaLabel={t('layout.contenido.de.la.nota')}
               />
+              {mode === 'view' ? (
+                <div className={styles.preview}>
+                  <Markdown content={active.content} className={styles.previewMd} />
+                </div>
+              ) : (
+                <textarea
+                  key={active.id}
+                  className={styles.editorInput}
+                  defaultValue={active.content}
+                  placeholder={t('layout.escribe.tu.nota')}
+                  aria-label={t('layout.contenido.de.la.nota')}
+                  spellCheck={false}
+                  onChange={(event) => updateNote(active.id, event.target.value)}
+                />
+              )}
             </div>
           ) : null}
         </>
