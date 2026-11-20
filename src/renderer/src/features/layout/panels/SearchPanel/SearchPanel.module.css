@@ -1,20 +1,46 @@
 /*
  * Copyright 2026 Scrakk Studio
  * SPDX-License-Identifier: Apache-2.0
- * Licencia completa en LICENSE (Apache License 2.0).
  */
+
+/* ==========================================================================
+   SearchPanel — mismo lenguaje que Problems / Git / Notas / chat.
+   · buscador con icono y foco suave;
+   · segmented de modo (contenido / archivos) + chip de filtros;
+   · filtros combinables (mayúsculas, regex, tipo, incluir, excluir);
+   · resultados agrupados y colapsables, con acción en hover;
+   · estados vacíos con icono y pie con conteo.
+   Plano, sin transiciones en el hover, números tabulares.
+   ========================================================================== */
 
 .search {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-2);
   flex: 1;
   min-height: 0;
   overflow: hidden;
   padding: var(--space-3);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
 }
 
-/* Buscador: sin borde salvo al enfocar. */
+.search,
+.search *,
+.search *::before,
+.search *::after {
+  transition: none !important;
+}
+
+.search .box,
+.search .fieldInput {
+  transition:
+    border-color var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out) !important;
+}
+
+/* ── Buscador ───────────────────────────────────────────────────────────── */
+
 .box {
   display: flex;
   align-items: center;
@@ -23,7 +49,7 @@
   background: var(--color-surface-raised);
   border: 1px solid transparent;
   border-radius: var(--radius-input);
-  transition: border-color var(--duration-fast) var(--ease-out);
+  flex-shrink: 0;
 }
 
 .box:focus-within {
@@ -42,6 +68,7 @@
   border: none;
   outline: none;
   color: var(--color-text);
+  font-family: inherit;
   font-size: var(--text-sm);
   padding: var(--space-1) 0;
 }
@@ -50,79 +77,448 @@
   color: var(--color-text-muted);
 }
 
-.empty {
-  margin: 0;
-  padding: var(--space-3);
+.clearBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
   color: var(--color-text-muted);
-  font-size: var(--text-sm);
-  text-align: center;
+  cursor: pointer;
 }
 
-/* Resultados: lista scrolleable + hits clicables. */
+.clearBtn:hover {
+  background: var(--color-hover);
+  color: var(--color-text);
+}
+
+/* ── Modo + filtros ─────────────────────────────────────────────────────── */
+
+.controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.filterToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-family: inherit;
+  font-size: var(--text-xs);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.filterToggle:hover {
+  background: var(--color-hover);
+  color: var(--color-text);
+}
+
+.filterToggleOn {
+  border-color: var(--color-border-strong);
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+}
+
+.filterCount {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: var(--radius-capsule);
+  background: var(--color-active);
+  color: var(--color-text);
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.filters {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  flex-shrink: 0;
+  padding: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-raised);
+}
+
+.chips {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex-wrap: wrap;
+}
+
+.chip {
+  min-width: 30px;
+  height: 24px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: var(--color-hover);
+  color: var(--color-text-muted);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.chip:hover:not(:disabled) {
+  color: var(--color-text);
+}
+
+.chipOn {
+  border-color: var(--color-border-strong);
+  background: var(--color-active);
+  color: var(--color-text);
+}
+
+.chip:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.filterFields {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+
+.fieldLabel {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.fieldInput {
+  width: 100%;
+  min-width: 0;
+  padding: 5px var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg, transparent);
+  color: var(--color-text);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 11px;
+  outline: none;
+}
+
+.fieldInput:focus {
+  border-color: var(--color-border-strong);
+}
+
+.fieldInput::placeholder {
+  color: var(--color-text-muted);
+}
+
+/* ── Resultados ─────────────────────────────────────────────────────────── */
+
 .results {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: var(--space-2);
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  padding-right: 2px;
 }
 
-.count {
-  margin: 0;
-  padding: 0 var(--space-1);
-  color: var(--color-text-muted);
-  font-size: var(--text-xs);
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
 }
 
-.hit {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  grid-template-areas:
-    'file line'
-    'preview preview';
-  gap: 0 var(--space-2);
-  padding: var(--space-1) var(--space-2);
-  background: transparent;
+.groupHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 5px 6px;
   border: none;
-  border-radius: var(--radius-input);
-  color: var(--color-text);
-  font-size: var(--text-sm);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-family: inherit;
+  font-size: var(--text-xs);
   text-align: left;
   cursor: pointer;
 }
 
-.hit:hover {
-  background: var(--color-surface-raised);
+button.groupHeader:hover {
+  background: var(--color-hover);
+  color: var(--color-text-secondary);
 }
 
-.hitFile {
-  grid-area: file;
-  font-weight: 600;
+.arrow {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+}
+
+.groupIcon {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+}
+
+.groupTitle {
+  flex-shrink: 0;
+  max-width: 45%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+.groupSubtitle {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  direction: rtl;
+  color: var(--color-text-muted);
+  font-size: 10px;
+}
+
+.count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: var(--radius-capsule);
+  background: var(--color-hover);
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.groupHeader:hover .count,
+.groupHeader[aria-expanded='true'] .count {
+  background: var(--color-active);
+  color: var(--color-text-secondary);
+}
+
+/* Coincidencia de contenido: número de línea + Preview con el match marcado. */
+.hit {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: 4px var(--space-2) 4px calc(var(--space-2) + 18px);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text);
+  font-size: var(--text-xs);
+  text-align: left;
+  cursor: pointer;
+}
+
+.hit:hover,
+.hit:focus-visible {
+  background: var(--color-hover);
+  outline: none;
 }
 
 .hitLine {
-  grid-area: line;
+  flex-shrink: 0;
+  min-width: 26px;
   color: var(--color-text-muted);
-  font-size: var(--text-xs);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
 }
 
 .hitPreview {
-  grid-area: preview;
-  color: var(--color-text-muted);
-  font-family: var(--font-mono, monospace);
-  font-size: var(--text-xs);
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  color: var(--color-text-secondary);
 }
 
-/* El match exacto dentro de la línea (spans del server de búsqueda). */
 .hitMark {
   background: color-mix(in srgb, var(--color-accent, #d7a52b) 32%, transparent);
   color: inherit;
   border-radius: 3px;
+}
+
+/* Resultado de archivo: icono + nombre + badge de tipo. */
+.fileRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: 5px var(--space-2) 5px calc(var(--space-2) + 18px);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.fileRow:hover,
+.fileRow:focus-visible {
+  background: var(--color-hover);
+  color: var(--color-text);
+  outline: none;
+}
+
+.fileIcon {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+}
+
+.fileName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-xs);
+}
+
+.typeBadge {
+  flex-shrink: 0;
+  padding: 1px 6px;
+  border-radius: var(--radius-capsule);
+  background: var(--color-hover);
+  color: var(--color-text-muted);
+  font-size: 10px;
+}
+
+/* Acción en hover, como en Problems / Git. */
+.rowBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  opacity: 0;
+  cursor: pointer;
+}
+
+.hit:hover .rowBtn,
+.hit:focus-within .rowBtn,
+.rowBtn:focus-visible {
+  opacity: 1;
+}
+
+.rowBtn:hover {
+  background: var(--color-active);
+  color: var(--color-text);
+}
+
+/* ── Estado vacío (Git / Notas / Problems) ──────────────────────────────── */
+
+.placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  flex: 1;
+  min-height: 0;
+  padding: var(--space-5) var(--space-3);
+  text-align: center;
+}
+
+.placeholderIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-lg);
+  color: var(--color-text-muted);
+  background: var(--color-surface-raised);
+}
+
+.empty {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  line-height: var(--leading-normal);
+  text-align: center;
+}
+
+.linkBtn {
+  padding: 3px 8px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--color-hover);
+  color: var(--color-text-secondary);
+  font-family: inherit;
+  font-size: var(--text-xs);
+  cursor: pointer;
+}
+
+.linkBtn:hover {
+  background: var(--color-active);
+  color: var(--color-text);
+}
+
+/* ── Pie ────────────────────────────────────────────────────────────────── */
+
+.footer {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  padding: 5px 6px 0;
+  border-top: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  font-size: 10px;
+}
+
+.footerCount {
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+.footerDot {
+  opacity: 0.5;
+}
+
+.footerHint {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

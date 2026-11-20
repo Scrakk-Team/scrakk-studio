@@ -533,6 +533,18 @@ published are not edited. The file goes per version:
   the text tabs were clipped. They are now larger proicons (`globe` / `file`)
   with accessible labels, moved away from the close button.
 
+### Search (UI)
+- **Search can now find files by name, not just text inside them.** A
+  **Contents | Files** switch selects the backend: grep over file contents or
+  the project's file/folder index. Files can be restricted to files only or
+  folders only, and clicking a folder opens it as the workspace explorer root.
+- **The Search panel got the same redesign as Problems.** Combinable filters
+  (match case, regex, result type, Include/Exclude globs) live in a collapsible
+  filter box with an active-filter counter; results are grouped by file (or by
+  folder for name searches), collapsible, and rows have a hover action to copy
+  the matching line. Header refresh/clear actions, icon empty states and a
+  localised footer complete the panel.
+
 ### Problems (UI)
 - **The Problems panel was redesigned with the language of the other panels.**
   A severity scoreboard (click a chip to filter, like Git's status bar) replaces
