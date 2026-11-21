@@ -11,18 +11,18 @@ import { describe, expect, it } from 'vitest'
 import { computePanelMaxHeight } from '../src/renderer/src/features/tooldock/toolDockGeometry'
 
 describe('computePanelMaxHeight', () => {
-  it('usa el espacio SOBRE la píldora, no el de debajo', () => {
-    // Dock pegado al fondo: anchor.bottom ≈ 40 → antes daba 120 (mínimo).
-    expect(computePanelMaxHeight(40, 900)).toBe(836)
-    // Dock a mitad de pantalla.
-    expect(computePanelMaxHeight(300, 900)).toBe(576)
+  it('usa el espacio SOBRE la píldora, pero nunca más del 60% del viewport', () => {
+    // Dock pegado al fondo: espacio libre arriba ≈ 836, pero el cap da 540.
+    expect(computePanelMaxHeight(40, 900)).toBe(540)
+    // Dock a mitad de pantalla: 576 → también limitado a 540.
+    expect(computePanelMaxHeight(300, 900)).toBe(540)
   })
 
   it('nunca baja del mínimo de 120px', () => {
     expect(computePanelMaxHeight(890, 900)).toBe(120)
   })
 
-  it('sin ancla (medición inicial) usa 600', () => {
-    expect(computePanelMaxHeight(null, 900)).toBe(600)
+  it('sin ancla (medición inicial) respeta el cap', () => {
+    expect(computePanelMaxHeight(null, 900)).toBe(540)
   })
 })

@@ -14,7 +14,11 @@
  * no `anchorBottom`: con el dock pegado al fondo, la vieja fórmula daba ~40px
  * y el panel quedaba clavado en el mínimo (cursor de resize, pero no resizaba).
  */
+/** Fracción máxima del viewport que puede ocupar el panel. */
+export const TOOLDOCK_MAX_RATIO = 0.6
+
 export function computePanelMaxHeight(anchorBottom: number | null, viewportH: number): number {
-  if (anchorBottom === null) return 600
-  return Math.max(120, viewportH - anchorBottom - 24)
+  const cap = Math.round(viewportH * TOOLDOCK_MAX_RATIO)
+  if (anchorBottom === null) return Math.min(600, cap)
+  return Math.max(120, Math.min(cap, viewportH - anchorBottom - 24))
 }

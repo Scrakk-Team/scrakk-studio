@@ -140,6 +140,8 @@ export function ToolDock(): JSX.Element | null {
     moved: boolean
   } | null>(null)
   const resizeRaf = useRef<number | null>(null)
+  // Tope de altura DURANTE el arrastre (el store sólo clamp al soltar).
+  const maxHeightRef = useRef<number>(600)
 
   const handleResizeStart = useCallback(
     (event: React.PointerEvent) => {
@@ -168,7 +170,10 @@ export function ToolDock(): JSX.Element | null {
       const onMove = (moveEvent: PointerEvent): void => {
         const state = resizeRef.current
         if (!state) return
-        state.pendingHeight = Math.max(120, state.startHeight + (state.startY - moveEvent.clientY))
+        state.pendingHeight = Math.min(
+          maxHeightRef.current,
+          Math.max(120, state.startHeight + (state.startY - moveEvent.clientY))
+        )
         state.moved = true
         if (resizeRaf.current !== null) return
         resizeRaf.current = requestAnimationFrame(() => {
@@ -264,6 +269,7 @@ export function ToolDock(): JSX.Element | null {
   )
 
   const maxHeight = computePanelMaxHeight(anchor?.bottom ?? null, window.innerHeight)
+  maxHeightRef.current = maxHeight
   const displayHeight = Math.min(liveHeight ?? panelHeight, maxHeight)
 
   return (

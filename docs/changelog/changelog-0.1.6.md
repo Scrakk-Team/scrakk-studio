@@ -547,7 +547,10 @@ published are not edited. The file goes per version:
   captured by the handle but listened for on `window` (so they never arrived),
   and the maximum height was computed from the space BELOW the pill instead of
   above it, clamping the panel to 120px when the dock sat at the bottom. Both
-  fixed; the height math is now a pure, tested helper.
+  fixed; the height math is now a pure, tested helper. The panel is also capped
+  at 60% of the viewport (both while dragging and when restoring a persisted
+  height), so a stale height saved by the old broken resize can't open a giant
+  panel.
 
 ### ToolDock (UI)
 - **Bookmarks can be scoped to the project or to the open file.** The bookmark

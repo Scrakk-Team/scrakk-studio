@@ -49,6 +49,18 @@ interface ToolDockHostState {
 const ToolDockHostContext = createContext<ToolDockHostState | null>(null)
 
 const HEIGHT_MIN = 120
+/** Tope superior: el panel nunca ocupa más de esta fracción del viewport. */
+const HEIGHT_DEFAULT = 280
+const HEIGHT_MAX_RATIO = 0.6
+
+function heightMax(): number {
+  const viewport = typeof window !== 'undefined' ? window.innerHeight : 900
+  return Math.max(HEIGHT_MIN, Math.round(viewport * HEIGHT_MAX_RATIO))
+}
+
+function clampHeight(height: number): number {
+  return Math.min(heightMax(), Math.max(HEIGHT_MIN, Math.round(height)))
+}
 
 function heightKey(hostId: string): string {
   return `scrakk-studio:tooldock:${hostId}:height`
@@ -57,11 +69,15 @@ function heightKey(hostId: string): string {
 function loadHeight(hostId: string): number {
   try {
     const saved = lsGet<number>(heightKey(hostId))
-    if (typeof saved === 'number' && saved >= HEIGHT_MIN) return saved
+    // Un valor viejo/corrupto (de cuando el resize no respetaba el tope) se
+    // recorta al máximo actual en vez de abrir un panel gigante.
+    if (typeof saved === 'number' && Number.isFinite(saved) && saved >= HEIGHT_MIN) {
+      return clampHeight(saved)
+    }
   } catch {
     // Sin storage: default.
   }
-  return 280
+  return Math.min(HEIGHT_DEFAULT, heightMax())
 }
 
 export function ToolDockHostProvider({
@@ -97,7 +113,7 @@ export function ToolDockHostProvider({
 
   const setPanelHeight = useCallback(
     (height: number) => {
-      const clamped = Math.max(HEIGHT_MIN, height)
+      const clamped = clampHeight(height)
       setPanelHeightState(clamped)
       try {
         lsSet(heightKey(hostId), clamped)
