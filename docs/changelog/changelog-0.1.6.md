@@ -193,12 +193,12 @@ published are not edited. The file goes per version:
   measures both the pill and the floating panel it deploys (Outline / Timeline /
   Bookmarks, portaled to `document.body` and tagged with its host id) and
   reserves the distance from the panel's top edge to the bottom of the explorer
-  with a CSS variable — that includes the 10px gap the dock leaves above the
-  pill, which a plain height sum missed. The canvas and its scroller end right
-  above whichever layer is visible, and the core gets the reduced viewport from
-  its normal resize path, so hit-testing and scrolling stay in sync. The floating
-  panel itself is translucent again (with a soft backdrop blur) instead of a
-  solid dark block, so the editor behind it shows through as before.
+  — including the 10px gap the dock leaves above the pill — as a REDUCED
+  VIEWPORT for the native core plus matching extra scroll in the spacer, so the
+  last rows land above the dock with no black strip below them. The canvas keeps
+  painting at full height, so the pill floats over the explorer background as
+  before instead of sitting on an empty dark band. The floating panel itself is
+  translucent again (with a soft backdrop blur) instead of a solid dark block.
 
 ### Explorer (UI)
 - **Hovering a row no longer re-renders the whole tree.** The rows are

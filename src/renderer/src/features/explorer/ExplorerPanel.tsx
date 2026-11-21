@@ -67,6 +67,8 @@ export function ExplorerPanel({
   const spacerRef = useRef<HTMLDivElement>(null)
   const sizeRef = useRef({ w: 0, h: 0 })
   const explorerRef = useRef<NativeExplorer | null>(null)
+  /** Altura que tapa el ToolDock; la usa el core para su viewport, no el canvas. */
+  const dockHRef = useRef(0)
   const lastDragRef = useRef(0)
   const [root, setRoot] = useState<string | null>(
     () => rootOverride ?? getWorkspaceRoot()
@@ -726,9 +728,10 @@ export function ExplorerPanel({
       // Content height is written straight to the DOM: expanding a folder must
       // not re-render React (that used to flash the whole panel).
       const ch = explorerRef.current?.contentHeight() ?? 0
-      if (ch !== lastContent && spacerRef.current) {
-        lastContent = ch
-        spacerRef.current.style.height = `${ch}px`
+      const total = ch + dockHRef.current
+      if (total !== lastContent && spacerRef.current) {
+        lastContent = total
+        spacerRef.current.style.height = `${total}px`
       }
       draw()
       raf = requestAnimationFrame(loop)
@@ -750,7 +753,7 @@ export function ExplorerPanel({
       canvas.height = Math.max(1, Math.round(h * dpr))
       canvas.style.width = `${w}px`
       canvas.style.height = `${h}px`
-      explorerRef.current?.setViewport(w, h)
+      explorerRef.current?.setViewport(w, Math.max(1, h - dockHRef.current))
       draw()
     }
 
@@ -783,12 +786,15 @@ export function ExplorerPanel({
 
   // El ToolDock tapa la parte baja del árbol con DOS capas: la píldora fija y,
   // cuando se abre (Outline/Timeline/Bookmarks), un panel flotante portaleado a
-  // `document.body` justo encima de ella. Reservamos AMBAS alturas con una
-  // variable CSS para que el canvas WASM (y su scroller) terminen por encima:
-  // el viewport que recibe el core nativo ya excluye todo el dock.
+  // `document.body` justo encima de ella. Medimos la altura que ocupa todo el
+  // dock y la damos al CORE como viewport reducido (más scroll extra en el
+  // spacer). El canvas NO se acorta: sigue pintando el fondo del explorer en
+  // toda el área, así que la píldora flota sobre él como antes (sin franja
+  // negra debajo).
   useEffect(() => {
     const wrap = wrapRef.current
-    if (!wrap) return
+    const scroller = scrollerRef.current
+    if (!wrap || !scroller) return
     let pill: HTMLElement | null = null
     let panel: HTMLElement | null = null
     let lastHeight = -1
@@ -808,7 +814,16 @@ export function ExplorerPanel({
       const rounded = Math.round(height)
       if (rounded === lastHeight) return
       lastHeight = rounded
-      wrap.style.setProperty('--tooldock-h', `${rounded}px`)
+      dockHRef.current = rounded
+      // El core debe creer que el viewport termina donde empieza el dock: las
+      // últimas filas quedan visibles por encima de él al scrollear al final.
+      const ex = explorerRef.current
+      if (ex) {
+        ex.setViewport(scroller.clientWidth, Math.max(1, scroller.clientHeight - rounded))
+        if (spacerRef.current) {
+          spacerRef.current.style.height = `${ex.contentHeight() + rounded}px`
+        }
+      }
     }
     const watch = (): void => {
       const newPill = wrap.querySelector<HTMLElement>('[data-tool-dock]')
@@ -833,7 +848,6 @@ export function ExplorerPanel({
       mo.disconnect()
       ro.disconnect()
       window.removeEventListener('resize', applyHeight)
-      wrap.style.removeProperty('--tooldock-h')
     }
   }, [])
 
