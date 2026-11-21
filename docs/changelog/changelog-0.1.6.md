@@ -585,6 +585,11 @@ published are not edited. The file goes per version:
   are now actually evaluated. Server instructions are injected into the system
   prompt, and the `list_mcp_resources` / `read_mcp_resource` tools expose MCP
   resources. OAuth tokens are kept outside the config, in userData.
+- **Auto-detection imports MCP servers from other agents.** A "Detect
+  automatically" action scans OpenCode (`opencode.json(c)`, both `mcp.servers`
+  and legacy `mcp`), Codex (`config.toml` `[mcp_servers.*]`) and currently
+  running MCP processes, then offers them as a checkable list to import into
+  `.scrakk/mcp.json` — no manual command/URL typing.
 
 ### Preview (UI)
 - **One preview system for every file in a tab.** A global `preview` API now
