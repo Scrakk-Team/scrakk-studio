@@ -574,6 +574,18 @@ published are not edited. The file goes per version:
   width): it centres the icon and label while the close button stays pinned to
   the end.
 
+### MCP (chat / IA)
+- **The chat can now connect to Model Context Protocol servers**, local (stdio)
+  and remote (Streamable HTTP), with OAuth 2.1 + PKCE for authenticated servers.
+  Config lives in `.scrakk/mcp.json` (user/project layers, hot-reloaded), with a
+  new **Settings → Chat → MCP servers** section. Server tools are registered in
+  the same `ToolRegistry` as built-ins (names normalised `<server>_<tool>` like
+  OpenCode), so they join the LLM request, the agent/mode tool filters and the
+  whole approval/policy pipeline for free. `MCPTool(<server>_*)` permission rules
+  are now actually evaluated. Server instructions are injected into the system
+  prompt, and the `list_mcp_resources` / `read_mcp_resource` tools expose MCP
+  resources. OAuth tokens are kept outside the config, in userData.
+
 ### Preview (UI)
 - **One preview system for every file in a tab.** A global `preview` API now
   drives what is shown inside file tabs: images, markdown and SVG (the original

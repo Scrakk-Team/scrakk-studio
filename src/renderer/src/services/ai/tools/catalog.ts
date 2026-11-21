@@ -124,6 +124,7 @@ export const toolCatalog = new ToolCatalog()
 export const ENVIRONMENT_FAMILY = 'environment'
 export const AGENTIC_FAMILY = 'agentic'
 export const EXTENSIONS_FAMILY = 'extensions'
+export const MCP_FAMILY = 'mcp'
 
 toolCatalog.registerFamily({
   id: ENVIRONMENT_FAMILY,
@@ -146,12 +147,20 @@ toolCatalog.registerFamily({
   icon: 'extensions',
   order: 2
 })
+toolCatalog.registerFamily({
+  id: MCP_FAMILY,
+  label: 'MCP',
+  description: 'Herramientas de servidores Model Context Protocol.',
+  icon: 'server',
+  order: 3
+})
 
 // ── Tipos built-in ──────────────────────────────────────────────────────────
 
 export const DEFAULT_TOOL_TYPE = 'utility'
 export const EXTENSION_TOOL_TYPE = 'extension'
 export const SUBAGENT_TOOL_TYPE = 'subagent'
+export const MCP_TOOL_TYPE = 'mcp'
 
 const BUILTIN_TYPES: ToolType[] = [
   { id: 'file', label: 'Archivos', family: ENVIRONMENT_FAMILY, order: 0, icon: 'file' },
@@ -162,7 +171,8 @@ const BUILTIN_TYPES: ToolType[] = [
   { id: 'notes', label: 'Notas', family: ENVIRONMENT_FAMILY, order: 5, icon: 'note' },
   { id: DEFAULT_TOOL_TYPE, label: 'Utilidades', family: ENVIRONMENT_FAMILY, order: 6, icon: 'grid' },
   { id: SUBAGENT_TOOL_TYPE, label: 'Subagentes', family: AGENTIC_FAMILY, order: 0, icon: 'people' },
-  { id: EXTENSION_TOOL_TYPE, label: 'Extensiones', family: EXTENSIONS_FAMILY, order: 0, icon: 'extensions' }
+  { id: EXTENSION_TOOL_TYPE, label: 'Extensiones', family: EXTENSIONS_FAMILY, order: 0, icon: 'extensions' },
+  { id: MCP_TOOL_TYPE, label: 'Servidores MCP', family: MCP_FAMILY, order: 0, icon: 'server' }
 ]
 
 for (const type of BUILTIN_TYPES) toolCatalog.registerType(type)

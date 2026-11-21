@@ -467,8 +467,8 @@ export const contributesNamespace: SurfaceNamespace = {
       key: 'mcpServerDefinitionProviders',
       label: 'Servidores MCP',
       route: 'none',
-      status: 'missing',
-      degradation: 'sin soporte de MCP en el cliente de modelos'
+      status: 'partial',
+      degradation: 'los servidores se configuran en Ajustes → Chat → Servidores MCP (.scrakk/mcp.json), no vía contribute de extensión'
     },
     {
       key: 'continueEditSession',

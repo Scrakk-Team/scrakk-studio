@@ -39,6 +39,7 @@
   "services.reiniciar.y.actualizar": "Restart and refresh",
   "services.renombrar.rama": "Rename Branch",
   "services.sin.puente.lsp": "without LSP bridge",
+  "services.mcp.herramienta.de": "MCP tool from",
   "services.sin.seguimiento": "No tracking",
   "services.sin.titulo": "Untitled",
   "services.stash.apply": "stash apply",

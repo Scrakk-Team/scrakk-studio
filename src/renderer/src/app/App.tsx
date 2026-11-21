@@ -54,6 +54,7 @@ import {
   setMinimapVisibleEverywhere
 } from '@features/editor/engines/innerta/InnertaEngine'
 import { api } from '@services/api'
+import { initMcp } from '@services/mcp'
 import type { OpenPathEntry } from '@shared/app'
 import { initLaunchPaths, subscribeLaunchPaths } from '@services/launchPaths'
 import { isExternalOpenHidePanels } from '@services/externalOpenSettings'
@@ -280,6 +281,9 @@ export function App() {
     void loadModeSettings()
       .then(() => loadPermissionSettings())
       .then(() => loadAgentSettings())
+      // MCP (`.scrakk/mcp.json`): conecta servidores y registra sus tools en
+      // el mismo registry que ya usan modos/agentes/permisos.
+      .then(initMcp)
   }, [])
 
   // Registro de comandos globales + listener del modal de ajustes.

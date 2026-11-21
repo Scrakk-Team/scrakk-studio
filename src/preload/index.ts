@@ -51,6 +51,7 @@ import {
   type UninstallResult
 } from '@shared/app'
 import { PREVIEW_IPC } from '@shared/preview'
+import { MCP_IPC, type McpApi } from '@shared/mcp'
 import { SCREENSHOT_IPC } from '@shared/screenshot'
 import { ACCOUNT_IPC } from '@shared/account'
 import { MARKET_IPC, type MarketApi } from '@shared/market'
@@ -688,6 +689,32 @@ const api: WindowApi = {
   },
   preview: {
     setRoots: (roots: string[]) => ipcRenderer.invoke(PREVIEW_IPC.setRoots, { roots }) as Promise<boolean>
+  },
+  mcp: {
+    configure: (servers, timeout) => ipcRenderer.invoke(MCP_IPC.configure, servers, timeout) as Promise<boolean>,
+    listServers: () => ipcRenderer.invoke(MCP_IPC.listServers) as ReturnType<McpApi['listServers']>,
+    listTools: () => ipcRenderer.invoke(MCP_IPC.listTools) as ReturnType<McpApi['listTools']>,
+    setServer: () => Promise.resolve(false),
+    removeServer: () => Promise.resolve(false),
+    connect: (id) => ipcRenderer.invoke(MCP_IPC.connect, id) as Promise<boolean>,
+    disconnect: (id) => ipcRenderer.invoke(MCP_IPC.disconnect, id) as Promise<boolean>,
+    callTool: (serverId, name, args) => ipcRenderer.invoke(MCP_IPC.callTool, serverId, name, args) as ReturnType<McpApi['callTool']>,
+    listResources: (serverId) => ipcRenderer.invoke(MCP_IPC.listResources, serverId) as ReturnType<McpApi['listResources']>,
+    readResource: (serverId, uri) => ipcRenderer.invoke(MCP_IPC.readResource, serverId, uri) as ReturnType<McpApi['readResource']>,
+    listPrompts: (serverId) => ipcRenderer.invoke(MCP_IPC.listPrompts, serverId) as ReturnType<McpApi['listPrompts']>,
+    getPrompt: (serverId, name, args) => ipcRenderer.invoke(MCP_IPC.getPrompt, serverId, name, args) as ReturnType<McpApi['getPrompt']>,
+    authStart: (id) => ipcRenderer.invoke(MCP_IPC.authStart, id) as ReturnType<McpApi['authStart']>,
+    authStatus: (id) => ipcRenderer.invoke(MCP_IPC.authStatus, id) as ReturnType<McpApi['authStatus']>,
+    onServersChanged: (listener) => {
+      const handler = (_e: IpcRendererEvent, statuses: Parameters<McpApi['onServersChanged']>[0] extends (s: infer S) => void ? S : never): void => listener(statuses)
+      ipcRenderer.on(MCP_IPC.serversChanged, handler)
+      return () => ipcRenderer.removeListener(MCP_IPC.serversChanged, handler)
+    },
+    onToolsChanged: (listener) => {
+      const handler = (): void => listener()
+      ipcRenderer.on(MCP_IPC.toolsChanged, handler)
+      return () => ipcRenderer.removeListener(MCP_IPC.toolsChanged, handler)
+    }
   },
   app: {
     uninstall: () => ipcRenderer.invoke(APP_IPC.uninstall) as Promise<UninstallResult>,

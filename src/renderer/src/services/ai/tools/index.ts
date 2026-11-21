@@ -30,6 +30,7 @@ import { notesTool } from './notes'
 import { webSearchTool } from './web_search'
 import { webFetchTool } from './web_fetch'
 import { taskTool } from './task'
+import { listMcpResourcesTool, readMcpResourceTool } from './mcpResources'
 // Carga el catálogo (familias/tipos built-in) al importar las tools.
 import './catalog'
 import { toolSettingsService } from '../toolSettings'
@@ -98,6 +99,8 @@ function registerAll(): void {
   registry.register(webSearchTool, opts)
   registry.register(webFetchTool, opts)
   registry.register(taskTool, opts)
+  registry.register(listMcpResourcesTool, opts)
+  registry.register(readMcpResourceTool, opts)
 }
 
 export function getToolDefinitions(keep?: Set<string>): import('./types').ToolDefinition[] {

@@ -30,6 +30,7 @@ import {
   shutdownExtensionHosts
 } from './ipc/extension-host'
 import { registerPreviewScheme, registerPreviewProtocol } from './previewProtocol'
+import { mcpManager } from './mcp/manager'
 import { flushAllTokens } from './supabaseClient'
 import { installShutdownHandler } from './shutdown'
 import { loadLocalEnv } from './env'
@@ -161,7 +162,11 @@ if (!gotTheLock) {
       })
     })
 
-    registerOpenPaths(createMainWindow())
+    const mainWindow = createMainWindow()
+    registerOpenPaths(mainWindow)
+    // Cliente MCP: registra IPC y publica cambios de estado en la ventana.
+    mcpManager.registerIpc()
+    mcpManager.attachWindow(mainWindow)
 
     // Auto-update (en background) de las extensiones instaladas desde la tienda.
     setTimeout(() => {

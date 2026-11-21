@@ -79,6 +79,12 @@ export function accessForToolCall(
     case 'web_search':
       return { kind: 'web_search', query: asString(args.query) ?? '' }
     default:
+      // Tools MCP se reconocen por su tipo en el registry (no por nombre fijo):
+      // así las reglas `MCPTool(<server>_<patrón>)` se evalúan con el matcher
+      // existente y los modos/agentes las heredan igual que cualquier tool.
+      if (registry.get(toolName)?.meta?.type === 'mcp') {
+        return { kind: 'mcp', name: toolName }
+      }
       return null
   }
 }

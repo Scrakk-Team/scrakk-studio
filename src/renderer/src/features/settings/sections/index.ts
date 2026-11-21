@@ -24,7 +24,7 @@ import { TerminalSection } from './TerminalSection/TerminalSection'
 import { InfoSection } from './InfoSection/InfoSection'
 import { LegalSection } from './LegalSection/LegalSection'
 import { ShortcutsSection } from './ShortcutsSection/ShortcutsSection'
-import { ChatSection, ProvidersSection, ToolsSection, SkillsSection, AgentsSection, PermissionsSection } from './chat'
+import { ChatSection, ProvidersSection, ToolsSection, SkillsSection, AgentsSection, PermissionsSection, McpServersSection } from './chat'
 
 export type SettingsSectionId =
   | 'appearance'
@@ -42,6 +42,7 @@ export type SettingsSectionId =
   | 'chatSkills'
   | 'chatAgents'
   | 'chatPermissions'
+  | 'chatMcp'
   | 'info'
   | 'legal'
 
@@ -104,6 +105,7 @@ export const SETTINGS_SECTIONS: SettingsSectionDef[] = [
   section('chatSkills', 'settings.nav.skills', 'layers', SkillsSection, 'chat'),
   section('chatAgents', 'settings.nav.agents', 'people', AgentsSection, 'chat'),
   section('chatPermissions', 'settings.nav.permissions', 'shield-check', PermissionsSection, 'chat'),
+  section('chatMcp', 'settings.nav.mcp', 'server', McpServersSection, 'chat'),
   section('info', 'settings.nav.info', 'info', InfoSection),
   section('legal', 'settings.nav.legal', 'file', LegalSection)
 ]

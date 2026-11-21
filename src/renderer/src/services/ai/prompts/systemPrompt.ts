@@ -14,6 +14,19 @@
 import { renderToolCallFormat, renderToolsList, TOOL_CALLING_GUIDE } from './tools'
 import { getModeId, getModeLabel, getPromptForMode } from './modes'
 import { getEnabledToolDefinitions } from '../tools'
+import { getMcpStatuses } from '@services/mcp'
+
+/** Bloque de instrucciones que los servidores MCP devuelven en initialize. */
+function mcpInstructionsBlock(): string[] {
+  const servers = getMcpStatuses().filter((s) => s.instructions && s.status === 'connected')
+  if (servers.length === 0) return []
+  return [
+    '',
+    '<mcp_instructions>',
+    ...servers.map((s) => `<server name="${s.id}">\n${s.instructions}\n</server>`),
+    '</mcp_instructions>'
+  ]
+}
 
 const ACTION_SAFETY = `<action_safety>
 Weigh each action by how easily it can be undone and how far its effects reach. Local, reversible work such as editing files and running tests is fine to do freely. Before executing any actions that are hard to reverse, reach shared external systems, or are otherwise risky or destructive, check with the user first.
@@ -117,7 +130,8 @@ export function buildSystemPrompt(
     '',
     FORMATTING,
     '',
-    buildUserInfo()
+    buildUserInfo(),
+    ...mcpInstructionsBlock()
   )
 
   return parts.join('\n')

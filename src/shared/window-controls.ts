@@ -114,4 +114,6 @@ export interface WindowApi {
   app: AppApi
   /** Esquema de streaming para visores (roots autorizadas). */
   preview: { setRoots: (roots: string[]) => Promise<boolean> }
+  /** Cliente MCP (servidores de tools/resources/prompts). */
+  mcp: import('./mcp').McpApi
 }
