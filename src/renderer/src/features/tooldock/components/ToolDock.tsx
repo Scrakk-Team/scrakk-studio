@@ -42,6 +42,7 @@ import { useToolDockHost } from '../state/ToolDockHostContext'
 import type { DockEntry, ToolDockItem } from '../types'
 import { sanitizeSvgIcon } from '@services/extensions/svgIcon'
 import styles from './ToolDock.module.css'
+import { computePanelMaxHeight } from '../toolDockGeometry'
 
 /** Atajos por defecto de los items del dock (reasignables en Ajustes → Atajos). */
 const TOOLDOCK_KEYBINDINGS: Record<string, string> = {
@@ -143,8 +144,13 @@ export function ToolDock(): JSX.Element | null {
   const handleResizeStart = useCallback(
     (event: React.PointerEvent) => {
       event.preventDefault()
+      // Con pointer capture, los eventos de puntero se redirigen al elemento
+      // capturado (el handle), NO a window. Por eso los listeners tienen que
+      // ir en el propio handle: si están en window, el cursor sale pero el
+      // movimiento nunca llega y el panel no redimensiona.
+      const handle = event.currentTarget as HTMLElement
       try {
-        ;(event.currentTarget as HTMLElement).setPointerCapture(event.pointerId)
+        handle.setPointerCapture(event.pointerId)
       } catch {
         // ignore
       }
@@ -172,7 +178,7 @@ export function ToolDock(): JSX.Element | null {
           setLiveHeight(s.pendingHeight)
         })
       }
-      const onUp = (upEvent: PointerEvent): void => {
+      const onUp = (): void => {
         if (resizeRaf.current !== null) {
           cancelAnimationFrame(resizeRaf.current)
           resizeRaf.current = null
@@ -181,20 +187,20 @@ export function ToolDock(): JSX.Element | null {
         resizeRef.current = null
         document.body.style.cursor = ''
         document.body.style.userSelect = ''
-        window.removeEventListener('pointermove', onMove)
-        window.removeEventListener('pointerup', onUp)
-        window.removeEventListener('pointercancel', onUp)
+        handle.removeEventListener('pointermove', onMove)
+        handle.removeEventListener('pointerup', onUp)
+        handle.removeEventListener('pointercancel', onUp)
         try {
-          ;(upEvent.currentTarget as HTMLElement)?.releasePointerCapture?.(upEvent.pointerId)
+          handle.releasePointerCapture(event.pointerId)
         } catch {
           // ignore
         }
         setLiveHeight(null)
         if (state?.moved) setPanelHeight(state.pendingHeight)
       }
-      window.addEventListener('pointermove', onMove)
-      window.addEventListener('pointerup', onUp)
-      window.addEventListener('pointercancel', onUp)
+      handle.addEventListener('pointermove', onMove)
+      handle.addEventListener('pointerup', onUp)
+      handle.addEventListener('pointercancel', onUp)
     },
     [panelHeight, setPanelHeight, liveHeight]
   )
@@ -257,7 +263,7 @@ export function ToolDock(): JSX.Element | null {
     []
   )
 
-  const maxHeight = Math.max(120, anchor ? anchor.bottom - 24 : 600)
+  const maxHeight = computePanelMaxHeight(anchor?.bottom ?? null, window.innerHeight)
   const displayHeight = Math.min(liveHeight ?? panelHeight, maxHeight)
 
   return (
