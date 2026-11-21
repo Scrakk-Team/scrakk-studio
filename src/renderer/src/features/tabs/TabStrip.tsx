@@ -39,6 +39,7 @@ import type { StripId, TabSpec } from './types'
 import {
   getTabWidth,
   isTabWidthFixed,
+  isTabLabelCentered,
   subscribeToTabWidth
 } from './tabSize'
 import styles from './TabStrip.module.css'
@@ -166,12 +167,14 @@ function TabItem({
 
   // Con ancho fijo, cada tab lee la custom property del contenedor (ver .tabs).
   const tabFixedWidth = isTabWidthFixed() ? getTabWidth() : 0
+  const tabCenter = tabFixedWidth > 0 && isTabLabelCentered()
 
   const classes = [
     styles.tab,
     active ? styles.tabActive : null,
     dragging ? styles.tabDragging : null,
-    tabFixedWidth ? styles.tabFixed : null
+    tabFixedWidth ? styles.tabFixed : null,
+    tabCenter ? styles.tabFixedCenter : null
   ]
     .filter(Boolean)
     .join(' ')

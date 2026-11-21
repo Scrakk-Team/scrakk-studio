@@ -13,6 +13,7 @@
 
 const ENABLED_KEY = 'scrakk:tabs-fixed-width'
 const WIDTH_KEY = 'scrakk:tabs-fixed-width-px'
+const CENTER_KEY = 'scrakk:tabs-center-label'
 
 /** Rango del ancho configurable (px). */
 export const TAB_WIDTH_MIN = 80
@@ -41,8 +42,17 @@ export function clamp(width: number): number {
   return Math.min(TAB_WIDTH_MAX, Math.max(TAB_WIDTH_MIN, Math.round(width)))
 }
 
+function readCentered(): boolean {
+  try {
+    return localStorage.getItem(CENTER_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
 let enabled = readEnabled()
 let width = readWidth()
+let centered = readCentered()
 
 const listeners = new Set<() => void>()
 
@@ -95,6 +105,23 @@ export function toggleTabWidthFixed(): void {
   setTabWidthFixed(!enabled)
 }
 
+/** ¿Centrar el texto de la tab cuando hay ancho fijo? */
+export function isTabLabelCentered(): boolean {
+  return centered
+}
+
+/** Activa/desactiva el centrado del texto (sólo tiene efecto con ancho fijo). */
+export function setTabLabelCentered(next: boolean): void {
+  if (centered === next) return
+  centered = next
+  try {
+    localStorage.setItem(CENTER_KEY, next ? '1' : '0')
+  } catch {
+    // Sin storage: solo memoria esta sesión.
+  }
+  emit()
+}
+
 export function subscribeToTabWidth(listener: () => void): () => void {
   listeners.add(listener)
   return () => {
@@ -106,5 +133,6 @@ export function subscribeToTabWidth(listener: () => void): () => void {
 export function _resetTabWidthForTests(): void {
   enabled = false
   width = TAB_WIDTH_DEFAULT
+  centered = false
   listeners.clear()
 }

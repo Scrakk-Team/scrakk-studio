@@ -2,6 +2,8 @@
   "settings.0.mb": "0 MB",
   "settings.abre.una.carpeta.con.codigo": "Abre una carpeta con código o instala una extensión con",
   "settings.abrir.agentes": "Abrir agentes",
+  "settings.tabs.centrar.texto": "Centrar el texto de la tab",
+  "settings.tabs.centrar.texto.hint": "Sólo con ancho fijo: centra el icono y el nombre, dejando la X al final.",
   "settings.tabs.mismo.tamano": "Tabs del mismo tamaño",
   "settings.tabs.mismo.tamano.hint": "Da a todas las tabs un ancho fijo, sin importar el largo del nombre.",
   "settings.tabs.mismo.tamano.ancho": "Ancho de las tabs en píxeles",

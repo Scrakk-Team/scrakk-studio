@@ -19,6 +19,8 @@ import {
   getTabWidth,
   setTabWidthFixed,
   setTabWidth,
+  isTabLabelCentered,
+  setTabLabelCentered,
   subscribeToTabWidth,
   clampTabWidth,
   mountPreviewStrip,
@@ -35,6 +37,7 @@ export function ExperimentalSection(): JSX.Element {
   const [hidePanels, setHidePanels] = useState<boolean>(() => isExternalOpenHidePanels())
   const [fixedTabs, setFixedTabs] = useState<boolean>(() => isTabWidthFixed())
   const [tabWidth, setTabWidthState] = useState<number>(() => getTabWidth())
+  const [centerLabel, setCenterLabel] = useState<boolean>(() => isTabLabelCentered())
   // El slider es de resorte: al soltar vuelve al centro (no guarda su posición).
   const sliderCenter = Math.round((TAB_WIDTH_MIN + TAB_WIDTH_MAX) / 2)
   const [sliderValue, setSliderValue] = useState<number>(sliderCenter)
@@ -54,6 +57,7 @@ export function ExperimentalSection(): JSX.Element {
       subscribeToTabWidth(() => {
         setFixedTabs(isTabWidthFixed())
         setTabWidthState(getTabWidth())
+        setCenterLabel(isTabLabelCentered())
       }),
     []
   )
@@ -151,6 +155,26 @@ export function ExperimentalSection(): JSX.Element {
             label={t('settings.tabs.mismo.tamano')}
           />
         </div>
+      </div>
+
+      <div className={styles.row}>
+        <div className={styles.rowText}>
+          <span className={styles.rowTitle}>
+            {t('settings.tabs.centrar.texto')}
+          </span>
+          <span className={styles.rowHint}>
+            {t('settings.tabs.centrar.texto.hint')}
+          </span>
+        </div>
+        <ToggleSwitch
+          checked={centerLabel}
+          disabled={!fixedTabs}
+          onChange={(next) => {
+            setTabLabelCentered(next)
+            setCenterLabel(next)
+          }}
+          label={t('settings.tabs.centrar.texto')}
+        />
       </div>
 
       {/* Ejemplo REAL: el mismo TabStrip del workspace sobre un strip efímero

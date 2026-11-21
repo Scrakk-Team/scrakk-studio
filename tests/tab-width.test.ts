@@ -15,6 +15,7 @@ vi.stubGlobal('localStorage', {
 
 const {
   isTabWidthFixed, getTabWidth, setTabWidthFixed, setTabWidth,
+  isTabLabelCentered, setTabLabelCentered,
   subscribeToTabWidth, clamp, TAB_WIDTH_MIN, TAB_WIDTH_MAX,
   TAB_WIDTH_DEFAULT, _resetTabWidthForTests
 } = await import('../src/renderer/src/features/tabs/tabSize')
@@ -47,5 +48,12 @@ describe('tabSize store', () => {
     expect(store.get('scrakk:tabs-fixed-width')).toBe('1')
     expect(store.get('scrakk:tabs-fixed-width-px')).toBe('180')
     off()
+  })
+
+  it('el centrado del texto es independiente y persiste', () => {
+    expect(isTabLabelCentered()).toBe(false)
+    setTabLabelCentered(true)
+    expect(isTabLabelCentered()).toBe(true)
+    expect(store.get('scrakk:tabs-center-label')).toBe('1')
   })
 })

@@ -33,6 +33,8 @@ export {
   setTabWidthFixed,
   setTabWidth,
   toggleTabWidthFixed,
+  isTabLabelCentered,
+  setTabLabelCentered,
   subscribeToTabWidth,
   clamp as clampTabWidth,
   TAB_WIDTH_MIN,

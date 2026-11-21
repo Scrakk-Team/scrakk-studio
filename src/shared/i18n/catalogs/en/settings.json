@@ -2,6 +2,8 @@
   "settings.0.mb": "0 MB",
   "settings.abre.una.carpeta.con.codigo": "Open a folder containing code or install an extension with",
   "settings.abrir.agentes": "Open agents",
+  "settings.tabs.centrar.texto": "Center tab text",
+  "settings.tabs.centrar.texto.hint": "Only with fixed width: centers the icon and name, keeping the X at the end.",
   "settings.tabs.mismo.tamano": "Same-size tabs",
   "settings.tabs.mismo.tamano.hint": "Give every tab a fixed width, regardless of the name length.",
   "settings.tabs.mismo.tamano.ancho": "Tab width in pixels",
