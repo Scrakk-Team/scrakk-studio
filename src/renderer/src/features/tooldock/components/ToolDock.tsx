@@ -283,6 +283,7 @@ export function ToolDock(): JSX.Element | null {
               <PanelFrame
                 key={activePanelItem.id}
                 title={activePanelItem.title}
+                className={styles.frameTransparent}
                 onClose={() => togglePanel(activePanelItem.id)}
               >
                 <div className={styles.panelBody}>

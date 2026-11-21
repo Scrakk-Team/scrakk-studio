@@ -88,10 +88,20 @@
   flex-direction: column;
   border: 1px solid color-mix(in srgb, var(--color-border) 35%, transparent);
   border-radius: var(--radius-panel, var(--radius-md, 10px));
-  background: var(--color-bg);
+  /* Translúcido como el header del panel: se ve el editor/explorer detrás.
+     El color-mix mantiene el tinte del tema sin tapar el contenido. */
+  background: color-mix(in srgb, var(--color-bg) 82%, transparent);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
   overflow: hidden;
   z-index: 99; /* sobre contenido de paneles, DEBAJO de Modal (100) y ContextMenu (9999) */
   pointer-events: auto;
+}
+
+/* El PanelFrame interno pinta --color-bg opaco por defecto; en el dock lo
+   dejamos transparente para que se vea el contenido a través del panel. */
+.frameTransparent {
+  background: transparent;
 }
 
 .panel.closing {

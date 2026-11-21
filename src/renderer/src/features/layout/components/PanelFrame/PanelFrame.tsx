@@ -78,6 +78,8 @@ interface PanelFrameProps {
    * slots no lo usan (cierran via tabs), pero hosts embebidos (ToolDock) sí.
    */
   onClose?: (() => void) | null
+  /** Clase extra para el frame (ej. hosts embebidos que lo quieren translúcido). */
+  className?: string
 }
 
 /**
@@ -91,11 +93,12 @@ export function PanelFrame({
   title,
   children,
   dragPayload = null,
-  onClose = null
+  onClose = null,
+  className
 }: PanelFrameProps): JSX.Element {
   return (
     <PanelTitleProvider initialTitle={title}>
-      <PanelFrameInner dragPayload={dragPayload} onClose={onClose}>
+      <PanelFrameInner dragPayload={dragPayload} onClose={onClose} className={className}>
         {children}
       </PanelFrameInner>
     </PanelTitleProvider>
@@ -105,11 +108,13 @@ export function PanelFrame({
 function PanelFrameInner({
   children,
   dragPayload,
-  onClose
+  onClose,
+  className
 }: {
   children: ReactNode
   dragPayload: TabDragPayload | null
   onClose: (() => void) | null
+  className?: string
 }): JSX.Element {
   const { title, actions } = usePanelTitle()
   const [orderVersion, setOrderVersion] = useState(0)
@@ -141,7 +146,7 @@ function PanelFrameInner({
     : null
 
   return (
-    <div className={styles.frame}>
+    <div className={[styles.frame, className].filter(Boolean).join(' ')}>
       <header
         className={styles.header}
         title={dragPayload ? `Arrastrar ${dragPayload.label ?? title ?? ''}` : undefined}
