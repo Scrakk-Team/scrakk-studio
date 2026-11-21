@@ -77,7 +77,13 @@ export function useFileViewDispatcher(path: string | null): FileViewResolution {
       if (next?.mode === 'text' && path && !virtualIdOf(path)) {
         void readEncoded(path).then((res) => {
           if (!alive) return
-          if (res.detected?.binary) {
+          // El main devuelve `success:false` con un error de binario (sin
+          // `detected`), así que hay que mirar AMBOS caminos: el flag `detected`
+          // para codificaciones delegadas y el mensaje de error para el resto.
+          const binary =
+            res.detected?.binary === true ||
+            (res.success === false && /binar/i.test(res.error ?? ''))
+          if (binary) {
             const generic = fileHandlerRegistry.list().find((h) => h.binaryFallback)
             if (generic) {
               setHandler(generic)

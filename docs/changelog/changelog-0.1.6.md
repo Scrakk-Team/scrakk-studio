@@ -563,6 +563,10 @@ published are not edited. The file goes per version:
   extended with `media-src` and `scrakk-file:`; small files still fall back to
   `readBinary` data URLs. The API is also exposed to extensions at
   `window.scrakk.preview` (`register`, `resolve`, `open`, `openBytes`, …).
+- **Unknown binary files (ZIP, archives…) now show the placeholder instead of
+  opening as garbled text.** The main rejects binary files from `readEncoded`
+  with `success: false` and no `detected` flag, so the dispatcher now treats
+  that error as "binary" too and routes the file to the generic viewer.
 
 ### Search (UI)
 - **Search can now find files by name, not just text inside them.** A
