@@ -793,16 +793,22 @@ export function ExplorerPanel({
     let panel: HTMLElement | null = null
     let lastHeight = -1
     const ro = new ResizeObserver(() => applyHeight())
+    ro.observe(wrap)
 
     const applyHeight = (): void => {
-      const pillH = pill?.getBoundingClientRect().height ?? 0
-      const panelH = panel?.getBoundingClientRect().height ?? 0
-      // El panel flotante se apoya en la píldora: su altura ya incluye la franja
-      // de ésta, así que reservamos la mayor de las dos (no la suma).
-      const height = Math.round(Math.max(pillH, panelH))
-      if (height === lastHeight) return
-      lastHeight = height
-      wrap.style.setProperty('--tooldock-h', `${height}px`)
+      let height = pill?.getBoundingClientRect().height ?? 0
+      if (panel) {
+        // El panel se ancla 10px POR ENCIMA de la píldora (ver measureAnchor en
+        // ToolDock), así que su altura sola no basta: medimos desde su borde
+        // superior hasta el fondo del explorer e incluimos ese hueco + píldora.
+        const panelTop = panel.getBoundingClientRect().top
+        const wrapBottom = wrap.getBoundingClientRect().bottom
+        height = Math.max(height, Math.max(0, wrapBottom - panelTop))
+      }
+      const rounded = Math.round(height)
+      if (rounded === lastHeight) return
+      lastHeight = rounded
+      wrap.style.setProperty('--tooldock-h', `${rounded}px`)
     }
     const watch = (): void => {
       const newPill = wrap.querySelector<HTMLElement>('[data-tool-dock]')
@@ -821,10 +827,12 @@ export function ExplorerPanel({
 
     const mo = new MutationObserver(watch)
     mo.observe(document.body, { childList: true, subtree: true })
+    window.addEventListener('resize', applyHeight)
     watch()
     return () => {
       mo.disconnect()
       ro.disconnect()
+      window.removeEventListener('resize', applyHeight)
       wrap.style.removeProperty('--tooldock-h')
     }
   }, [])
