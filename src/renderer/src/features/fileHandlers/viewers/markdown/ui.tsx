@@ -7,12 +7,10 @@ import { Markdown } from '@features/chat/components/Markdown/Markdown'
 import type { FileHandlerViewProps } from '../../types'
 import styles from '../../viewers.module.css'
 
-/** Visor de markdown: mismo render que usa el chat (Prism incluido). */
+/** Visor de markdown: mismo render que el chat (Prism incluido). */
 export default function MarkdownViewer({ content }: FileHandlerViewProps): JSX.Element {
   return (
     <div className={styles.view}>
-      {/* Columna legible: el padding vive acá (adentro del scroller) para que
-          el texto nunca quede pegado al borde ni al scrollbar. */}
       <div className={styles.doc}>
         <Markdown content={content ?? ''} />
       </div>

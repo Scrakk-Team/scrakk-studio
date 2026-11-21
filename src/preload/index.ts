@@ -50,6 +50,7 @@ import {
   type OpenPathsPayload,
   type UninstallResult
 } from '@shared/app'
+import { PREVIEW_IPC } from '@shared/preview'
 import { SCREENSHOT_IPC } from '@shared/screenshot'
 import { ACCOUNT_IPC } from '@shared/account'
 import { MARKET_IPC, type MarketApi } from '@shared/market'
@@ -684,6 +685,9 @@ const api: WindowApi = {
   web: {
     search: (request: WebSearchRequest) => ipcRenderer.invoke(WEB_IPC.search, request),
     fetch: (request: WebFetchRequest) => ipcRenderer.invoke(WEB_IPC.fetch, request)
+  },
+  preview: {
+    setRoots: (roots: string[]) => ipcRenderer.invoke(PREVIEW_IPC.setRoots, { roots }) as Promise<boolean>
   },
   app: {
     uninstall: () => ipcRenderer.invoke(APP_IPC.uninstall) as Promise<UninstallResult>,

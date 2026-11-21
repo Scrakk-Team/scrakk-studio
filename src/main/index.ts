@@ -29,6 +29,7 @@ import {
   registerExtensionScheme,
   shutdownExtensionHosts
 } from './ipc/extension-host'
+import { registerPreviewScheme, registerPreviewProtocol } from './previewProtocol'
 import { flushAllTokens } from './supabaseClient'
 import { installShutdownHandler } from './shutdown'
 import { loadLocalEnv } from './env'
@@ -62,6 +63,8 @@ registerGpuFallback()
 // Esquema de las extensiones (`scrakk-ext://`): sirve los documentos de
 // webview y los assets de los paquetes. DEBE registrarse antes de `ready`.
 registerExtensionScheme()
+// Esquema de streaming para visores (PDF/video/audio), con jail de roots.
+registerPreviewScheme()
 
 app.setName('scrakk-studio')
 if (process.platform === 'linux') {
@@ -110,6 +113,7 @@ if (!gotTheLock) {
     ipcMain.on(I18N_IPC.setLocale, (_event, locale: unknown) => {
       if (locale === 'es' || locale === 'en') setLocale(locale)
     })
+    registerPreviewProtocol()
     registerWindowControlsIpc()
     registerScreenshotIpc()
     registerLlmIpc()

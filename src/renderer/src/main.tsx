@@ -11,6 +11,8 @@ import { AppErrorBoundary } from './components/layout/AppErrorBoundary/AppErrorB
 import { ThemeProvider } from '@core/theme/ThemeProvider'
 import { initI18n } from '@core/i18n'
 import { registerBuiltinFileHandlers } from '@features/fileHandlers'
+import { preview, installPreviewGlobal } from '@services/preview'
+import { getWorkspaceRoot } from '@features/explorer'
 import { applyStartupTheme } from '@services/extensions/types/themes/bootstrap'
 import { setRadiusOverride, clearRadiusOverride } from '@services/extensions/types/themes/logic'
 import {
@@ -40,6 +42,14 @@ initI18n()
 // Visores por formato: los handlers built-in quedan listos antes del primer
 // render, así un `.md` abre directo en modo visor.
 registerBuiltinFileHandlers()
+// API global de preview para extensiones (.sef): window.scrakk.preview.
+installPreviewGlobal(preview)
+// El esquema de streaming sólo sirve rutas autorizadas por el renderer.
+void preview.setRoots(getWorkspaceRoot() ? [getWorkspaceRoot() as string] : [])
+window.addEventListener('workspace-changed', (event: Event) => {
+  const path = (event as CustomEvent<{ path?: string }>).detail?.path
+  if (path) void preview.setRoots([path])
+})
 
 // Puente para bundles .sef: no pueden importar módulos del IDE, así que lo que
 // el IDE les presta queda en `window.scrakk` (p. ej. `window.scrakk.radius`).
@@ -49,6 +59,7 @@ declare global {
   interface Window {
     scrakk?: ScrakkRuntimeApi & {
       radius: { set: typeof setRadiusOverride; reset: typeof clearRadiusOverride }
+      preview?: import('@services/preview').PreviewApi
     }
   }
 }

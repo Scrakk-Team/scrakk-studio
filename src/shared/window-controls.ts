@@ -112,4 +112,6 @@ export interface WindowApi {
   web: import('./web').WebApi
   /** Ciclo de vida de la app: desinstalar del sistema. */
   app: AppApi
+  /** Esquema de streaming para visores (roots autorizadas). */
+  preview: { setRoots: (roots: string[]) => Promise<boolean> }
 }

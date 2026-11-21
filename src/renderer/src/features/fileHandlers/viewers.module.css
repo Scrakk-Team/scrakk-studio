@@ -49,3 +49,44 @@
   font-size: var(--text-sm);
   color: var(--color-danger, #e5484d);
 }
+
+/* Audio / video: reproductor nativo centrado. */
+.media {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  min-height: 0;
+  padding: var(--space-4);
+}
+
+.media audio,
+.media video {
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: var(--radius-sm);
+}
+
+.media video {
+  background: #000;
+}
+
+.mediaTitle {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.download {
+  color: var(--color-accent, var(--color-text));
+  font-size: var(--text-sm);
+  text-decoration: underline;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

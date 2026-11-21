@@ -46,6 +46,8 @@ export interface RuntimeCommandInput {
 
 /** La superficie que el IDE le presta a los bundles, en `window.scrakk`. */
 export interface ScrakkRuntimeApi {
+  /** API global de preview (visores de archivos en las tabs). */
+  preview?: import('@services/preview').PreviewApi
   commands: {
     /** Registra un comando de la paleta. Devuelve su baja. */
     register: (input: RuntimeCommandInput) => () => void

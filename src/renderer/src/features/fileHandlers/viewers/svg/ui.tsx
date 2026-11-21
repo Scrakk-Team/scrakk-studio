@@ -6,12 +6,8 @@ import type { JSX } from 'react'
 import type { FileHandlerViewProps } from '../../types'
 import styles from '../../viewers.module.css'
 
-/**
- * El SVG es texto, así que se puede editar; pero como pieza se ve como imagen.
- * Se pasa por `data:` (la CSP del renderer permite `data:` pero no `file:`).
- */
+/** `btoa` sólo acepta latin1: se codifican los bytes UTF-8 a mano. */
 function svgDataUrl(svg: string): string {
-  // `btoa` sólo acepta latin1: se codifican los bytes UTF-8 a mano.
   const bytes = new TextEncoder().encode(svg)
   let binary = ''
   for (const byte of bytes) binary += String.fromCharCode(byte)

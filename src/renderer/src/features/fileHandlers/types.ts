@@ -39,6 +39,20 @@ export interface FileHandlerMatch {
   languageIds?: string[]
   /** Esquema del path (`file`, `scrakk-view`). Si falta, cualquiera. */
   scheme?: string
+  /** Matchea TODO (lo usa el handler de texto como fallback). */
+  matchAll?: boolean
+}
+
+/**
+ * Visor modular: una carpeta = `{ logic, extra, ui }`.
+ *  - `logic` es liviano (match/mode/priority/actions) y se importa EAGER para
+ *    que `resolve(path)` sea sincrónico.
+ *  - `extra` (setup, URLs, libs) y `ui` (componente) se importan LAZY.
+ */
+export interface ViewerModule {
+  logic: Omit<FileHandler, 'load'>
+  extra?: () => Promise<unknown>
+  ui: () => Promise<{ default: ComponentType<FileHandlerViewProps> }>
 }
 
 /** Contexto que recibe una acción del handler. */
@@ -75,4 +89,8 @@ export interface FileHandler {
   /** Componente del visor (sólo si `mode` incluye `view`). */
   load?: () => Promise<{ default: ComponentType<FileHandlerViewProps> }>
   actions?: FileAction[]
+  /** Fallback: gana cuando ningún otro handler matchea (lo usa el editor). */
+  fallback?: boolean
+  /** Se elige explícitamente cuando el archivo resulta ser binario. */
+  binaryFallback?: boolean
 }

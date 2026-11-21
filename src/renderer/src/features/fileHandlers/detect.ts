@@ -65,6 +65,10 @@ export function matchesGlob(basename: string, glob: string): boolean {
 export function matches(handler: FileHandler, path: string): boolean {
   const m: FileHandlerMatch = handler.match
   const scheme = schemeOf(path)
+  // Un `matchAll` tampoco reclama paths sintéticos: el texto es fallback de
+  // archivos REALES; un diff (`scrakk-diff://…/readme.md`) pertenece a su dueño.
+  if (m.matchAll) return scheme === 'file'
+
   if (m.scheme) {
     if (m.scheme !== scheme) return false
   } else if (scheme !== 'file') {
@@ -85,12 +89,21 @@ export function matches(handler: FileHandler, path: string): boolean {
   return true
 }
 
-/** El handler de mayor prioridad que matchea (`null` = ninguno → editor). */
+/**
+ * El handler de mayor prioridad que matchea. Los `fallback` sólo se consideran
+ * si NO hay ningún handler normal que matchee (así el texto no roba visores).
+ * `null` = ninguno (el dispatcher igual cae al editor).
+ */
 export function pickHandler(handlers: FileHandler[], path: string): FileHandler | null {
   let best: FileHandler | null = null
+  let fallback: FileHandler | null = null
   for (const handler of handlers) {
     if (!matches(handler, path)) continue
+    if (handler.fallback) {
+      if (!fallback || (handler.priority ?? 0) > (fallback.priority ?? 0)) fallback = handler
+      continue
+    }
     if (!best || (handler.priority ?? 0) > (best.priority ?? 0)) best = handler
   }
-  return best
+  return best ?? fallback
 }

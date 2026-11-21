@@ -4,13 +4,10 @@
 
 import { useEffect, useState, type JSX } from 'react'
 import type { FileHandlerViewProps } from '../../types'
+import { readPreviewBinary } from '../../previewData'
 import styles from '../../viewers.module.css'
-import { api } from '@services/api'
 
-/**
- * Visor de imágenes: el archivo se lee por IPC en base64 (la CSP del renderer
- * permite `data:` pero no `file:`) y se pinta como `<img>`.
- */
+/** Visor de imágenes: base64 por IPC → `data:` URL (CSP no permite `file:`). */
 export default function ImageViewer({ path }: FileHandlerViewProps): JSX.Element {
   const [src, setSrc] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -19,21 +16,14 @@ export default function ImageViewer({ path }: FileHandlerViewProps): JSX.Element
     let alive = true
     setSrc(null)
     setError(null)
-    void (async () => {
-      // El puente lo agrega el PRELOAD: si la ventana es vieja, no existe.
-      const readBinary = api?.fs?.readBinary
-      if (typeof readBinary !== 'function') {
-        setError('Falta el puente fs.readBinary: hay que reiniciar la app (no alcanza con recargar).')
-        return
-      }
-      const res = await readBinary(path)
+    void readPreviewBinary(path).then((res) => {
       if (!alive) return
       if (!res.success || !res.base64) {
         setError(res.error ?? 'No se pudo leer la imagen.')
         return
       }
       setSrc(`data:${res.mime ?? 'application/octet-stream'};base64,${res.base64}`)
-    })()
+    })
     return () => {
       alive = false
     }

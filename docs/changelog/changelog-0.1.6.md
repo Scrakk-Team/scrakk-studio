@@ -547,6 +547,23 @@ published are not edited. The file goes per version:
   the text tabs were clipped. They are now larger proicons (`globe` / `file`)
   with accessible labels, moved away from the close button.
 
+### Preview (UI)
+- **One preview system for every file in a tab.** A global `preview` API now
+  drives what is shown inside file tabs: images, markdown and SVG (the original
+  viewers), plus new **PDF** (pdfjs rendered to canvas, with page/zoom controls),
+  **audio** and **video** (native players), and placeholders for **executables
+  and binaries** (`exe`, `dll`, `so`, ELF…) and unknown formats. The editor
+  itself is now a registered handler (`text`, lowest-priority fallback), so all
+  tab content goes through the same registry. Adding a viewer is just a new
+  `viewers/<id>/{logic,extra,ui}` folder: `logic` is eager for synchronous
+  matching, `extra` + `ui` lazy-load on open.
+- **Media uses a streaming scheme instead of base64 over IPC.** The main process
+  serves `scrakk-file://` files with `registerFileProtocol` (real seek, no huge
+  copies), jailed to the workspace roots the renderer authorizes. The CSP was
+  extended with `media-src` and `scrakk-file:`; small files still fall back to
+  `readBinary` data URLs. The API is also exposed to extensions at
+  `window.scrakk.preview` (`register`, `resolve`, `open`, `openBytes`, …).
+
 ### Search (UI)
 - **Search can now find files by name, not just text inside them.** A
   **Contents | Files** switch selects the backend: grep over file contents or

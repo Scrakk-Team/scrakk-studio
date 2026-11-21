@@ -20,7 +20,8 @@ import {
   subscribeToPreferredModes,
   type FileHandler,
   type FileHandlerViewProps,
-  type FileViewMode
+  type FileViewMode,
+  virtualIdOf
 } from '@features/fileHandlers'
 import styles from './EditorPanel.module.css'
 
@@ -65,15 +66,32 @@ export function useFileViewDispatcher(path: string | null): FileViewResolution {
   // Handler ganador + modo efectivo. Reacciona al registro de handlers y a la
   // preferencia por archivo (el toggle visor ⇄ editor).
   useEffect(() => {
+    let alive = true
     const resolve = (): void => {
       const next = fileHandlerRegistry.resolve(path ?? '')
       setHandler(next)
       setMode(effectiveMode(next, path ?? ''))
+      // Un archivo sin visor que resulte ser BINARIO (no texto) cae al visor
+      // comodín en vez de abrir el editor con basura. Los handlers own:view
+      // (imagen/pdf/...) no se tocan.
+      if (next?.mode === 'text' && path && !virtualIdOf(path)) {
+        void readEncoded(path).then((res) => {
+          if (!alive) return
+          if (res.detected?.binary) {
+            const generic = fileHandlerRegistry.list().find((h) => h.binaryFallback)
+            if (generic) {
+              setHandler(generic)
+              setMode('view')
+            }
+          }
+        })
+      }
     }
     resolve()
     const unsubHandlers = fileHandlerRegistry.subscribe(resolve)
     const unsubModes = subscribeToPreferredModes(resolve)
     return () => {
+      alive = false
       unsubHandlers()
       unsubModes()
     }
