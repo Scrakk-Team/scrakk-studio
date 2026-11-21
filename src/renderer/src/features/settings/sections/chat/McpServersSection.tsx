@@ -18,7 +18,7 @@ import {
   mcpService,
   writeMcpConfig
 } from '@services/mcp'
-import type { McpServerConfig as Config, McpServerStatus } from '@shared/mcp'
+import type { McpServerConfig as Config, McpServerStatus, McpDiscoveredServer, McpDiscoveryResult } from '@shared/mcp'
 import styles from './McpServersSection.module.css'
 
 import { t } from '@core/i18n'
@@ -32,6 +32,9 @@ export function McpServersSection(): JSX.Element {
   const [statuses, setStatuses] = useState<McpServerStatus[]>([])
   const [form, setForm] = useState<Config | null>(null)
   const [saving, setSaving] = useState(false)
+  const [discovery, setDiscovery] = useState<McpDiscoveryResult | null>(null)
+  const [scanning, setScanning] = useState(false)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
 
   const refresh = useCallback(async (): Promise<void> => {
     const config = await loadMcpConfig()
@@ -56,6 +59,26 @@ export function McpServersSection(): JSX.Element {
 
   const statusFor = (id: string): McpServerStatus | undefined =>
     statuses.find((s) => s.id === id)
+
+  const runDiscovery = async (): Promise<void> => {
+    setScanning(true)
+    const result = await mcpService.discover()
+    setDiscovery(result)
+    setSelected(new Set(result.servers.map((s) => s.id)))
+    setScanning(false)
+  }
+
+  const importSelected = (): void => {
+    if (!discovery) return
+    const next = { ...configs }
+    for (const candidate of discovery.servers) {
+      if (!selected.has(candidate.id)) continue
+      const id = configs[candidate.id] ? `${candidate.id}-${candidate.source}` : candidate.id
+      next[id] = { ...candidate.config, id }
+    }
+    void persist(next)
+    setDiscovery(null)
+  }
 
   const change = (id: string, patch: Partial<Config>): void => {
     void persist({ ...configs, [id]: { ...configs[id], ...patch } })
@@ -82,6 +105,60 @@ export function McpServersSection(): JSX.Element {
         <h3>{t('settings.mcp.titulo')}</h3>
         <p>{t('settings.mcp.descripcion')}</p>
       </div>
+
+      <div className={styles.rowBtns}>
+        <button type="button" className={styles.btn} disabled={scanning} onClick={() => void runDiscovery()}>
+          <ProductIcon id="search" size={14} />
+          {scanning ? t('settings.mcp.buscando') : t('settings.mcp.detectar')}
+        </button>
+        <span className={styles.meta}>{t('settings.mcp.detectar.hint')}</span>
+      </div>
+
+      {discovery ? (
+        <div className={styles.form}>
+          <span className={styles.formTitle}>
+            {t('settings.mcp.encontrados', { count: String(discovery.servers.length) })}
+          </span>
+          {discovery.scanned.length > 0 ? (
+            <span className={styles.meta}>
+              {t('settings.mcp.escaneado')}: {discovery.scanned.map((p) => p.split('/').pop()).join(', ')}
+            </span>
+          ) : null}
+          {discovery.servers.length === 0 ? (
+            <span className={styles.empty}>{t('settings.mcp.no.encontrados')}</span>
+          ) : (
+            discovery.servers.map((candidate: McpDiscoveredServer) => (
+              <label key={`${candidate.source}-${candidate.id}`} className={styles.candidate}>
+                <input
+                  type="checkbox"
+                  checked={selected.has(candidate.id)}
+                  onChange={(e) => {
+                    const next = new Set(selected)
+                    if (e.target.checked) next.add(candidate.id)
+                    else next.delete(candidate.id)
+                    setSelected(next)
+                  }}
+                />
+                <span className={styles.candidateBody}>
+                  <span className={styles.candidateName}>{candidate.config.label || candidate.id}</span>
+                  <span className={styles.candidateMeta}>
+                    <span className={styles.serverType}>{candidate.source === 'running' ? t('settings.mcp.activo') : candidate.source}</span>
+                    <code>{candidate.config.url ?? (candidate.config.command ?? []).join(' ')}</code>
+                  </span>
+                </span>
+              </label>
+            ))
+          )}
+          <div className={styles.rowBtns}>
+            <button type="button" className={styles.btn} disabled={selected.size === 0 || saving} onClick={importSelected}>
+              <ProductIcon id="plus" size={14} /> {t('settings.mcp.importar')}
+            </button>
+            <button type="button" className={styles.btn} onClick={() => setDiscovery(null)}>
+              {t('settings.mcp.cancelar')}
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       {Object.keys(configs).length === 0 && !form ? (
         <div className={styles.empty}>{t('settings.mcp.sin.servidores')}</div>

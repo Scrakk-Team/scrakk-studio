@@ -54,5 +54,6 @@ export const mcpService = {
     ? (id: string, name: string, args: Record<string, unknown>) => api.mcp.callTool(id, name, args)
     : () => Promise.resolve({ content: 'MCP no disponible', isError: true }),
   authStart: (id: string) => api?.mcp?.authStart?.(id) ?? Promise.resolve({ error: 'MCP no disponible' }),
-  authStatus: (id: string) => api?.mcp?.authStatus?.(id) ?? Promise.resolve({ connected: false, needsAuth: false })
+  authStatus: (id: string) => api?.mcp?.authStatus?.(id) ?? Promise.resolve({ connected: false, needsAuth: false }),
+  discover: () => api?.mcp?.discover?.() ?? Promise.resolve({ servers: [], scanned: [], errors: [] })
 }

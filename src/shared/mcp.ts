@@ -11,6 +11,8 @@
  */
 
 export const MCP_IPC = {
+  /** Descubre servidores en la config de otros agentes / procesos activos. */
+  discover: 'mcp:discover',
   /** Renderer → main: config efectiva (user+project ya mergeados). */
   configure: 'mcp:configure',
   listServers: 'mcp:list-servers',
@@ -113,6 +115,24 @@ export interface McpCallResult {
   isError?: boolean
 }
 
+/** De dónde se importó un servidor descubierto. */
+export type McpImportSource = 'opencode' | 'codex' | 'running'
+
+/** Servidor candidato encontrado por el escáner (aún no importado). */
+export interface McpDiscoveredServer {
+  id: string
+  source: McpImportSource
+  config: McpServerConfig
+}
+
+/** Respuesta del descubrimiento. */
+export interface McpDiscoveryResult {
+  servers: McpDiscoveredServer[]
+  /** Rutas de config que se intentaron (para el UI: "leído de …"). */
+  scanned: string[]
+  errors: string[]
+}
+
 /** Normaliza un nombre de servidor/tool como OpenCode: sólo [A-Za-z0-9_-]. */
 export function normalizeMcpName(value: string): string {
   return value.replace(/[^A-Za-z0-9_-]/g, '_')
@@ -126,6 +146,7 @@ export function mcpToolName(serverId: string, toolName: string): string {
 /** API que el preload expone en `window.api.mcp`. */
 export interface McpApi {
   configure: (servers: Record<string, McpServerConfig>, timeout?: McpConfigFile['timeout']) => Promise<boolean>
+  discover: () => Promise<McpDiscoveryResult>
   listServers: () => Promise<McpServerStatus[]>
   listTools: () => Promise<McpToolInfo[]>
   setServer: (config: McpServerConfig) => Promise<boolean>

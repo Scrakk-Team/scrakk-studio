@@ -692,6 +692,7 @@ const api: WindowApi = {
   },
   mcp: {
     configure: (servers, timeout) => ipcRenderer.invoke(MCP_IPC.configure, servers, timeout) as Promise<boolean>,
+    discover: () => ipcRenderer.invoke(MCP_IPC.discover) as ReturnType<McpApi['discover']>,
     listServers: () => ipcRenderer.invoke(MCP_IPC.listServers) as ReturnType<McpApi['listServers']>,
     listTools: () => ipcRenderer.invoke(MCP_IPC.listTools) as ReturnType<McpApi['listTools']>,
     setServer: () => Promise.resolve(false),

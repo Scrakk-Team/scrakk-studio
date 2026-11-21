@@ -14,6 +14,7 @@ import { BrowserWindow, ipcMain } from 'electron'
 import { MCP_IPC, mcpToolName, type McpCallResult, type McpConfigFile, type McpConnectionStatus, type McpPromptInfo, type McpResourceInfo, type McpServerConfig, type McpServerStatus, type McpToolInfo } from '@shared/mcp'
 import { createTransport, HttpTransport, type RpcClient } from './transport'
 import { startOAuth, getToken } from './oauth'
+import { discoverMcpServers } from './discovery'
 
 interface ConnectedServer {
   config: McpServerConfig
@@ -282,6 +283,7 @@ class McpManager {
     )
     handle(MCP_IPC.listServers, () => this.statuses())
     handle(MCP_IPC.listTools, () => this.allTools())
+    handle(MCP_IPC.discover, () => discoverMcpServers())
     handle(MCP_IPC.connect, (id: string) => this.connectServer(id))
     handle(MCP_IPC.disconnect, (id: string) => this.disconnect(id))
     handle(MCP_IPC.callTool, (serverId: string, name: string, args: Record<string, unknown>) => this.callTool(serverId, name, args))
