@@ -554,6 +554,9 @@ published are not edited. The file goes per version:
   release; the chosen value persists. The settings preview renders the REAL
   `TabStrip` over a temporary strip created through the public tabs API
   (`tabsStore` + `fileTab`/`panelTab`), so what you see is the actual tab bar.
+  Centring the tab text is a separate optional toggle (only active with fixed
+  width): it centres the icon and label while the close button stays pinned to
+  the end.
 
 ### Preview (UI)
 - **One preview system for every file in a tab.** A global `preview` API now
