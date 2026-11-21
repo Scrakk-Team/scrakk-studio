@@ -53,3 +53,64 @@
   font-size: var(--text-xs);
   color: var(--color-text-muted);
 }
+
+/* Fila con control de ancho (slider de resorte + valor en px). */
+.rowControl {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-shrink: 0;
+}
+
+.sliderWrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.widthSlider {
+  width: 140px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--color-accent, #fb923c);
+  cursor: ew-resize;
+}
+
+.widthSlider:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.widthValue {
+  color: var(--color-text-secondary);
+  font-family: var(--font-mono, monospace);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Ejemplo en vivo: mini-barra de tabs con el ancho aplicado. */
+.exampleBox {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid color-mix(in srgb, var(--color-border) 35%, transparent);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+}
+
+.exampleLabel {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 500;
+}
+
+/* El TabStrip real trae su propio fondo/borde; acá sólo lo enmarcamos. */
+.exampleStrip {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-raised);
+  overflow: hidden;
+}

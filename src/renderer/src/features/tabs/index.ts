@@ -14,6 +14,11 @@ export {
 } from './store'
 export { TabStrip, MAX_STRIP_ACTIONS, type StripAction } from './TabStrip'
 export {
+  PREVIEW_STRIP_ID,
+  mountPreviewStrip,
+  unmountPreviewStrip
+} from './previewStrip'
+export {
   isTabsDocked,
   setTabsDocked,
   toggleTabsDocked,
@@ -22,6 +27,18 @@ export {
   TABS_DOCKED_CONTEXT_KEY
 } from './dock'
 export type { TabKind, TabSpec, StripId, StripState } from './types'
+export {
+  isTabWidthFixed,
+  getTabWidth,
+  setTabWidthFixed,
+  setTabWidth,
+  toggleTabWidthFixed,
+  subscribeToTabWidth,
+  clamp as clampTabWidth,
+  TAB_WIDTH_MIN,
+  TAB_WIDTH_MAX,
+  TAB_WIDTH_DEFAULT
+} from './tabSize'
 export {
   tabHeaderKey,
   setTabHeader,

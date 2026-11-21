@@ -36,6 +36,11 @@ import {
   tabHeaderKey
 } from './tabHeaders'
 import type { StripId, TabSpec } from './types'
+import {
+  getTabWidth,
+  isTabWidthFixed,
+  subscribeToTabWidth
+} from './tabSize'
 import styles from './TabStrip.module.css'
 
 import { t } from '@core/i18n'
@@ -158,7 +163,16 @@ function TabItem({
       window.removeEventListener('resize', snap)
     }
   }, [index])
-  const classes = [styles.tab, active ? styles.tabActive : null, dragging ? styles.tabDragging : null]
+
+  // Con ancho fijo, cada tab lee la custom property del contenedor (ver .tabs).
+  const tabFixedWidth = isTabWidthFixed() ? getTabWidth() : 0
+
+  const classes = [
+    styles.tab,
+    active ? styles.tabActive : null,
+    dragging ? styles.tabDragging : null,
+    tabFixedWidth ? styles.tabFixed : null
+  ]
     .filter(Boolean)
     .join(' ')
 
@@ -184,7 +198,9 @@ function TabItem({
       style={
         dragging
           ? { position: 'relative', zIndex: 10, cursor: 'grabbing', opacity: 0.45 }
-          : undefined
+          : tabFixedWidth
+            ? ({ width: `${tabFixedWidth}px` } as React.CSSProperties)
+            : undefined
       }
       onClick={() => onSelect()}
       onContextMenu={onContextMenu}
@@ -278,7 +294,12 @@ export function TabStrip({ stripId, iconFor, onActivate, onClose, onAddTab, addT
   )
   useEffect(() => subscribeToFileIcons(() => setVersion((v) => v + 1)), [])
   useEffect(() => subscribeTabHeaders(() => setVersion((v) => v + 1)), [])
+  // Ancho fijo opcional: repintar al activarlo/cambiar el valor desde Ajustes.
+  useEffect(() => subscribeToTabWidth(() => setVersion((v) => v + 1)), [])
   void version
+
+  // Se calcula en cada render (barato) para que el cambio se refleje al instante.
+  const fixedWidth = isTabWidthFixed() ? getTabWidth() : 0
 
   const strip = tabsStore.getStrip(stripId)
   const tabs = strip?.tabs ?? []
@@ -450,7 +471,8 @@ export function TabStrip({ stripId, iconFor, onActivate, onClose, onAddTab, addT
     <div className={styles.strip}>
       <div
         ref={setTabsNode}
-        className={styles.tabs}
+        className={[styles.tabs, fixedWidth ? styles.tabsFixed : null].filter(Boolean).join(' ')}
+        style={fixedWidth ? ({ '--tab-fixed-w': `${fixedWidth}px` } as React.CSSProperties) : undefined}
         role="tablist"
         aria-label={t('features.tabs.abiertas')}
       >

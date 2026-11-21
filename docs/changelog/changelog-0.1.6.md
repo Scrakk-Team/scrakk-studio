@@ -547,6 +547,14 @@ published are not edited. The file goes per version:
   the text tabs were clipped. They are now larger proicons (`globe` / `file`)
   with accessible labels, moved away from the close button.
 
+### Tabs (settings)
+- **Experimental: same-size tabs with a configurable width.** A new toggle
+  gives every tab in every strip a fixed width instead of sizing to its label.
+  The width is picked with a spring slider that snaps back to the centre on
+  release; the chosen value persists. The settings preview renders the REAL
+  `TabStrip` over a temporary strip created through the public tabs API
+  (`tabsStore` + `fileTab`/`panelTab`), so what you see is the actual tab bar.
+
 ### Preview (UI)
 - **One preview system for every file in a tab.** A global `preview` API now
   drives what is shown inside file tabs: images, markdown and SVG (the original
