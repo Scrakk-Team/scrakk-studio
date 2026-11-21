@@ -537,6 +537,13 @@ published are not edited. The file goes per version:
   two-line height. A `ResizeObserver` now refits it when its width changes.
 
 ### ToolDock (UI)
+- **New "File information" item in the dock, registered like the others.**
+  A new `items/fileinfo/` module (UI + metadata logic) shows everything known
+  about the active file: name, full path, folder, type, extension, MIME, size
+  and modification date, plus a "show in file manager" action. Metadata comes
+  from `fs.stat` only — no full-file read, so large media files stay cheap.
+
+### ToolDock (UI)
 - **Bookmarks can be scoped to the project or to the open file.** The bookmark
   panel listed every path ever bookmarked, including files from projects that
   were no longer open. It now has a **Global | This file** switch: Global shows

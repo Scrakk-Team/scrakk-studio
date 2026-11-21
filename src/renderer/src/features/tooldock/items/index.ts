@@ -12,6 +12,7 @@ import { registerToolDockItem } from '../registry'
 import OutlinePanel from './outline/OutlinePanel'
 import TimelinePanel from './timeline/TimelinePanel'
 import BookmarksPanel from './bookmarks/BookmarksPanel'
+import FileInfoPanel from './fileinfo/FileInfoPanel'
 
 import { t } from '@core/i18n'
 export function registerBuiltinToolDockItems(): void {
@@ -43,6 +44,16 @@ export function registerBuiltinToolDockItems(): void {
     order: 30,
     hosts: ['explorer'],
     component: BookmarksPanel
+  })
+
+  registerToolDockItem({
+    id: 'fileinfo',
+    kind: 'panel',
+    title: t('features.fileinfo.titulo'),
+    icon: 'info',
+    order: 40,
+    hosts: ['explorer'],
+    component: FileInfoPanel
   })
 }
 
