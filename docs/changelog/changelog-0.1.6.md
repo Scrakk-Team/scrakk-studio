@@ -542,6 +542,12 @@ published are not edited. The file goes per version:
   about the active file: name, full path, folder, type, extension, MIME, size
   and modification date, plus a "show in file manager" action. Metadata comes
   from `fs.stat` only — no full-file read, so large media files stay cheap.
+- **Resizing the floating dock panel works again.** Two bugs made the handle
+  show the resize cursor without actually resizing: pointer events were
+  captured by the handle but listened for on `window` (so they never arrived),
+  and the maximum height was computed from the space BELOW the pill instead of
+  above it, clamping the panel to 120px when the dock sat at the bottom. Both
+  fixed; the height math is now a pure, tested helper.
 
 ### ToolDock (UI)
 - **Bookmarks can be scoped to the project or to the open file.** The bookmark
