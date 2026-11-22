@@ -39,11 +39,6 @@ const NOTIFICATIONS_POPOVER_KEY = 'notifications-history'
 export function StatusBar({ onOpenSettings }: StatusBarProps): JSX.Element {
   const bellRef = useRef<HTMLButtonElement | null>(null)
   const [popoverOpen, setPopoverOpen] = useState(false)
-  /**
-   * El popover cierra en un pointerdown global (capture) ANTES del onClick de
-   * la campana. Si no lo marcamos, el onClick hace toggle otra vez y reapre.
-   */
-  const closingByBellRef = useRef(false)
 
   useEffect(
     () =>
@@ -54,12 +49,6 @@ export function StatusBar({ onOpenSettings }: StatusBarProps): JSX.Element {
   )
 
   const toggleNotifications = (): void => {
-    // El pointerdown global del popover ya cerró (ver closingByBellRef): en ese
-    // caso no volvemos a abrir, sólo limpiamos el flag.
-    if (closingByBellRef.current) {
-      closingByBellRef.current = false
-      return
-    }
     const button = bellRef.current
     if (!button) return
     const rect = button.getBoundingClientRect()
@@ -112,9 +101,7 @@ export function StatusBar({ onOpenSettings }: StatusBarProps): JSX.Element {
           aria-label={t('statusbar.historial.de.notificaciones')}
           aria-expanded={popoverOpen}
           title={t('statusbar.notificaciones')}
-          onPointerDown={() => {
-            if (popoverOpen) closingByBellRef.current = true
-          }}
+          data-anchored-anchor={NOTIFICATIONS_POPOVER_KEY}
           onClick={toggleNotifications}
         >
           <ProductIcon id="bell" size={14} />

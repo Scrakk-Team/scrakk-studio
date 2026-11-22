@@ -592,8 +592,10 @@ published are not edited. The file goes per version:
   titlebar hamburger menu and the status-bar notifications bell were
   reopening on the second click: their `pointerdown` "click outside" handler
   closed the popup before the button's `onClick` fired, so the toggle ran a
-  second time. Both buttons now flag that pointerdown and the click consumes
-  it, making open → click → close behave normally.
+  second time. The hamburger flags that pointerdown (its listener is in the
+  bubble phase) and the click consumes it; the notifications bell is marked
+  with `data-anchored-anchor` so the anchored panel ignores its own trigger's
+  pointerdown (that listener runs in capture). Both now go open → click → close.
 
 ### Tabs (settings)
 - **Experimental: same-size tabs with a configurable width.** A new toggle

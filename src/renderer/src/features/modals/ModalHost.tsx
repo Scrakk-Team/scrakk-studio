@@ -109,8 +109,13 @@ function AnchoredPanel({ id, spec }: { id: string; spec: AnchoredModalSpec }): J
       if (event.key === 'Escape') close()
     }
     const handlePointerDown = (event: PointerEvent): void => {
+      const target = event.target as HTMLElement | null
+      // El botón que abrió este popover lleva data-anchored-anchor=key: su
+      // pointerdown NO cuenta como "click afuera", así puede hacer toggle en
+      // su onClick sin que el popup se cierre primero y se reapra después.
+      if (target?.closest?.(`[data-anchored-anchor="${spec.key}"]`)) return
       const panel = document.querySelector(`[data-anchored-id="${id}"]`)
-      if (panel && !panel.contains(event.target as Node)) close()
+      if (panel && !panel.contains(target as Node)) close()
     }
     window.addEventListener('keydown', handleKeyDown)
     window.addEventListener('pointerdown', handlePointerDown, true)
