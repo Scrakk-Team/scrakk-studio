@@ -261,14 +261,15 @@ jobs:
           echo "deb: $DEB"
           node ../src/tools/apt/build-repo.mjs --versions versions.txt --out . --deb "$DEB"
 
+      # `cloudflare/pages-action` ya no existe (404). La forma soportada es
+      # wrangler-action con `pages deploy`; el directorio publicado es el repo
+      # APT generado arriba y el branch main apunta a producción.
       - name: Publicar en Cloudflare Pages (apt.scrakk.art)
-        uses: cloudflare/pages-action@v1
+        uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: eaa65e50775620523cf9a829e7b465a5
-          projectName: scrakk-apt
-          directory: apt-repo
-          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+          command: pages deploy apt-repo --project-name=scrakk-apt --branch=main
 
       - name: Commit y push a apt-repo (historial)
         shell: bash
