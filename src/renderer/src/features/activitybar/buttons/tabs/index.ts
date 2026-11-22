@@ -8,15 +8,16 @@ import { productIcon } from '@services/productIcons/components'
 import { t } from '@core/i18n'
 /**
  * Botón de "Tabs" — aparece SOLO en modo acoplado (`when: 'tabsDocked'`).
- * Abre el panel con la lista vertical de tabs. Su ícono (`panel-left`) es el
- * mismo que usa el botón del strip que activa el modo.
+ * Abre el panel con la lista vertical de tabs. Su ícono (`file-multiple`) es el
+ * mismo que usa el botón del strip que activa el modo (no `panel-left`, que ya
+ * usan la activitybar de otros paneles y la statusbar de layout).
  */
 const tabs: ActivityBarButton = {
   id: 'tabs',
   get label() {
     return t('layout.panel.tabs')
   },
-  icon: productIcon('panel-left'),
+  icon: productIcon('file-multiple'),
   side: 'left',
   target: 'left',
   panelId: 'tabs',

@@ -568,6 +568,11 @@ published are not edited. The file goes per version:
   file" and "Open folder" onto each other to change their position; the order
   persists in localStorage. The drop target is highlighted, the cursor shows
   grab/grabbing, and a drag no longer triggers the button's action.
+- **The dock-tabs action has a proper icon.** The "Show tabs in panel" button in
+  the tab container, the Tabs activity-bar button and the Tabs panel placeholder
+  swapped the generic `layers` glyph for `file-multiple`, which actually means
+  "several tabs" and does not collide with the `panel-left` icon already used
+  by the activity bar and the status bar layout toggles.
 
 ### Tabs (settings)
 - **Experimental: same-size tabs with a configurable width.** A new toggle
