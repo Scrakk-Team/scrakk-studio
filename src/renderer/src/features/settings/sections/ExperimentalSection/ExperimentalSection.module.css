@@ -62,6 +62,34 @@
   flex-shrink: 0;
 }
 
+.pickerBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 120px;
+  justify-content: space-between;
+  padding: 5px var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.pickerBtn:hover {
+  background: var(--color-hover);
+}
+
+.pickerValue {
+  color: var(--color-text);
+}
+
+.pickerCaret {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
 .sliderWrap {
   display: flex;
   flex-direction: column;

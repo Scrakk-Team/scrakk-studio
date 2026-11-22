@@ -1,0 +1,46 @@
+/*
+ * Copyright 2026 Scrakk Studio
+ * SPDX-License-Identifier: Apache-2.0
+ * Licencia completa en LICENSE (Apache License 2.0).
+ */
+
+/* Contenedor normal: botones arriba, como siempre. */
+.plain {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 100%;
+}
+
+/* Centrado vertical simple: ocupa el alto libre y centra los botones. */
+.centered {
+  composes: plain;
+  flex: 1 1 auto;
+  justify-content: center;
+}
+
+/* Rueda 3D: los botones se apilan en el centro y el scroll los rota. */
+.wheel {
+  position: relative;
+  flex: 1 1 auto;
+  width: 100%;
+  perspective: 500px;
+  transform-style: preserve-3d;
+}
+
+.wheelButton {
+  position: absolute;
+  transform-style: preserve-3d;
+  transition:
+    transform var(--duration-normal, 220ms) var(--ease-out),
+    opacity var(--duration-normal, 220ms) var(--ease-out),
+    color var(--duration-fast, 120ms) ease,
+    background-color var(--duration-fast, 120ms) ease;
+}
+
+/* El botón del centro es el activo de la rueda. */
+.wheelCenter {
+  color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+}

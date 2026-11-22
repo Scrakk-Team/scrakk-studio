@@ -23,6 +23,16 @@
   overflow-x: hidden;
 }
 
+/* Modos experimentales ( el contenedor de botones hace el trabajo real ). */
+.bar.centered {
+  justify-content: center;
+}
+
+.bar.wheel {
+  justify-content: center;
+  overflow: hidden;
+}
+
 /* Radio solo del lado opuesto al borde de la ventana + borde interno hacia
    los slots (solo temas flat: --chrome-border solo existe si el tema lo
    define; si no, transparente como siempre). */

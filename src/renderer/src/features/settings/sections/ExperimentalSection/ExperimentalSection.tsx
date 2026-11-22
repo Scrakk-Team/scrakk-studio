@@ -1,8 +1,20 @@
 // Copyright 2026 Scrakk Studio
 // SPDX-License-Identifier: Apache-2.0
 
-import { useEffect, useState, type JSX } from 'react'
+import { useEffect, useState, type JSX, type MouseEvent } from 'react'
 import { ToggleSwitch } from '@ui'
+import { ProductIcon } from '@services/productIcons/components'
+import { showContextMenu } from '@features/editor/engines/innerta/menuHost'
+import type { ContextMenuItem } from '@ui'
+import {
+  getActivityBarMode,
+  getDisabledActivitySide,
+  setActivityBarMode,
+  setDisabledActivitySide,
+  subscribeToActivityBarSettings,
+  type ActivityBarMode,
+  type DisabledActivitySide
+} from '@services/activityBarSettings'
 import {
   isSkipFilesOnExpandAll,
   setSkipFilesOnExpandAll,
@@ -41,6 +53,8 @@ export function ExperimentalSection(): JSX.Element {
   const [skipFiles, setSkipFiles] = useState<boolean>(() => isSkipFilesOnExpandAll())
   const [hidePanels, setHidePanels] = useState<boolean>(() => isExternalOpenHidePanels())
   const [projectTheme, setProjectTheme] = useState<boolean>(() => isProjectThemeEnabled())
+  const [activityMode, setActivityMode] = useState<ActivityBarMode>(getActivityBarMode)
+  const [disabledSide, setDisabledSide] = useState<DisabledActivitySide>(getDisabledActivitySide)
   const [fixedTabs, setFixedTabs] = useState<boolean>(() => isTabWidthFixed())
   const [tabWidth, setTabWidthState] = useState<number>(() => getTabWidth())
   const [centerLabel, setCenterLabel] = useState<boolean>(() => isTabLabelCentered())
@@ -65,6 +79,15 @@ export function ExperimentalSection(): JSX.Element {
 
   useEffect(
     () =>
+      subscribeToActivityBarSettings(() => {
+        setActivityMode(getActivityBarMode())
+        setDisabledSide(getDisabledActivitySide())
+      }),
+    []
+  )
+
+  useEffect(
+    () =>
       subscribeToTabWidth(() => {
         setFixedTabs(isTabWidthFixed())
         setTabWidthState(getTabWidth())
@@ -78,6 +101,45 @@ export function ExperimentalSection(): JSX.Element {
     mountPreviewStrip()
     return unmountPreviewStrip
   }, [])
+
+  const modeLabel: Record<ActivityBarMode, string> = {
+    default: t('settings.activitybar.normal'),
+    centered: t('settings.activitybar.centered'),
+    wheel: t('settings.activitybar.wheel')
+  }
+  const sideLabel: Record<DisabledActivitySide, string> = {
+    none: t('settings.activitybar.none'),
+    left: t('settings.activitybar.left'),
+    right: t('settings.activitybar.right')
+  }
+
+  const openActivityModeMenu = (event: MouseEvent<HTMLButtonElement>): void => {
+    const rect = event.currentTarget.getBoundingClientRect()
+    const modes: ActivityBarMode[] = ['default', 'centered', 'wheel']
+    showContextMenu(
+      rect.left,
+      rect.bottom,
+      modes.map((value): ContextMenuItem => ({
+        label: modeLabel[value],
+        checked: activityMode === value,
+        onClick: () => setActivityBarMode(value)
+      }))
+    )
+  }
+
+  const openDisabledSideMenu = (event: MouseEvent<HTMLButtonElement>): void => {
+    const rect = event.currentTarget.getBoundingClientRect()
+    const sides: DisabledActivitySide[] = ['none', 'left', 'right']
+    showContextMenu(
+      rect.left,
+      rect.bottom,
+      sides.map((value): ContextMenuItem => ({
+        label: sideLabel[value],
+        checked: disabledSide === value,
+        onClick: () => setDisabledActivitySide(value)
+      }))
+    )
+  }
 
   return (
     <div className={styles.section}>
@@ -139,6 +201,32 @@ export function ExperimentalSection(): JSX.Element {
           }}
           label={t('settings.tema.por.proyecto')}
         />
+      </div>
+
+      <div className={styles.row}>
+        <div className={styles.rowText}>
+          <span className={styles.rowTitle}>{t('settings.activitybar.centrado')}</span>
+          <span className={styles.rowHint}>{t('settings.activitybar.centrado.hint')}</span>
+        </div>
+        <div className={styles.rowControl}>
+          <button type="button" className={styles.pickerBtn} onClick={openActivityModeMenu}>
+            <span className={styles.pickerValue}>{modeLabel[activityMode]}</span>
+            <ProductIcon id="chevron-down" size={12} className={styles.pickerCaret} aria-hidden="true" />
+          </button>
+        </div>
+      </div>
+
+      <div className={styles.row}>
+        <div className={styles.rowText}>
+          <span className={styles.rowTitle}>{t('settings.activitybar.desactivar')}</span>
+          <span className={styles.rowHint}>{t('settings.activitybar.desactivar.hint')}</span>
+        </div>
+        <div className={styles.rowControl}>
+          <button type="button" className={styles.pickerBtn} onClick={openDisabledSideMenu}>
+            <span className={styles.pickerValue}>{sideLabel[disabledSide]}</span>
+            <ProductIcon id="chevron-down" size={12} className={styles.pickerCaret} aria-hidden="true" />
+          </button>
+        </div>
       </div>
 
       <div className={styles.row}>

@@ -625,6 +625,20 @@ published are not edited. The file goes per version:
   with `data-anchored-anchor` so the anchored panel ignores its own trigger's
   pointerdown (that listener runs in capture). Both now go open → click → close.
 
+### Activity bar (experimental)
+- **Three icon layouts (both bars).** Settings → Experimental now has an
+  activity-bar mode picker: default (icons at the top), centered (vertically
+  centered) and 3D wheel. In wheel mode the middle button is the active one,
+  the buttons above and below fade out, and scrolling the mouse wheel moves
+  the focus and switches panels; clicking a faded button brings it to the
+  middle. The button rendering lives in its own
+  `components/ActivityBarItems` component and the preference in the
+  `services/activityBarSettings` module (following the repo's service layout).
+- **Disable one activity bar.** A second picker lets you hide the left or the
+  right bar; only one can be disabled at a time. Its buttons are shown in the
+  remaining bar without changing the persisted drag layout, so re-enabling it
+  restores the original button positions.
+
 ### Themes (experimental)
 - **Per-project themes.** A new toggle in Settings → Experimental saves the
   active theme to `.scrakk/theme.json` in the current project and reapplies it

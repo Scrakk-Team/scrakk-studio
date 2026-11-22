@@ -15,10 +15,14 @@
  * instalarse o quitarse extensiones.
  */
 
-import { useEffect, useMemo, useState, type JSX } from 'react'
-import { preloadPanel, useLayout } from '@features/layout'
+import { useCallback, useEffect, useMemo, useState, type JSX } from 'react'
+import { useLayout } from '@features/layout'
 import { ExtensionRegistry } from '@services/extensions'
-import { sanitizeSvgIcon } from '@services/extensions/svgIcon'
+import {
+  getActivityBarMode,
+  getDisabledActivitySide,
+  subscribeToActivityBarSettings
+} from '@services/activityBarSettings'
 import {
   getExtensionContextKey,
   setExtensionContextKey,
@@ -28,16 +32,20 @@ import { evaluateWhen } from '@services/extensions/when'
 import { bindTabsDockedContext, setTabsDocked } from '@features/tabs'
 import type { ActivityBarButton, ActivityBarSide } from './types'
 import { activityButtonSlot, getOrderedButtons, subscribeToButtonLayout } from './layout'
-import { consumeDragClick, startButtonDrag } from './buttonDrag'
+import { startButtonDrag } from './buttonDrag'
 import { DragGhost } from './DragGhost'
-import { getActivityBadge, subscribeToActivityBadges } from './badges'
+import { subscribeToActivityBadges } from './badges'
+import { ActivityBarItems } from './components/ActivityBarItems/ActivityBarItems'
 import styles from './ActivityBar.module.css'
 
 import { t } from '@core/i18n'
 
-export function ActivityBar({ side }: { side: ActivityBarSide }): JSX.Element {
+export function ActivityBar({ side }: { side: ActivityBarSide }): JSX.Element | null {
   const { slots, toggleSlotPanel } = useLayout()
   const [version, setVersion] = useState(0)
+  const [mode, setMode] = useState(getActivityBarMode)
+  const [disabledSide, setDisabledSide] = useState(getDisabledActivitySide)
+  const [centerIndex, setCenterIndex] = useState(0)
   // Fantasma que sigue al cursor durante el drag (null = sin drag).
   const [ghost, setGhost] = useState<{ id: string; x: number; y: number } | null>(null)
 
@@ -51,6 +59,14 @@ export function ActivityBar({ side }: { side: ActivityBarSide }): JSX.Element {
   // Y cuando una extensión cambia una clave de contexto: los botones con
   // `when` (vistas que se esconden según el estado) aparecen o se van.
   useEffect(() => subscribeToExtensionContextKeys(() => setVersion((v) => v + 1)), [])
+  useEffect(
+    () =>
+      subscribeToActivityBarSettings(() => {
+        setMode(getActivityBarMode())
+        setDisabledSide(getDisabledActivitySide())
+      }),
+    []
+  )
 
   // El estado "tabs acopladas" publica su clave de contexto con el hostBridge.
   // Se conecta ACÁ (la barra ya depende del hostBridge) y no en el store, para
@@ -62,16 +78,26 @@ export function ActivityBar({ side }: { side: ActivityBarSide }): JSX.Element {
     bindTabsDockedContext((key, value) => setExtensionContextKey(key, value))
   }, [])
 
-  const buttons = useMemo<ActivityBarButton[]>(
-    () =>
-      getOrderedButtons(side).filter((button) =>
-        evaluateWhen(button.when, getExtensionContextKey)
-      ),
-    [side, version]
-  )
+  // Una barra desactivada no se renderiza: sus botones pasan a la otra.
+  const merged = disabledSide !== 'none' && disabledSide !== side
+  const otherSide: ActivityBarSide = side === 'left' ? 'right' : 'left'
+
+  const buttons = useMemo<ActivityBarButton[]>(() => {
+    if (disabledSide === side) return []
+    const own = getOrderedButtons(side)
+    const list = merged ? [...own, ...getOrderedButtons(otherSide)] : own
+    return list.filter((button) => evaluateWhen(button.when, getExtensionContextKey))
+  }, [side, otherSide, merged, disabledSide, version])
+
+  // La rueda necesita un índice central válido aunque cambien los botones.
+  useEffect(() => {
+    setCenterIndex((current) => Math.max(0, Math.min(current, Math.max(0, buttons.length - 1))))
+  }, [buttons.length])
 
   /** Arranca el drag del botón (el controlador compartido mueve el layout). */
   function onButtonPointerDown(event: React.PointerEvent, id: string): void {
+    // En modo rueda el drag chocaría con la animación 3D: se desactiva.
+    if (mode === 'wheel') return
     startButtonDrag(event, id, {
       onStart: (draggedId) => setGhost({ id: draggedId, x: event.clientX, y: event.clientY }),
       onMove: (x, y) => setGhost((current) => (current ? { ...current, x, y } : { id, x, y })),
@@ -79,61 +105,45 @@ export function ActivityBar({ side }: { side: ActivityBarSide }): JSX.Element {
     })
   }
 
+  /** Activa el panel del botón en la barra visible (o la efectiva si hay drag). */
+  const onActivate = useCallback(
+    (button: ActivityBarButton): void => {
+      const targetSide = merged ? side : activityButtonSlot(button.id, side)
+      // El botón "tabs" desacopla al cerrarse (el modo se activa desde el
+      // botón del strip / comando, no desde acá).
+      if (button.id === 'tabs' && slots[targetSide] === button.panelId) {
+        setTabsDocked(false)
+      }
+      toggleSlotPanel(targetSide, button.panelId)
+    },
+    [merged, side, slots, toggleSlotPanel]
+  )
+
+  const onCenterIndexChange = useCallback((index: number) => setCenterIndex(index), [])
+
+  // Barra desactivada: fuera del layout (los botones los dibuja la otra).
+  if (disabledSide === side) return null
+
   return (
     <nav
-      className={styles.bar}
+      className={[
+        styles.bar,
+        mode === 'centered' ? styles.centered : null,
+        mode === 'wheel' ? styles.wheel : null
+      ].filter(Boolean).join(' ')}
       data-side={side}
       aria-label={side === 'left' ? t('activitybar.barra.lateral.izquierda') : t('activitybar.barra.lateral.derecha')}
     >
-      {buttons.map((button) => {
-        // El panel sigue al botón: si se mudó de barra, abre en ese slot.
-        const active = slots[side] === button.panelId
-        const isGhost = ghost?.id === button.id
-        const badge = getActivityBadge(button.id)
-        return (
-          <button
-            key={button.id}
-            type="button"
-            data-button-id={button.id}
-            className={[styles.button, active ? styles.active : null, isGhost ? styles.dragging : null]
-              .filter(Boolean)
-              .join(' ')}
-            title={button.label}
-            aria-label={button.label}
-            aria-pressed={active}
-            // Precalienta el módulo del panel en cuanto hay intención (hover o
-            // apretar): el click abre sin descargar nada ni ver el fallback.
-            onPointerEnter={() => preloadPanel(button.panelId)}
-            onFocus={() => preloadPanel(button.panelId)}
-            onPointerDown={(event) => {
-              preloadPanel(button.panelId)
-              onButtonPointerDown(event, button.id)
-            }}
-            onClick={() => {
-              // El click que dispara el pointerup del drag no abre el panel.
-              if (consumeDragClick(button.id)) return
-              // El panel sigue al botón: si el usuario lo draggeó a la otra
-              // barra, usar SU posición efectiva (no el `side` del componente).
-              const targetSide = activityButtonSlot(button.id, side)
-              // El botón "tabs" desacopla al cerrarse (el modo se activa desde
-              // el botón del strip / comando, no desde acá).
-              if (button.id === 'tabs' && slots[targetSide] === button.panelId) {
-                setTabsDocked(false)
-              }
-              toggleSlotPanel(targetSide, button.panelId)
-            }}
-          >
-            {typeof button.icon === 'string' ? (
-              <span className={styles.svg} dangerouslySetInnerHTML={{ __html: sanitizeSvgIcon(button.icon) ?? '' }} />
-            ) : (
-              <button.icon size={20} />
-            )}
-            {badge > 0 ? (
-              <span className={styles.badge}>{badge > 99 ? '99+' : badge}</span>
-            ) : null}
-          </button>
-        )
-      })}
+      <ActivityBarItems
+        buttons={buttons}
+        activePanelId={slots[side]}
+        mode={mode}
+        centerIndex={centerIndex}
+        onCenterIndexChange={onCenterIndexChange}
+        ghostId={ghost?.id ?? null}
+        onButtonPointerDown={onButtonPointerDown}
+        onActivate={onActivate}
+      />
       {ghost ? <DragGhost id={ghost.id} x={ghost.x} y={ghost.y} /> : null}
     </nav>
   )
