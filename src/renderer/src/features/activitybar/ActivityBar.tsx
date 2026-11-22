@@ -25,7 +25,7 @@ import {
   subscribeToExtensionContextKeys
 } from '@services/extensions/hostBridge'
 import { evaluateWhen } from '@services/extensions/when'
-import { bindTabsDockedContext } from '@features/tabs'
+import { bindTabsDockedContext, setTabsDocked } from '@features/tabs'
 import type { ActivityBarButton, ActivityBarSide } from './types'
 import { getOrderedButtons, subscribeToButtonLayout } from './layout'
 import { consumeDragClick, startButtonDrag } from './buttonDrag'
@@ -112,6 +112,12 @@ export function ActivityBar({ side }: { side: ActivityBarSide }): JSX.Element {
             onClick={() => {
               // El click que dispara el pointerup del drag no abre el panel.
               if (consumeDragClick(button.id)) return
+              // El botón "tabs" acopla/desacopla además de togglear el panel:
+              // si ya está abierto se cerrará (→ desacoplar); si no, se abrirá
+              // (→ acoplar, ocultando la barra de tabs horizontal del centro).
+              if (button.id === 'tabs') {
+                setTabsDocked(slots[side] !== button.panelId)
+              }
               toggleSlotPanel(side, button.panelId)
             }}
           >

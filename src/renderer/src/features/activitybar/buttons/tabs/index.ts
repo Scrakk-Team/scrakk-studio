@@ -7,10 +7,13 @@ import { productIcon } from '@services/productIcons/components'
 
 import { t } from '@core/i18n'
 /**
- * Botón de "Tabs" — aparece SOLO en modo acoplado (`when: 'tabsDocked'`).
- * Abre el panel con la lista vertical de tabs. Su ícono (`tabs`, ventanas
- * múltiples de proicons) es exclusivo de este feature y coincide con el botón
- * del strip que activa el modo.
+ * Botón de "Tabs" — SIEMPRE visible en la activitybar.
+ *
+ * Antes tenía `when: 'tabsDocked'`, lo cual era un ciclo: el botón solo
+ * aparecía DESPUÉS de acoplar, así que no había forma de activar el modo desde
+ * la barra. Ahora el botón está siempre y su click (en ActivityBar) togglea el
+ * panel y sincroniza el modo acoplado. Su ícono (`tabs`, ventanas múltiples de
+ * proicons) es exclusivo de este feature y coincide con el botón del strip.
  */
 const tabs: ActivityBarButton = {
   id: 'tabs',
@@ -21,8 +24,7 @@ const tabs: ActivityBarButton = {
   side: 'left',
   target: 'left',
   panelId: 'tabs',
-  order: 50,
-  when: 'tabsDocked'
+  order: 50
 }
 
 export default tabs
