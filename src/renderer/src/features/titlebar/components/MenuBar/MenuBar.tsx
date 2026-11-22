@@ -230,17 +230,25 @@ export function MenuBar(): JSX.Element {
     }
   }, [locale, theme, slots, historyOpen, editAction, commandItem])
 
-  /** "Cuenta": abre el selector con sólo pasar el cursor por la opción. */
-  const openAccountPanel = useCallback((): void => {
+  /**
+   * "Cuenta": con el hover se abre el panel a la DERECHA del item, sin cerrar
+   * el menú (parece un submenú, pero con el selector real de cuentas).
+   */
+  const openAccountPanel = useCallback((rect?: DOMRect): void => {
     if (accountHoveredRef.current) return
-    const btn = hamRef.current
-    if (!btn) return
-    const rect = btn.getBoundingClientRect()
+    const anchor = rect
+      ? // Item del menú: el panel arranca justo a su derecha, a la misma altura.
+        { x: rect.right + 8, y: rect.top - 8, width: 0, height: 0 }
+      : (() => {
+          const btn = hamRef.current
+          const r = btn?.getBoundingClientRect()
+          return { x: r?.left ?? 0, y: r?.bottom ?? 0, width: r?.width ?? 0, height: 0 }
+        })()
     let handle: ReturnType<typeof showAnchoredModal> = null
     handle = showAnchoredModal({
       key: 'titlebar-account',
       title: t('menu.account'),
-      anchor: { x: rect.left, y: rect.bottom + 2, width: rect.width, height: rect.height },
+      anchor,
       width: 300,
       placement: 'below',
       align: 'start',
@@ -249,8 +257,7 @@ export function MenuBar(): JSX.Element {
     // Sólo marcamos como "ya abierto" si el modal quedó abierto (si estaba
     // abierto, showAnchoredModal lo cerró y devolvió null).
     accountHoveredRef.current = handle !== null
-    close()
-  }, [close])
+  }, [])
 
   // Menú del hamburger: cada opción de la titlebar es un SUBMENÚ con sus items
   // reales (los mismos dropdowns de antes), más Terminal.
@@ -266,7 +273,8 @@ export function MenuBar(): JSX.Element {
         label: t('menu.account'),
         separatorBefore: true,
         onHover: openAccountPanel,
-        onClick: openAccountPanel
+        onClick: () => openAccountPanel(),
+        keepOpen: true
       }
     ],
     [menuDefinitions, commandItem, openAccountPanel]
