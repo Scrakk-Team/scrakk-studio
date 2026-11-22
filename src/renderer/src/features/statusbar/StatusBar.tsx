@@ -3,7 +3,7 @@
 // Licencia completa en LICENSE (Apache License 2.0).
 
 import { ProductIcon } from '@services/productIcons/components'
-import { useEffect, useRef, useState, type JSX } from 'react'
+import { useEffect, useRef, useState, type JSX, type MouseEvent } from 'react'
 import { SearchBar } from './components/SearchBar'
 import { LspChip } from './components/LspChip/LspChip'
 import { ProblemsChip } from './components/ProblemsChip/ProblemsChip'
@@ -20,7 +20,16 @@ import {
   type AnchoredRect
 } from '@services/modals'
 import { SortableItem } from './SortableItem'
-import { getStatusLeft, getStatusRight, subscribeToStatusBarOrder } from './order'
+import {
+  getStatusLeft,
+  getStatusRight,
+  subscribeToStatusBarOrder,
+  isDragModeEnabled,
+  toggleDragMode,
+  subscribeToDragMode
+} from './order'
+import { showContextMenu } from '@features/editor/engines/innerta/menuHost'
+import type { ContextMenuItem } from '@ui'
 import styles from './StatusBar.module.css'
 
 import { t } from '@core/i18n'
@@ -32,20 +41,29 @@ interface StatusBarProps {
 const NOTIFICATIONS_POPOVER_KEY = 'notifications-history'
 
 /**
- * Barra de estado inferior. TODOS los items son arrastrables y se reordenan
- * en vivo dentro de la barra (estilo pestañas de navegador) según el orden
- * persistido en `order.ts`. El SearchBar sigue flotando centrado.
+ * Barra de estado inferior. Orden por defecto:
+ *
+ *   [botones de paneles]  |  notificaciones, ajustes
+ *
+ * El separador es fijo entre ambos grupos. Los items se reordenan en vivo
+ * (estilo pestañas de navegador) SOLO si el usuario activó "Modo drageable"
+ * desde el menú contextual de la barra (click derecho). El SearchBar flota
+ * centrado.
  */
 export function StatusBar({ onOpenSettings }: StatusBarProps): JSX.Element {
   const bellRef = useRef<HTMLButtonElement | null>(null)
+  const barRef = useRef<HTMLElement | null>(null)
   const [popoverOpen, setPopoverOpen] = useState(false)
   const [leftOrder, setLeftOrder] = useState<string[]>(getStatusLeft)
   const [rightOrder, setRightOrder] = useState<string[]>(getStatusRight)
+  const [dragMode, setDragMode] = useState(isDragModeEnabled)
 
   useEffect(() => subscribeToStatusBarOrder(() => {
     setLeftOrder(getStatusLeft())
     setRightOrder(getStatusRight())
   }), [])
+
+  useEffect(() => subscribeToDragMode(() => setDragMode(isDragModeEnabled())), [])
 
   useEffect(
     () =>
@@ -73,6 +91,24 @@ export function StatusBar({ onOpenSettings }: StatusBarProps): JSX.Element {
       hideHeader: true,
       render: () => <NotificationsHistoryPanel />
     })
+  }
+
+  /**
+   * Menú contextual global de la barra: habilita/deshabilita el arrastre.
+   * Usa el mismo `showContextMenu` que el resto de la app; el `preventDefault`
+   * evita que el fallback global (Copiar/Pegar) se abra encima.
+   */
+  const openContextMenu = (event: MouseEvent): void => {
+    event.preventDefault()
+    const items: ContextMenuItem[] = [
+      {
+        label: t('statusbar.modo.drageable'),
+        checked: isDragModeEnabled(),
+        onClick: () => toggleDragMode()
+      }
+    ]
+    // 'above': la barra está abajo; el menú debe subir.
+    showContextMenu(event.clientX, event.clientY, items, 'above')
   }
 
   /** Render de un item por id (nada hardcodeado en el orden). */
@@ -127,11 +163,24 @@ export function StatusBar({ onOpenSettings }: StatusBarProps): JSX.Element {
   }
 
   return (
-    <footer className={styles.bar} aria-label={t('statusbar.barra.de.estado')}>
-      {/* Izquierda: items arrastrables entre sí (estilo pestañas). */}
+    <footer
+      ref={barRef}
+      className={styles.bar}
+      aria-label={t('statusbar.barra.de.estado')}
+      onContextMenu={openContextMenu}
+    >
+      {/* Izquierda: botones de paneles, arrastrables entre sí si el modo está
+          activo. El orden por defecto termina en `layout`. */}
       <div className={styles.group}>
         {leftOrder.map((id) => (
-          <SortableItem key={id} id={id}>{renderItem(id)}</SortableItem>
+          <SortableItem
+            key={id}
+            id={id}
+            dragEnabled={dragMode}
+            getBarRect={() => barRef.current?.getBoundingClientRect() ?? null}
+          >
+            {renderItem(id)}
+          </SortableItem>
         ))}
       </div>
 
@@ -141,10 +190,17 @@ export function StatusBar({ onOpenSettings }: StatusBarProps): JSX.Element {
       {/* Separador FIJO entre ambos grupos (no se arrastra). */}
       <span className={[styles.separator, styles.separatorPush].join(' ')} aria-hidden="true" />
 
-      {/* Derecha: actions fijas en su sitio (también se reordenan entre sí). */}
+      {/* Derecha: notificaciones y ajustes, anclados y reordenables entre sí. */}
       <div className={[styles.group, styles.groupRight].join(' ')}>
         {rightOrder.map((id) => (
-          <SortableItem key={id} id={id}>{renderItem(id)}</SortableItem>
+          <SortableItem
+            key={id}
+            id={id}
+            dragEnabled={dragMode}
+            getBarRect={() => barRef.current?.getBoundingClientRect() ?? null}
+          >
+            {renderItem(id)}
+          </SortableItem>
         ))}
       </div>
     </footer>

@@ -588,13 +588,17 @@ published are not edited. The file goes per version:
   the right bar and the Tabs panel opens on the right, like all other panels.
 
 ### Status bar (UI)
-- **Status-bar items are reorderable by drag, like browser tabs.** Every chip
-  in the left group (LSP, Git, Problems, cursor, encoding, extension items)
-  can be dragged onto another to change its position in real time, and the
-  order persists in localStorage. The drag image is invisible and the items
-  stay inside the bar — they only slide among themselves. The right group
-  (layout toggles, notifications, settings) stays anchored on the right and
-  reorders only within itself, with a fixed separator between the two groups.
+- **Status-bar items can be reordered like browser tabs — when you opt in.**
+  Right-click the status bar and enable **Drag mode** in the shared context
+  menu (it is off by default, so chip clicks keep working normally). With it
+  on, pointer-drag any chip: the item itself slides under the cursor, clamped
+  to the bar so it never floats outside, and neighbours shift live. The order
+  persists in localStorage. The layout is `[panel buttons] | notifications,
+  settings`: panel buttons (LSP, Git, Problems, cursor, encoding, extension
+  items and layout toggles) reorder on the left, notifications and settings
+  stay anchored on the right and reorder only among themselves, with a fixed
+  separator between the two groups. Drag uses pointer events instead of HTML5
+  DnD because Chromium won't start a native drag from a `<button>` chip.
 
 ### Accounts (global)
 - **Switching accounts now follows you across the app.** A small global store

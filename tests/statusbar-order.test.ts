@@ -15,18 +15,22 @@ vi.stubGlobal('localStorage', {
 
 const {
   DEFAULT_LEFT, DEFAULT_RIGHT, getStatusLeft, getStatusRight,
-  moveStatusBarItem, resetStatusBarOrder, subscribeToStatusBarOrder
+  moveStatusBarItem, resetStatusBarOrder, subscribeToStatusBarOrder,
+  isDragModeEnabled, setDragMode, toggleDragMode, subscribeToDragMode,
+  _resetOrderForTests
 } = await import('../src/renderer/src/features/statusbar/order')
 
 beforeEach(() => {
   store.clear()
-  resetStatusBarOrder()
+  _resetOrderForTests()
 })
 
 describe('status bar order', () => {
-  it('empieza en el orden por defecto (izq y der separados)', () => {
+  it('orden por defecto: [botones de paneles] | notificaciones, ajustes', () => {
     expect(getStatusLeft()).toEqual([...DEFAULT_LEFT])
-    expect(getStatusRight()).toEqual([...DEFAULT_RIGHT])
+    expect(getStatusLeft().at(-1)).toBe('layout') // los toggles van a la izq
+    expect(getStatusRight()).toEqual(['bell', 'settings'])
+    expect(DEFAULT_RIGHT).not.toContain('sep-right') // separador fuera
   })
 
   it('reordena items de la izquierda', () => {
@@ -36,11 +40,11 @@ describe('status bar order', () => {
   })
 
   it('reordena items de la derecha SIN sacarlos del grupo', () => {
-    moveStatusBarItem('settings', 'layout', true)
+    moveStatusBarItem('settings', 'bell', true)
     const order = getStatusRight()
-    expect(order.indexOf('settings')).toBe(order.indexOf('layout') - 1)
+    expect(order.indexOf('settings')).toBe(order.indexOf('bell') - 1)
     expect(getStatusLeft()).toEqual([...DEFAULT_LEFT])
-    expect(order).not.toContain('sep-right') // el separador está fuera
+    expect(order).not.toContain('sep-right')
   })
 
   it('no mezcla grupos', () => {
@@ -63,6 +67,31 @@ describe('status bar order', () => {
     const off = subscribeToStatusBarOrder(listener)
     moveStatusBarItem('git', 'git', true)
     expect(listener).not.toHaveBeenCalled()
+    off()
+  })
+})
+
+describe('status bar drag mode', () => {
+  it('está desactivado por defecto', () => {
+    expect(isDragModeEnabled()).toBe(false)
+  })
+
+  it('se activa/desactiva y persiste', () => {
+    toggleDragMode()
+    expect(isDragModeEnabled()).toBe(true)
+    expect(store.get('scrakk:statusbar-drag-mode')).toBe('true')
+    setDragMode(false)
+    expect(isDragModeEnabled()).toBe(false)
+    expect(store.get('scrakk:statusbar-drag-mode')).toBe('false')
+  })
+
+  it('notifica a los suscriptores', () => {
+    const listener = vi.fn()
+    const off = subscribeToDragMode(listener)
+    toggleDragMode()
+    expect(listener).toHaveBeenCalledTimes(1)
+    setDragMode(true) // idem: no notifica
+    expect(listener).toHaveBeenCalledTimes(1)
     off()
   })
 })

@@ -61,8 +61,15 @@
   border-radius: var(--radius-sm);
 }
 
+/* Con el modo drageable activo, el cursor invita a arrastrar. */
+.sortableDragEnabled {
+  cursor: grab;
+}
+
 .sortableDragging {
-  opacity: 0.45;
+  position: relative;
+  z-index: 5;
+  cursor: grabbing !important;
   background: color-mix(in srgb, var(--color-accent) 18%, transparent) !important;
   border-radius: var(--radius-sm);
 }

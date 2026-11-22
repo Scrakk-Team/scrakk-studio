@@ -5,19 +5,25 @@
 /**
  * Orden de los items de la status bar (patrón del repo: Map + Set + emit).
  *
- * Dos grupos INDEPENDIENTES: los de la izquierda se reordenan entre sí y los
- * de la derecha (layout, campana, ajustes) se quedan anclados ahí, como en un
- * IDE. Se persiste en localStorage y se publica a la barra.
+ * Dos grupos INDEPENDIENTES separados por un separador FIJO:
+ *
+ *   [botones de paneles]  |  notificaciones, ajustes
+ *
+ * Izquierda (panel buttons, incluye los toggles de layout): lsp, git,
+ * problems, cursor, encoding, extension items y layout. Derecha: SOLO campana
+ * y ajustes. Cada grupo se reordena entre sí, sin mezclarse. Se persiste en
+ * localStorage y se publica a la barra.
  */
 
 const STORAGE_KEY = 'scrakk:statusbar-order'
+const DRAG_MODE_KEY = 'scrakk:statusbar-drag-mode'
 
-/** Izquierda: información del workspace. Derecha: acciones/chrome (FIJO ahí). */
+/** Izquierda: información/workspace + toggles de paneles. */
 export const DEFAULT_LEFT = [
-  'lsp', 'git', 'problems', 'sep-left', 'cursor', 'encoding', 'ext-left'
+  'lsp', 'git', 'problems', 'sep-left', 'cursor', 'encoding', 'ext-left', 'layout'
 ] as const
-/** El separador vive FUERA de los grupos (entre izq y der), no es arrastrable. */
-export const DEFAULT_RIGHT = ['layout', 'bell', 'settings'] as const
+/** Derecha: notificaciones y ajustes, en ese orden (el `|` está fuera). */
+export const DEFAULT_RIGHT = ['bell', 'settings'] as const
 
 type Listener = () => void
 const listeners = new Set<Listener>()
@@ -107,9 +113,51 @@ export function subscribeToStatusBarOrder(listener: () => void): () => void {
   return () => { listeners.delete(listener) }
 }
 
+/**
+ * Modo drageable: el drag está DESACTIVADO por defecto para que los clicks de
+ * los chips funcionen normal. Se activa con click derecho sobre la statusbar →
+ * "Modo drageable" (menú contextual global).
+ */
+const dragModeListeners = new Set<() => void>()
+let dragMode = loadDragMode()
+
+function loadDragMode(): boolean {
+  try {
+    return localStorage.getItem(DRAG_MODE_KEY) === 'true'
+  } catch {
+    return false
+  }
+}
+
+export function isDragModeEnabled(): boolean {
+  return dragMode
+}
+
+export function setDragMode(enabled: boolean): void {
+  if (dragMode === enabled) return
+  dragMode = enabled
+  try {
+    localStorage.setItem(DRAG_MODE_KEY, String(enabled))
+  } catch { /* sin storage: solo memoria */ }
+  for (const listener of [...dragModeListeners]) {
+    try { listener() } catch { /* suscriptor roto */ }
+  }
+}
+
+export function toggleDragMode(): void {
+  setDragMode(!dragMode)
+}
+
+export function subscribeToDragMode(listener: () => void): () => void {
+  dragModeListeners.add(listener)
+  return () => { dragModeListeners.delete(listener) }
+}
+
 /** Solo tests. */
 export function _resetOrderForTests(): void {
   left = [...DEFAULT_LEFT]
   right = [...DEFAULT_RIGHT]
   listeners.clear()
+  dragMode = false
+  dragModeListeners.clear()
 }
