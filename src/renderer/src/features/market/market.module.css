@@ -12,6 +12,9 @@
   flex: 1;
   min-height: 0;
   overflow: hidden;
+  /* Para que la barra de orden responda al ancho del PANEL (no de la ventana). */
+  container-type: inline-size;
+  container-name: market;
 }
 
 /* ── Toolbar: search + tabs ─────────────────────────────────────────────── */
@@ -237,6 +240,21 @@
   justify-content: space-between;
   gap: var(--space-2);
   flex-wrap: wrap;
+  width: 100%;
+  min-width: 0;
+}
+
+/* El grupo de tabs ocupa el ancho disponible y reparte las 4 opciones; cuando
+   el panel es angosto, SegmentedTabs (flex-wrap) las baja a otra línea. */
+.feedRow > [role='tablist'] {
+  flex: 1 1 100%;
+  min-width: 0;
+}
+
+@container market (min-width: 520px) {
+  .feedRow > [role='tablist'] {
+    flex: 1 1 auto;
+  }
 }
 
 .days {
