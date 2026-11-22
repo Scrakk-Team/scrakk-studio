@@ -18,10 +18,10 @@ import { ProductIcon } from '@services/productIcons/components'
 import { HeaderActionButton, usePanelTitle } from '@features/layout'
 import {
   activateTabSmart,
-  closePanelTabEverywhere,
   closeTabSmart,
   tabIconFor,
-  tabLabelFor
+  tabLabelFor,
+  toggleSlotPanel
 } from '../../actions'
 import { tabsStore, setTabsDocked, type StripId, type StripState, type TabSpec } from '@features/tabs'
 import styles from './TabsPanel.module.css'
@@ -66,7 +66,7 @@ export function TabsPanel(): JSX.Element {
         size="sm"
         onClick={() => {
           setTabsDocked(false)
-          closePanelTabEverywhere('tabs')
+          toggleSlotPanel('left', 'tabs')
         }}
       />
     ))

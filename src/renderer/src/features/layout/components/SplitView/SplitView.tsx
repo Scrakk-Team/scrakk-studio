@@ -12,7 +12,7 @@ import {
   subscribeToTabsDocked
 } from '@features/tabs'
 import { ProductIcon } from '@services/productIcons/components'
-import { openPanelTab } from '../../actions'
+import { toggleSlotPanel } from '../../actions'
 import { SlotBody } from '../PanelLayout/SlotBody'
 import { ResizeHandle } from '../ResizeHandle/ResizeHandle'
 import { flushLayoutPersist } from '../../state/LayoutContext'
@@ -57,13 +57,13 @@ export function SplitView({ slot, onAddTab, actions }: { slot: SlotId; onAddTab?
             label: docked ? t('layout.tabs.arriba') : t('layout.tabs.al.panel'),
             icon: <ProductIcon id="tabs" size={15} aria-hidden="true" />,
             onClick: () => {
-              // Acoplar oculta la barra y abre el panel (donde viven las tabs).
-              // Desacoplar revierte el modo; el panel lo cierra su propia acción.
-              if (isTabsDocked()) setTabsDocked(false)
-              else {
-                setTabsDocked(true)
-                openPanelTab('left', 'tabs')
-              }
+              // Acoplar oculta la barra y ABRE EL PANEL de la activitybar (no
+              // una tab en el slot): toggleSlotPanel es el mismo camino que
+              // usa el botón de la barra, así el panel se muestra/cierra ahí.
+              // Desacoplar revierte el modo y cierra ese panel.
+              const next = !isTabsDocked()
+              setTabsDocked(next)
+              toggleSlotPanel('left', 'tabs')
             }
           }
         ]

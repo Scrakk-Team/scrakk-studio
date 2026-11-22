@@ -574,6 +574,12 @@ published are not edited. The file goes per version:
   proicons) — unique to this feature, so it no longer collides with `layers`
   (generic), `panel-left` (activity bar / status bar layout toggles) or
   `file-multiple` (AI tools).
+- **The dock-tabs button now opens the real activity-bar panel.** Pressing
+  "Show tabs in panel" used to spawn a `tabs` TAB inside the left slot instead
+  of showing the panel in the activity bar, and there was no way back. It now
+  goes through `toggleSlotPanel('left','tabs')` — the same path the activity-bar
+  button uses — so the panel opens/closes in place, and the panel header's
+  "back to bar" action and the `tabs.toggleDocked` command close it the same way.
 
 ### Tabs (settings)
 - **Experimental: same-size tabs with a configurable width.** A new toggle

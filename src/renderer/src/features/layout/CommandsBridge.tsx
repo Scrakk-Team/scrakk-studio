@@ -16,7 +16,6 @@ import { toggleHistoryView } from './panels/HistoryPanel/viewState'
 import { setSkillsViewOpen } from './panels/SkillsPanel/viewState'
 
 import { isTabsDocked, setTabsDocked } from '@features/tabs'
-import { closePanelTabEverywhere } from './actions'
 import { t } from '@core/i18n'
 import { LAYOUT_TOGGLES } from './panelToggles'
 export function LayoutCommandsBridge(): JSX.Element | null {
@@ -71,17 +70,14 @@ export function LayoutCommandsBridge(): JSX.Element | null {
       // llega a la app. Ctrl+Alt+P (Panel) no choca con el escritorio.
       keybinding: 'mod+alt+p',
       run: () => {
-        if (isTabsDocked()) {
-          setTabsDocked(false)
-          closePanelTabEverywhere('tabs')
-          return
-        }
-        setTabsDocked(true)
-        openPanelTab('left', 'tabs')
+        const next = !isTabsDocked()
+        setTabsDocked(next)
+        // Abre/cierra el PANEL de la activitybar (mismo camino que el botón).
+        toggleSlotPanel('left', 'tabs')
       }
     })
     return unsub
-  }, [openPanelTab])
+  }, [toggleSlotPanel])
 
   // Los slots se leen solo para que el hook reaccione al estado actual.
   void slots
