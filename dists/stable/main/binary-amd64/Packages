@@ -1,0 +1,14 @@
+Package: scrakk-studio
+Version: 0.1.6
+Architecture: amd64
+Maintainer: Scrakk Studio <founder@scrakk.art>
+Installed-Size: 300000
+Depends: libnss3, libatk1.0-0, libatk-bridge2.0-0, libcups2, libdrm2, libgtk-3-0, libxkbcommon0, libxcomposite1, libxdamage1, libxrandr2, libgbm1, libasound2, libpango-1.0-0, libcairo2, libx11-6, libxext6, libxfixes3, libxss1, libglib2.0-0
+Homepage: https://scrakk.art
+Description: Scrakk Studio - IDE for chat, code and agents
+Filename: pool/main/s/scrakk-studio/Scrakk-Studio-0.1.6.deb
+Size: 132288192
+MD5sum: 60364c4c1cb878ab1ff947e3b228110c
+SHA1: 91373a3d8d6b870b18bc8c910670d7fdc88f3862
+SHA256: e86e187daa3ec12ddb2fbfb01d519c59092a49fd76619d6069661320502fef41
+

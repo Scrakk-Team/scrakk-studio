@@ -1,0 +1,18 @@
+Origin: Scrakk Studio
+Label: Scrakk Studio
+Suite: stable
+Codename: stable
+Version: 0.1.6
+Architectures: amd64
+Components: main
+Description: Scrakk Studio APT repository
+Date: Sun, 22 Nov 2026 23:31:21 GMT
+MD5Sum:
+ b38f03810370cb6e1d189e3e8b29d2db 694 main/binary-amd64/Packages
+ 46383126e77812e035ae16f6239e6c00 453 main/binary-amd64/Packages.gz
+SHA1:
+ d5cabfbc2ef6147fa1ab5ef2ce49200b1167f7de 694 main/binary-amd64/Packages
+ 7d315ac86254213ae2721f6d858e591e8fad0cb5 453 main/binary-amd64/Packages.gz
+SHA256:
+ b4a457b0ba2d6b189e8830f8ee31c9cb2edf9e45b912db0afc49a26e4ccdb952 694 main/binary-amd64/Packages
+ c2368292e7738c94f677f2bc3b07cf3591a8766a9c64ba84dc63b3f4665abfc4 453 main/binary-amd64/Packages.gz
