@@ -239,7 +239,7 @@
   "settings.tema.por.proyecto": "Tema por proyecto",
   "settings.tema.por.proyecto.hint": "Guarda el tema activo en .scrakk/theme.json del proyecto y lo aplica al abrirlo. Al desactivarlo, ignora ese archivo y vuelve al tema que tenías.",
   "settings.activitybar.centrado": "Iconos de la activity bar",
-  "settings.activitybar.centrado.hint": "Normal los deja arriba, Centrado los centra, y Rueda 3D pone el botón del centro como activo (arriba y abajo se desvanecen) y cambia de panel con la rueda del mouse. Aplica a ambas barras.",
+  "settings.activitybar.centrado.hint": "Normal los deja arriba, Centrado los centra, y Rueda 3D pone el botón del centro como activo (arriba y abajo se desvanecen): con la rueda del mouse seleccionas y abres el panel de ese botón. Aplica a ambas barras.",
   "settings.activitybar.normal": "Normal (arriba)",
   "settings.activitybar.centered": "Centrado",
   "settings.activitybar.wheel": "Rueda 3D",

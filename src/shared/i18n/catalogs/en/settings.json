@@ -255,7 +255,7 @@
   "settings.tema.por.proyecto": "Per-project theme",
   "settings.tema.por.proyecto.hint": "Saves the active theme to the project's .scrakk/theme.json and applies it when you open that project. Turning it off ignores that file and restores your own theme.",
   "settings.activitybar.centrado": "Activity bar icons",
-  "settings.activitybar.centrado.hint": "Default keeps icons at the top, Centered centers them, and 3D wheel makes the middle button the active one (the ones above and below fade) and switches panels with the mouse wheel. Applies to both bars.",
+  "settings.activitybar.centrado.hint": "Default keeps icons at the top, Centered centers them, and 3D wheel makes the middle button the active one (the ones above and below fade): scrolling the mouse wheel selects and opens that button's panel. Applies to both bars.",
   "settings.activitybar.normal": "Default (top)",
   "settings.activitybar.centered": "Centered",
   "settings.activitybar.wheel": "3D wheel",

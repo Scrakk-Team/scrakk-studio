@@ -41,7 +41,7 @@ import styles from './ActivityBar.module.css'
 import { t } from '@core/i18n'
 
 export function ActivityBar({ side }: { side: ActivityBarSide }): JSX.Element | null {
-  const { slots, toggleSlotPanel } = useLayout()
+  const { slots, setSlotPanel, toggleSlotPanel } = useLayout()
   const [version, setVersion] = useState(0)
   const [mode, setMode] = useState(getActivityBarMode)
   const [disabledSide, setDisabledSide] = useState(getDisabledActivitySide)
@@ -105,21 +105,27 @@ export function ActivityBar({ side }: { side: ActivityBarSide }): JSX.Element | 
     })
   }
 
-  /** Activa el panel del botón en la barra visible (o la efectiva si hay drag). */
+  /**
+   * Activa el panel del botón en la barra visible (o la efectiva si hay drag).
+   * `openOnly` abre/enfoca SIEMPRE (para la rueda: no queremos que el scroll
+   * cierre el panel si ya estaba abierto).
+   */
   const onActivate = useCallback(
-    (button: ActivityBarButton): void => {
+    (button: ActivityBarButton, openOnly = false): void => {
       const targetSide = merged ? side : activityButtonSlot(button.id, side)
       // El botón "tabs" desacopla al cerrarse (el modo se activa desde el
       // botón del strip / comando, no desde acá).
-      if (button.id === 'tabs' && slots[targetSide] === button.panelId) {
+      if (button.id === 'tabs' && slots[targetSide] === button.panelId && !openOnly) {
         setTabsDocked(false)
       }
-      toggleSlotPanel(targetSide, button.panelId)
+      if (openOnly) setSlotPanel(targetSide, button.panelId)
+      else toggleSlotPanel(targetSide, button.panelId)
     },
-    [merged, side, slots, toggleSlotPanel]
+    [merged, side, slots, setSlotPanel, toggleSlotPanel]
   )
 
   const onCenterIndexChange = useCallback((index: number) => setCenterIndex(index), [])
+  const onOpen = useCallback((button: ActivityBarButton) => onActivate(button, true), [onActivate])
 
   // Barra desactivada: fuera del layout (los botones los dibuja la otra).
   if (disabledSide === side) return null
@@ -140,6 +146,7 @@ export function ActivityBar({ side }: { side: ActivityBarSide }): JSX.Element | 
         mode={mode}
         centerIndex={centerIndex}
         onCenterIndexChange={onCenterIndexChange}
+        onOpen={onOpen}
         ghostId={ghost?.id ?? null}
         onButtonPointerDown={onButtonPointerDown}
         onActivate={onActivate}

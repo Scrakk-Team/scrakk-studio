@@ -629,9 +629,10 @@ published are not edited. The file goes per version:
 - **Three icon layouts (both bars).** Settings → Experimental now has an
   activity-bar mode picker: default (icons at the top), centered (vertically
   centered) and 3D wheel. In wheel mode the middle button is the active one,
-  the buttons above and below fade out, and scrolling the mouse wheel moves
-  the focus and switches panels; clicking a faded button brings it to the
-  middle. The button rendering lives in its own
+  the buttons above and below fade out, and scrolling the mouse wheel selects
+  the middle button and **opens its panel** (it never just hovers, and it does
+  not close an already-open panel); clicking a faded button centres it and
+  opens it too. The button rendering lives in its own
   `components/ActivityBarItems` component and the preference in the
   `services/activityBarSettings` module (following the repo's service layout).
 - **Disable one activity bar.** A second picker lets you hide the left or the

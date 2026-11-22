@@ -30,6 +30,8 @@ interface ActivityBarItemsProps {
   mode: ActivityBarMode
   centerIndex: number
   onCenterIndexChange: (index: number) => void
+  /** Abre (sin alternar) el panel del botón seleccionado con la rueda. */
+  onOpen: (button: ActivityBarButton) => void
   ghostId: string | null
   onButtonPointerDown: (event: ReactPointerEvent, id: string) => void
   onActivate: (button: ActivityBarButton) => void
@@ -41,6 +43,7 @@ export function ActivityBarItems({
   mode,
   centerIndex,
   onCenterIndexChange,
+  onOpen,
   ghostId,
   onButtonPointerDown,
   onActivate
@@ -59,11 +62,15 @@ export function ActivityBarItems({
       const delta = event.deltaY > 0 ? 1 : event.deltaY < 0 ? -1 : 0
       if (delta === 0) return
       const next = Math.max(0, Math.min(buttons.length - 1, centerIndex + delta))
+      if (next === centerIndex) return
+      // El scroll NO es un hover: selecciona y ABRE el panel del botón central.
       onCenterIndexChange(next)
+      preloadPanel(buttons[next].panelId)
+      onOpen(buttons[next])
     }
     container.addEventListener('wheel', onWheel, { passive: false })
     return () => container.removeEventListener('wheel', onWheel)
-  }, [mode, buttons.length, centerIndex, onCenterIndexChange])
+  }, [mode, buttons, centerIndex, onCenterIndexChange, onOpen])
 
   const containerClass =
     mode === 'wheel' ? styles.wheel : mode === 'centered' ? styles.centered : styles.plain
@@ -113,6 +120,7 @@ export function ActivityBarItems({
               // al centro; el centro es el que manda (clicks para activar).
               if (mode === 'wheel' && !wheelCenter) {
                 onCenterIndexChange(index)
+                onOpen(button)
                 return
               }
               onActivate(button)
