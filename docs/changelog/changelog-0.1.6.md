@@ -570,9 +570,10 @@ published are not edited. The file goes per version:
   grab/grabbing, and a drag no longer triggers the button's action.
 - **The dock-tabs action has a proper icon.** The "Show tabs in panel" button in
   the tab container, the Tabs activity-bar button and the Tabs panel placeholder
-  swapped the generic `layers` glyph for `file-multiple`, which actually means
-  "several tabs" and does not collide with the `panel-left` icon already used
-  by the activity bar and the status bar layout toggles.
+  now use a new dedicated `tabs` product icon (`WindowMultipleIcon` from
+  proicons) — unique to this feature, so it no longer collides with `layers`
+  (generic), `panel-left` (activity bar / status bar layout toggles) or
+  `file-multiple` (AI tools).
 
 ### Tabs (settings)
 - **Experimental: same-size tabs with a configurable width.** A new toggle

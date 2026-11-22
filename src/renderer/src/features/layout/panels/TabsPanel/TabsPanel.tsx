@@ -82,7 +82,7 @@ export function TabsPanel(): JSX.Element {
     return (
       <div className={styles.panel}>
         <div className={styles.placeholder}>
-          <ProductIcon id="file-multiple" size={24} className={styles.icon} aria-hidden="true" />
+          <ProductIcon id="tabs" size={24} className={styles.icon} aria-hidden="true" />
           <p className={styles.empty}>{t('layout.tabs.ninguna')}</p>
         </div>
       </div>

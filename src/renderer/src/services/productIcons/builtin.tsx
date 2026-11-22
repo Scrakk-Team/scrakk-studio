@@ -89,6 +89,7 @@ import {
   TerminalIcon,
   TimerIcon,
   VolumeHighIcon,
+  WindowMultipleIcon,
   XIcon
 } from '@proicons/react'
 import { CenterPanelViewIcon } from '@ui'
@@ -207,6 +208,7 @@ export const BUILTIN_PRODUCT_ICONS: BuiltinProductIconEntry[] = [
   { id: 'chart', component: BarChart, synonyms: ['graph', 'bar-chart'] },
   { id: 'box', component: BoxIcon },
   /* ── Glyphs de tools de IA (uno por tool, congruente con su función) ── */
+  { id: 'tabs', component: WindowMultipleIcon, synonyms: ['tab', 'window-multiple'] },
   { id: 'file-multiple', component: FileMultipleIcon },
   { id: 'arrow-right', component: ArrowRightIcon, synonyms: ['move', 'arrow-move'] },
   { id: 'reply', component: ArrowReplyIcon, synonyms: ['arrow-reply', 'answer'] },
