@@ -55,7 +55,7 @@ export function SplitView({ slot, onAddTab, actions }: { slot: SlotId; onAddTab?
           {
             id: 'tabs.dock',
             label: docked ? t('layout.tabs.arriba') : t('layout.tabs.al.panel'),
-            icon: <ProductIcon id="layers" size={15} aria-hidden="true" />,
+            icon: <ProductIcon id={docked ? 'panel-left' : 'panel-left-open'} size={15} aria-hidden="true" />,
             onClick: () => {
               // Acoplar oculta la barra y abre el panel (donde viven las tabs).
               // Desacoplar revierte el modo; el panel lo cierra su propia acción.
