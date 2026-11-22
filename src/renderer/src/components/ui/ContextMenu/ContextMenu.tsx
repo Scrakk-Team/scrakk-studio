@@ -17,6 +17,8 @@ export interface ContextMenuItem {
   sublabel?: string
   /** Acción del item. Opcional para items informativos/deshabilitados. */
   onClick?: () => void
+  /** Acción al pasar el cursor (ej. abrir un panel sin hacer click). */
+  onHover?: () => void
   /** Ícono opcional a la izquierda del label. */
   icon?: ReactNode
   /** Marca el item como activo (check a la izquierda). */
@@ -109,7 +111,10 @@ export function ContextMenu({ items, x, y, onClose, placement = 'below' }: Conte
           <div
             key={index}
             className={styles.row}
-            onMouseEnter={() => setOpenSub(hasSub ? index : null)}
+            onMouseEnter={() => {
+              setOpenSub(hasSub ? index : null)
+              if (!item.disabled) item.onHover?.()
+            }}
           >
             {item.separatorBefore ? <div className={styles.separator} /> : null}
             <button

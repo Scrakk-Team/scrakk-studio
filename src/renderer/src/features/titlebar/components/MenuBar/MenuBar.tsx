@@ -79,6 +79,8 @@ export function MenuBar(): JSX.Element {
    * Marcamos el cierre en pointerdown y el onClick lo consume.
    */
   const closingByButtonRef = useRef(false)
+  /** Evita que el hover sobre "Cuenta" abra el panel más de una vez. */
+  const accountHoveredRef = useRef(false)
 
   // Abre el menú del hamburger, anclado abajo del botón.
   const openMenu = useCallback((): void => {
@@ -86,6 +88,7 @@ export function MenuBar(): JSX.Element {
     if (!btn) return
     const rect = btn.getBoundingClientRect()
     setAnchor({ x: rect.left, y: rect.bottom + 2 })
+    accountHoveredRef.current = false
     setMenuOpen(true)
   }, [])
 
@@ -227,8 +230,9 @@ export function MenuBar(): JSX.Element {
     }
   }, [locale, theme, slots, historyOpen, editAction, commandItem])
 
-  /** "Cuenta": abre el selector de cuentas como panel anclado al hamburger. */
+  /** "Cuenta": abre el selector con sólo pasar el cursor por la opción. */
   const openAccountPanel = useCallback((): void => {
+    if (accountHoveredRef.current) return
     const btn = hamRef.current
     if (!btn) return
     const rect = btn.getBoundingClientRect()
@@ -242,7 +246,11 @@ export function MenuBar(): JSX.Element {
       align: 'start',
       render: () => <AccountPanel onClose={() => { if (handle) closeModal(handle) }} />
     })
-  }, [])
+    // Sólo marcamos como "ya abierto" si el modal quedó abierto (si estaba
+    // abierto, showAnchoredModal lo cerró y devolvió null).
+    accountHoveredRef.current = handle !== null
+    close()
+  }, [close])
 
   // Menú del hamburger: cada opción de la titlebar es un SUBMENÚ con sus items
   // reales (los mismos dropdowns de antes), más Terminal.
@@ -254,7 +262,12 @@ export function MenuBar(): JSX.Element {
       })),
       commandItem('terminal.toggle', { separatorBefore: true }),
       commandItem('terminal.new'),
-      { label: t('menu.account'), separatorBefore: true, onClick: openAccountPanel }
+      {
+        label: t('menu.account'),
+        separatorBefore: true,
+        onHover: openAccountPanel,
+        onClick: openAccountPanel
+      }
     ],
     [menuDefinitions, commandItem, openAccountPanel]
   )

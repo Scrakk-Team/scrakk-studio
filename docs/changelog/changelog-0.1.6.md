@@ -611,8 +611,10 @@ published are not edited. The file goes per version:
 - **Account switcher in the hamburger menu.** The title-bar avatar button was
   removed: the app menu now has an **Account** option that opens the same
   `AccountSwitcher` used by the Social panel in an anchored panel under the
-  hamburger button. You can switch, add or remove accounts without leaving
-  your current panel; "Add account" opens the Social panel's sign-in flow.
+  hamburger button — it opens on **hover** over the option (click works too).
+  The panel shows the active account's photo and name above the switcher, and
+  you can switch, add or remove accounts without leaving your current panel;
+  "Add account" opens the Social panel's sign-in flow.
   A standalone avatar in the title bar was hidden by the OS window controls
   (min/max/close), which `env(titlebar-area-*)` does not reserve on Linux.
 
