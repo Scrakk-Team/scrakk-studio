@@ -13,6 +13,7 @@ import {
 } from '@features/tabs'
 import { ProductIcon } from '@services/productIcons/components'
 import { toggleSlotPanel } from '../../actions'
+import { activityButtonSlot } from '@features/activitybar/layout'
 import { SlotBody } from '../PanelLayout/SlotBody'
 import { ResizeHandle } from '../ResizeHandle/ResizeHandle'
 import { flushLayoutPersist } from '../../state/LayoutContext'
@@ -63,7 +64,7 @@ export function SplitView({ slot, onAddTab, actions }: { slot: SlotId; onAddTab?
               // Desacoplar revierte el modo y cierra ese panel.
               const next = !isTabsDocked()
               setTabsDocked(next)
-              toggleSlotPanel('left', 'tabs')
+              toggleSlotPanel(activityButtonSlot('tabs'), 'tabs')
             }
           }
         ]

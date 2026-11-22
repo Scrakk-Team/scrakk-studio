@@ -15,6 +15,7 @@
 import { ExtensionRegistry } from '@services/extensions'
 import { activityBarButtons } from './registry'
 import type { ActivityBarButton, ActivityBarSide } from './types'
+import type { SlotId } from '@features/layout/types'
 
 export interface ButtonOverride {
   side: ButtonSide
@@ -119,6 +120,19 @@ export function getOrderedButtons(side: ActivityBarSide): ActivityBarButton[] {
   return allActivityButtons()
     .filter((button) => effectiveOf(button).side === side)
     .sort((a, b) => effectiveOf(a).order - effectiveOf(b).order)
+}
+
+/**
+ * Slot del layout donde debe abrirse el panel de un botón.
+ *
+ * Respeta dónde el usuario draggeó el ícono (barra izq/der). Si lo movió al
+ * ToolDock no hay slot lateral asociado → se devuelve el fallback. Así ningún
+ * panel queda harcodeado a 'left'.
+ */
+export function activityButtonSlot(id: string, fallback: SlotId = 'left'): SlotId {
+  const position = buttonPosition(id)
+  if (position?.side === 'left' || position?.side === 'right') return position.side
+  return fallback
 }
 
 /** Botones dockeados en el ToolDock (side override = 'toolDock'), ordenados. */

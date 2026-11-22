@@ -23,6 +23,7 @@ import {
   tabLabelFor,
   toggleSlotPanel
 } from '../../actions'
+import { activityButtonSlot } from '@features/activitybar/layout'
 import { tabsStore, setTabsDocked, type StripId, type StripState, type TabSpec } from '@features/tabs'
 import styles from './TabsPanel.module.css'
 
@@ -66,7 +67,7 @@ export function TabsPanel(): JSX.Element {
         size="sm"
         onClick={() => {
           setTabsDocked(false)
-          toggleSlotPanel('left', 'tabs')
+          toggleSlotPanel(activityButtonSlot('tabs'), 'tabs')
         }}
       />
     ))

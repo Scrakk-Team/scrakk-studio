@@ -16,6 +16,7 @@ import { toggleHistoryView } from './panels/HistoryPanel/viewState'
 import { setSkillsViewOpen } from './panels/SkillsPanel/viewState'
 
 import { isTabsDocked, setTabsDocked } from '@features/tabs'
+import { activityButtonSlot } from '@features/activitybar/layout'
 import { t } from '@core/i18n'
 import { LAYOUT_TOGGLES } from './panelToggles'
 export function LayoutCommandsBridge(): JSX.Element | null {
@@ -73,7 +74,7 @@ export function LayoutCommandsBridge(): JSX.Element | null {
         const next = !isTabsDocked()
         setTabsDocked(next)
         // Abre/cierra el PANEL de la activitybar (mismo camino que el botón).
-        toggleSlotPanel('left', 'tabs')
+        toggleSlotPanel(activityButtonSlot('tabs'), 'tabs')
       }
     })
     return unsub

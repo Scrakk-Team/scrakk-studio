@@ -582,8 +582,10 @@ published are not edited. The file goes per version:
   "back to bar" action and the `tabs.toggleDocked` command close it the same way.
   The Tabs button keeps its `when: 'tabsDocked'` (it only shows while docked —
   the mode is started from the strip button or the `tabs.toggleDocked` command),
-  and its click now opens the panel in the bar where the user actually dragged
-  the button, via `buttonPosition()` instead of a hardcoded left side.
+  and the panel now opens in the bar where the user actually dragged the button
+  — `activityButtonSlot('tabs')` replaces every hardcoded `'left'` in the strip
+  action, the panel header, the command and the activity-bar click. Drag it to
+  the right bar and the Tabs panel opens on the right, like all other panels.
 
 ### Tabs (settings)
 - **Experimental: same-size tabs with a configurable width.** A new toggle
