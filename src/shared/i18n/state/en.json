@@ -13099,6 +13099,1102 @@
       "needsReview": false,
       "at": "2026-10-26T01:11:45.136Z",
       "approvedAt": "2026-10-26T01:11:45.136Z"
+    },
+    "explorer.elementos": {
+      "src": "e160af1aa5c89cc9",
+      "area": "explorer",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "explorer.expandir.todas.las.carpetas": {
+      "src": "494896c60ab62d11",
+      "area": "explorer",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "features.ambito.de.marcadores": {
+      "src": "010e1c06758f84a5",
+      "area": "features",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "features.ambito.este.archivo": {
+      "src": "72b1480c422dcc42",
+      "area": "features",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "features.preview.bytes.caducado": {
+      "src": "3cb55fa63cbabeb4",
+      "area": "features",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "features.preview.binario.no.disponible": {
+      "src": "b72a91cb62a1896f",
+      "area": "features",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "features.preview.binario.pronto": {
+      "src": "84c6e20bd8d9cd86",
+      "area": "features",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "features.preview.generico.no.disponible": {
+      "src": "af848d37748fe499",
+      "area": "features",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "features.preview.generico.detalle": {
+      "src": "72da5fe9d0ed3950",
+      "area": "features",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "features.fileinfo.titulo": {
+      "src": "abf9d2ff408eb652",
+      "area": "features",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "features.fileinfo.sin.archivo": {
+      "src": "4d5381df4c4fd2f8",
+      "area": "features",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "features.fileinfo.cargando": {
+      "src": "5d8bc467f83d9caf",
+      "area": "features",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "features.fileinfo.no.disponible": {
+      "src": "b5de6ff89d3d5415",
+      "area": "features",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "features.fileinfo.nombre": {
+      "src": "562bb15757a8b593",
+      "area": "features",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "features.fileinfo.ruta": {
+      "src": "9ff9bd1106683bb9",
+      "area": "features",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "features.fileinfo.carpeta": {
+      "src": "7342decb572868d3",
+      "area": "features",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "features.fileinfo.tipo": {
+      "src": "3868d2843d5924c1",
+      "area": "features",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "features.fileinfo.extension": {
+      "src": "b19cc0c0282a5136",
+      "area": "features",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "features.fileinfo.mime": {
+      "src": "44d2fdff9c8e04cd",
+      "area": "features",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "features.fileinfo.tamano": {
+      "src": "59b73925d8a0504a",
+      "area": "features",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "features.fileinfo.modificado": {
+      "src": "079552d3fad410a5",
+      "area": "features",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "features.fileinfo.tipo.file": {
+      "src": "75d6b4579e1d29eb",
+      "area": "features",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "features.fileinfo.tipo.directory": {
+      "src": "7342decb572868d3",
+      "area": "features",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "features.fileinfo.tipo.unknown": {
+      "src": "2669e033a1213e64",
+      "area": "features",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "features.fileinfo.mostrar.en.explorador": {
+      "src": "d3b0c304f89d97f6",
+      "area": "features",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "layout.busqueda.archivos": {
+      "src": "f7b3eac1cf97193d",
+      "area": "layout",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "layout.busqueda.carpeta": {
+      "src": "7342decb572868d3",
+      "area": "layout",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "layout.busqueda.coincidencias": {
+      "src": "49aa7efcb68eac60",
+      "area": "layout",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "layout.busqueda.con.filtros": {
+      "src": "1143da2bc54c495c",
+      "area": "layout",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "layout.busqueda.contenido": {
+      "src": "197c7a8551b91c79",
+      "area": "layout",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "layout.busqueda.copiar.linea": {
+      "src": "9670aa98a7d91319",
+      "area": "layout",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "layout.busqueda.elementos": {
+      "src": "e160af1aa5c89cc9",
+      "area": "layout",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "layout.busqueda.escribe.nombre": {
+      "src": "f0050f72a2e23bc3",
+      "area": "layout",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "layout.busqueda.excluir": {
+      "src": "8b19518ff49b2e29",
+      "area": "layout",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "layout.busqueda.excluir.placeholder": {
+      "src": "5c0d2a229dc8dfe3",
+      "area": "layout",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "layout.busqueda.filtros": {
+      "src": "57ac13ce3d5bedff",
+      "area": "layout",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "layout.busqueda.incluir": {
+      "src": "7e8d91b6382ca171",
+      "area": "layout",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "layout.busqueda.linea.copiada": {
+      "src": "b12eae8df3dcaa80",
+      "area": "layout",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "layout.busqueda.limpiar": {
+      "src": "a7859bae872b6c00",
+      "area": "layout",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "layout.busqueda.limpiar.filtros": {
+      "src": "bfc2d16235868e7c",
+      "area": "layout",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "layout.busqueda.mayusculas": {
+      "src": "3db4e16e3e96860b",
+      "area": "layout",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "layout.busqueda.modo": {
+      "src": "4807de74dd8e98c2",
+      "area": "layout",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "layout.busqueda.nombre.de.archivo": {
+      "src": "1a571588a7546e7e",
+      "area": "layout",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "layout.busqueda.regex": {
+      "src": "8c82fd4439877f44",
+      "area": "layout",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "layout.busqueda.solo.archivos": {
+      "src": "f7b3eac1cf97193d",
+      "area": "layout",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "layout.busqueda.solo.carpetas": {
+      "src": "52cdbfb592c8dddd",
+      "area": "layout",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "layout.busqueda.tipo": {
+      "src": "7976b7dd85746537",
+      "area": "layout",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "layout.busqueda.todos": {
+      "src": "bd02b9a7d71dac67",
+      "area": "layout",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "layout.welcome.arrastrar.para.reordenar": {
+      "src": "9690cd29a6193ce2",
+      "area": "layout",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "layout.problemas.agrupar": {
+      "src": "4ec99746c9494100",
+      "area": "layout",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "layout.problemas.copiado": {
+      "src": "bdd4ddf5224989b5",
+      "area": "layout",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "layout.problemas.copiar": {
+      "src": "7bc151f0c04c3516",
+      "area": "layout",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "layout.problemas.contraer": {
+      "src": "6247236d4e36709d",
+      "area": "layout",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "layout.problemas.expandir": {
+      "src": "1663b5ed99f633bf",
+      "area": "layout",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "layout.problemas.filtrar.por.tipo": {
+      "src": "68b338e604292bb6",
+      "area": "layout",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "layout.problemas.limpiar.filtros": {
+      "src": "bfc2d16235868e7c",
+      "area": "layout",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "layout.problemas.mostrar": {
+      "src": "5c492f37a63f6e93",
+      "area": "layout",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "layout.problemas.ocultar": {
+      "src": "dd680772877e1917",
+      "area": "layout",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "layout.problemas.origen": {
+      "src": "167a940c62788a7a",
+      "area": "layout",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "layout.problemas.pie": {
+      "src": "b5541871b5e326c4",
+      "area": "layout",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "layout.problemas.por.archivo": {
+      "src": "1c1075cfbfb9f0a5",
+      "area": "layout",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "layout.problemas.por.severidad": {
+      "src": "6c6383688cdf7494",
+      "area": "layout",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "layout.problemas.total": {
+      "src": "e3cb46d69df97ea2",
+      "area": "layout",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "layout.ver": {
+      "src": "20ab386d12d982bd",
+      "area": "layout",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "market.destacada": {
+      "src": "561710bad6e75555",
+      "area": "market",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "market.destacada.auto": {
+      "src": "24fee1c334468f9b",
+      "area": "market",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "market.destacada.corta": {
+      "src": "de35be70c7824f7d",
+      "area": "market",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "market.destacada.fijada": {
+      "src": "2f2986ebc4d548f6",
+      "area": "market",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "market.destacada.solicitada": {
+      "src": "4fa0dbbf2259f72f",
+      "area": "market",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "market.destacada.solicitar": {
+      "src": "e1e528d6afb650da",
+      "area": "market",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "market.inicia.sesion.para.valorar": {
+      "src": "f744ac23a236fcb6",
+      "area": "market",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "market.orden.dias": {
+      "src": "7fdaf8816e0dcd41",
+      "area": "market",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "market.orden.feed": {
+      "src": "a59077be87932d41",
+      "area": "market",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "market.orden.nuevas": {
+      "src": "0ac4d074d301aba0",
+      "area": "market",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "market.orden.relevancia": {
+      "src": "e945c96de97d4b30",
+      "area": "market",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "market.orden.tendencia": {
+      "src": "accc6308fce7aeda",
+      "area": "market",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "market.orden.top": {
+      "src": "0a5b60da569c481c",
+      "area": "market",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "market.rate.actualizar": {
+      "src": "063b77fbe2414c7a",
+      "area": "market",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "market.rate.guardada": {
+      "src": "91caeb7740770840",
+      "area": "market",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "market.rate.propia": {
+      "src": "74851f85975cda84",
+      "area": "market",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "market.rate.requiere.cuenta": {
+      "src": "ee2f118b215a0552",
+      "area": "market",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "services.mcp.herramienta.de": {
+      "src": "c06e339c5a804358",
+      "area": "services",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "settings.tabs.centrar.texto": {
+      "src": "58391bc63f72355f",
+      "area": "settings",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "settings.tabs.centrar.texto.hint": {
+      "src": "3857097eb4e34add",
+      "area": "settings",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "settings.tabs.mismo.tamano": {
+      "src": "40bc753b10a6bb1c",
+      "area": "settings",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "settings.tabs.mismo.tamano.hint": {
+      "src": "9872cbce7b65023f",
+      "area": "settings",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "settings.tabs.mismo.tamano.ancho": {
+      "src": "3d681117c69b49b6",
+      "area": "settings",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "settings.tabs.mismo.tamano.ejemplo": {
+      "src": "0d8f10cf389e007f",
+      "area": "settings",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "settings.abrir.desde.so.ocultar.paneles": {
+      "src": "cff321b49f12b96a",
+      "area": "settings",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "settings.abrir.desde.so.ocultar.paneles.hint": {
+      "src": "47ebcc612f684cd3",
+      "area": "settings",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "settings.nav.experimental": {
+      "src": "3dc9f569422dcfda",
+      "area": "settings",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "settings.nav.mcp": {
+      "src": "d3411569df7c87fb",
+      "area": "settings",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "settings.mcp.titulo": {
+      "src": "d3411569df7c87fb",
+      "area": "settings",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "settings.mcp.descripcion": {
+      "src": "3a29e7b2edc8b583",
+      "area": "settings",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "settings.mcp.sin.servidores": {
+      "src": "8d9551820eb13e5e",
+      "area": "settings",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "settings.mcp.herramientas": {
+      "src": "ce3ebf0e11e39851",
+      "area": "settings",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "settings.mcp.recursos": {
+      "src": "e61788926c1f0d2a",
+      "area": "settings",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "settings.mcp.habilitado": {
+      "src": "ba5f3324ec361d56",
+      "area": "settings",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "settings.mcp.autorizar": {
+      "src": "c567649457f48b2c",
+      "area": "settings",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "settings.mcp.detectar": {
+      "src": "faad013287bff495",
+      "area": "settings",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "settings.mcp.buscando": {
+      "src": "82d69149e2c13287",
+      "area": "settings",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "settings.mcp.detectar.hint": {
+      "src": "a8f812d9fc47e9ca",
+      "area": "settings",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "settings.mcp.encontrados": {
+      "src": "d09d3420830065a6",
+      "area": "settings",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "settings.mcp.escaneado": {
+      "src": "20fc286e90100bfe",
+      "area": "settings",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "settings.mcp.no.encontrados": {
+      "src": "128fac96a7de10b8",
+      "area": "settings",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "settings.mcp.activo": {
+      "src": "d7f7fe8fa8ed8e84",
+      "area": "settings",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "settings.mcp.importar": {
+      "src": "7c153e829e987cbf",
+      "area": "settings",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "settings.mcp.conectar": {
+      "src": "3b0b0fdfe2e3a691",
+      "area": "settings",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "settings.mcp.desconectar": {
+      "src": "89130f77b7fa436b",
+      "area": "settings",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "settings.mcp.editar": {
+      "src": "2eba946b2e1ee4b6",
+      "area": "settings",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "settings.mcp.eliminar": {
+      "src": "c9894cf002f90bd0",
+      "area": "settings",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "settings.mcp.nuevo": {
+      "src": "92e841f654b428a6",
+      "area": "settings",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "settings.mcp.guardar": {
+      "src": "13e51a210f45ed1b",
+      "area": "settings",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "settings.mcp.cancelar": {
+      "src": "bb9dbb406dcbd524",
+      "area": "settings",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "settings.mcp.id": {
+      "src": "697131ead69b5609",
+      "area": "settings",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "settings.mcp.comando": {
+      "src": "c42b696cccf7e80a",
+      "area": "settings",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "settings.mcp.entorno": {
+      "src": "2939c240635f58c2",
+      "area": "settings",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "settings.mcp.url": {
+      "src": "2fecea2eef5bda45",
+      "area": "settings",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "settings.experimental": {
+      "src": "3dc9f569422dcfda",
+      "area": "settings",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "settings.experimental.descripcion": {
+      "src": "c77e83b174b795d2",
+      "area": "settings",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "settings.tema.por.proyecto": {
+      "src": "f67e11f00c00c9e0",
+      "area": "settings",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "settings.tema.por.proyecto.hint": {
+      "src": "67dfbedcee8a02ab",
+      "area": "settings",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "settings.activitybar.centrado": {
+      "src": "7f13b754a6067c00",
+      "area": "settings",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "settings.activitybar.centrado.hint": {
+      "src": "3a12857b2144a52b",
+      "area": "settings",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "settings.activitybar.normal": {
+      "src": "cdc4b175b33149bc",
+      "area": "settings",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "settings.activitybar.centered": {
+      "src": "0142ce2250f3013e",
+      "area": "settings",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "settings.activitybar.wheel": {
+      "src": "b44fd0419d80d3ee",
+      "area": "settings",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "settings.activitybar.desactivar": {
+      "src": "a59ac8a25b1e295a",
+      "area": "settings",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "settings.activitybar.desactivar.hint": {
+      "src": "f2c221d629003888",
+      "area": "settings",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "settings.activitybar.none": {
+      "src": "265a0222634a7a2e",
+      "area": "settings",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "settings.activitybar.left": {
+      "src": "4c3c1258fbbf7a2d",
+      "area": "settings",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "settings.activitybar.right": {
+      "src": "81964b7683994548",
+      "area": "settings",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "settings.expandir.todo.omitir.archivos": {
+      "src": "ec938ebb103a65ef",
+      "area": "settings",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "settings.expandir.todo.omitir.archivos.hint": {
+      "src": "7dfdd9f1d044d3d4",
+      "area": "settings",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "social.ir.ultimo.mensaje": {
+      "src": "a19dad7533a16e42",
+      "area": "social",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "statusbar.modo.drageable": {
+      "src": "24edb1fec4c4725d",
+      "area": "statusbar",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "menu.account": {
+      "src": "e436ddcd06e85cd0",
+      "area": "titlebar",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-22T23:05:12.374Z",
+      "approvedAt": "2026-11-22T23:05:12.374Z"
     }
   },
   "version": 1
