@@ -19,6 +19,8 @@ import {
   subscribeToModals,
   type AnchoredRect
 } from '@services/modals'
+import { SortableItem } from './SortableItem'
+import { getStatusLeft, getStatusRight, subscribeToStatusBarOrder } from './order'
 import styles from './StatusBar.module.css'
 
 import { t } from '@core/i18n'
@@ -30,15 +32,20 @@ interface StatusBarProps {
 const NOTIFICATIONS_POPOVER_KEY = 'notifications-history'
 
 /**
- * Barra de estado inferior (la típica de un IDE). Vive debajo del workspace,
- * pegada al borde de la ventana. Izquierda: LSP chip + posición de cursor.
- * Centro: SearchBar (paleta de comandos), flotante absoluto. Derecha:
- * campana de notificaciones + ajustes (mismo bloque chip que el LSP).
- * El tema se cambia desde la paleta (mod+alt+t) o Ajustes.
+ * Barra de estado inferior. TODOS los items son arrastrables y se reordenan
+ * en vivo dentro de la barra (estilo pestañas de navegador) según el orden
+ * persistido en `order.ts`. El SearchBar sigue flotando centrado.
  */
 export function StatusBar({ onOpenSettings }: StatusBarProps): JSX.Element {
   const bellRef = useRef<HTMLButtonElement | null>(null)
   const [popoverOpen, setPopoverOpen] = useState(false)
+  const [leftOrder, setLeftOrder] = useState<string[]>(getStatusLeft)
+  const [rightOrder, setRightOrder] = useState<string[]>(getStatusRight)
+
+  useEffect(() => subscribeToStatusBarOrder(() => {
+    setLeftOrder(getStatusLeft())
+    setRightOrder(getStatusRight())
+  }), [])
 
   useEffect(
     () =>
@@ -63,58 +70,82 @@ export function StatusBar({ onOpenSettings }: StatusBarProps): JSX.Element {
       title: t('statusbar.notificaciones'),
       anchor,
       width: 300,
-      // La cabecera la pinta el panel: así el paginador va alineado con el
-      // título y comparte estado con la lista (mismo esquema que workspaces).
       hideHeader: true,
       render: () => <NotificationsHistoryPanel />
     })
   }
 
+  /** Render de un item por id (nada hardcodeado en el orden). */
+  const renderItem = (id: string): JSX.Element | null => {
+    switch (id) {
+      case 'lsp':
+        return <LspChip />
+      case 'git':
+        return <GitChip />
+      case 'problems':
+        return <ProblemsChip />
+      case 'sep-left':
+        return <span className={styles.separator} aria-hidden="true" />
+      case 'cursor':
+        return <CursorPosition />
+      case 'encoding':
+        return <EncodingChip />
+      case 'ext-left':
+        return <ExtensionItems alignment="left" />
+      case 'layout':
+        return <LayoutToggles />
+      case 'bell':
+        return (
+          <button
+            ref={bellRef}
+            type="button"
+            className={styles.chipBtn}
+            aria-label={t('statusbar.historial.de.notificaciones')}
+            aria-expanded={popoverOpen}
+            title={t('statusbar.notificaciones')}
+            data-anchored-anchor={NOTIFICATIONS_POPOVER_KEY}
+            onClick={toggleNotifications}
+          >
+            <ProductIcon id="bell" size={14} />
+          </button>
+        )
+      case 'settings':
+        return (
+          <button
+            type="button"
+            className={styles.chipBtn}
+            aria-label={t('statusbar.ajustes')}
+            title={t('statusbar.ajustes')}
+            onClick={onOpenSettings}
+          >
+            <ProductIcon id="settings-gear" size={14} />
+          </button>
+        )
+      default:
+        return null
+    }
+  }
+
   return (
     <footer className={styles.bar} aria-label={t('statusbar.barra.de.estado')}>
+      {/* Izquierda: items arrastrables entre sí (estilo pestañas). */}
       <div className={styles.group}>
-        <LspChip />
-        <GitChip />
-        {/* Errores/advertencias: a la DERECHA de los commits (click = panel de
-            Problemas, como VS Code). */}
-        <ProblemsChip />
-        <span className={styles.separator} aria-hidden="true" />
-        <CursorPosition />
-        <EncodingChip />
-        {/* Items que las extensiones crean con `window.createStatusBarItem`. */}
-        <ExtensionItems alignment="left" />
+        {leftOrder.map((id) => (
+          <SortableItem key={id} id={id}>{renderItem(id)}</SortableItem>
+        ))}
       </div>
 
-      {/* SearchBar flotante: centrado absoluto respecto al .bar.
-          Se saca del flow flex para que el centrado no dependa del
-          ancho de los chips de la izquierda. */}
+      {/* SearchBar flotante: centrado absoluto, fuera del flujo de items. */}
       <SearchBar />
 
+      {/* Separador FIJO entre ambos grupos (no se arrastra). */}
+      <span className={[styles.separator, styles.separatorPush].join(' ')} aria-hidden="true" />
+
+      {/* Derecha: actions fijas en su sitio (también se reordenan entre sí). */}
       <div className={[styles.group, styles.groupRight].join(' ')}>
-        <ExtensionItems alignment="right" />
-        <LayoutToggles />
-        <span className={styles.separator} aria-hidden="true" />
-        <button
-          ref={bellRef}
-          type="button"
-          className={styles.chipBtn}
-          aria-label={t('statusbar.historial.de.notificaciones')}
-          aria-expanded={popoverOpen}
-          title={t('statusbar.notificaciones')}
-          data-anchored-anchor={NOTIFICATIONS_POPOVER_KEY}
-          onClick={toggleNotifications}
-        >
-          <ProductIcon id="bell" size={14} />
-        </button>
-        <button
-          type="button"
-          className={styles.chipBtn}
-          aria-label={t('statusbar.ajustes')}
-          title={t('statusbar.ajustes')}
-          onClick={onOpenSettings}
-        >
-          <ProductIcon id="settings-gear" size={14} />
-        </button>
+        {rightOrder.map((id) => (
+          <SortableItem key={id} id={id}>{renderItem(id)}</SortableItem>
+        ))}
       </div>
     </footer>
   )

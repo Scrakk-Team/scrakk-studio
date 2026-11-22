@@ -587,6 +587,15 @@ published are not edited. The file goes per version:
   action, the panel header, the command and the activity-bar click. Drag it to
   the right bar and the Tabs panel opens on the right, like all other panels.
 
+### Status bar (UI)
+- **Status-bar items are reorderable by drag, like browser tabs.** Every chip
+  in the left group (LSP, Git, Problems, cursor, encoding, extension items)
+  can be dragged onto another to change its position in real time, and the
+  order persists in localStorage. The drag image is invisible and the items
+  stay inside the bar — they only slide among themselves. The right group
+  (layout toggles, notifications, settings) stays anchored on the right and
+  reorders only within itself, with a fixed separator between the two groups.
+
 ### Accounts (global)
 - **Switching accounts now follows you across the app.** A small global store
   publishes the active account, so the marketplace's "My extensions" and the
