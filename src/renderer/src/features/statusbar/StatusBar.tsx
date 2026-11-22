@@ -22,6 +22,7 @@ import {
 import { SortableItem } from './SortableItem'
 import {
   getStatusLeft,
+  getStatusLayout,
   getStatusRight,
   subscribeToStatusBarOrder,
   isDragModeEnabled,
@@ -43,9 +44,10 @@ const NOTIFICATIONS_POPOVER_KEY = 'notifications-history'
 /**
  * Barra de estado inferior. Orden por defecto:
  *
- *   [botones de paneles]  |  notificaciones, ajustes
+ *   [lsp, git, problems, cursor, encoding, extensiones]   [layout] | campana, ajustes
+ *                         ^ espacio en el centro ^
  *
- * El separador es fijo entre ambos grupos. Los items se reordenan en vivo
+ * El separador es fijo entre `layout` y las acciones de la derecha. Los items se reordenan en vivo
  * (estilo pestañas de navegador) SOLO si el usuario activó "Modo drageable"
  * desde el menú contextual de la barra (click derecho). El SearchBar flota
  * centrado.
@@ -55,11 +57,13 @@ export function StatusBar({ onOpenSettings }: StatusBarProps): JSX.Element {
   const barRef = useRef<HTMLElement | null>(null)
   const [popoverOpen, setPopoverOpen] = useState(false)
   const [leftOrder, setLeftOrder] = useState<string[]>(getStatusLeft)
+  const [layoutOrder, setLayoutOrder] = useState<string[]>(getStatusLayout)
   const [rightOrder, setRightOrder] = useState<string[]>(getStatusRight)
   const [dragMode, setDragMode] = useState(isDragModeEnabled)
 
   useEffect(() => subscribeToStatusBarOrder(() => {
     setLeftOrder(getStatusLeft())
+    setLayoutOrder(getStatusLayout())
     setRightOrder(getStatusRight())
   }), [])
 
@@ -120,8 +124,6 @@ export function StatusBar({ onOpenSettings }: StatusBarProps): JSX.Element {
         return <GitChip />
       case 'problems':
         return <ProblemsChip />
-      case 'sep-left':
-        return <span className={styles.separator} aria-hidden="true" />
       case 'cursor':
         return <CursorPosition />
       case 'encoding':
@@ -169,8 +171,7 @@ export function StatusBar({ onOpenSettings }: StatusBarProps): JSX.Element {
       aria-label={t('statusbar.barra.de.estado')}
       onContextMenu={openContextMenu}
     >
-      {/* Izquierda: botones de paneles, arrastrables entre sí si el modo está
-          activo. El orden por defecto termina en `layout`. */}
+      {/* Izquierda: lsp, git, problems, cursor, encoding y extensiones. */}
       <div className={styles.group}>
         {leftOrder.map((id) => (
           <SortableItem
@@ -184,11 +185,29 @@ export function StatusBar({ onOpenSettings }: StatusBarProps): JSX.Element {
         ))}
       </div>
 
-      {/* SearchBar flotante: centrado absoluto, fuera del flujo de items. */}
+      {/* ESPACIO EN EL CENTRO: empuja todo el bloque derecho al borde. No es
+          un item arrastrable, es el hueco entre ambos grupos. */}
+      <span className={styles.centerSpacer} aria-hidden="true" />
+
+      {/* SearchBar flotante: centrado absoluto, sobre ese espacio. */}
       <SearchBar />
 
-      {/* Separador FIJO entre ambos grupos (no se arrastra). */}
-      <span className={[styles.separator, styles.separatorPush].join(' ')} aria-hidden="true" />
+      {/* Toggles de panel, justo ANTES del separador. */}
+      <div className={styles.group}>
+        {layoutOrder.map((id) => (
+          <SortableItem
+            key={id}
+            id={id}
+            dragEnabled={dragMode}
+            getBarRect={() => barRef.current?.getBoundingClientRect() ?? null}
+          >
+            {renderItem(id)}
+          </SortableItem>
+        ))}
+      </div>
+
+      {/* Separador FIJO entre `layout` y las acciones de la derecha. */}
+      <span className={styles.separator} aria-hidden="true" />
 
       {/* Derecha: notificaciones y ajustes, anclados y reordenables entre sí. */}
       <div className={[styles.group, styles.groupRight].join(' ')}>

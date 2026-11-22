@@ -5,37 +5,46 @@
 /**
  * Orden de los items de la status bar (patrón del repo: Map + Set + emit).
  *
- * Dos grupos INDEPENDIENTES separados por un separador FIJO:
+ * Layout por defecto (el espacio del centro es un flex spacer, no un item):
  *
- *   [botones de paneles]  |  notificaciones, ajustes
+ *   [lsp, git, problems, cursor, encoding, extensiones]     [layout] | campana, ajustes
+ *   \__________________ grupo izquierdo ________________/   \ der /
  *
- * Izquierda (panel buttons, incluye los toggles de layout): lsp, git,
- * problems, cursor, encoding, extension items y layout. Derecha: SOLO campana
- * y ajustes. Cada grupo se reordena entre sí, sin mezclarse. Se persiste en
- * localStorage y se publica a la barra.
+ * Tres zonas INDEPENDIENTES: izquierda, `layout` (justo antes del separador) y
+ * derecha (campana + ajustes). Cada zona se reordena entre sí, sin mezclarse.
+ * El separador `|` es fijo entre `layout` y las acciones de la derecha.
+ * Se persiste en localStorage y se publica a la barra.
  */
 
 const STORAGE_KEY = 'scrakk:statusbar-order'
 const DRAG_MODE_KEY = 'scrakk:statusbar-drag-mode'
 
-/** Izquierda: información/workspace + toggles de paneles. */
+/** Izquierda: información del workspace + extensiones. */
 export const DEFAULT_LEFT = [
-  'lsp', 'git', 'problems', 'sep-left', 'cursor', 'encoding', 'ext-left', 'layout'
+  'lsp', 'git', 'problems', 'cursor', 'encoding', 'ext-left'
 ] as const
+/** Toggles de panel, pegados al separador (después del espacio del centro). */
+export const DEFAULT_LAYOUT = ['layout'] as const
 /** Derecha: notificaciones y ajustes, en ese orden (el `|` está fuera). */
 export const DEFAULT_RIGHT = ['bell', 'settings'] as const
 
+type Side = 'left' | 'layout' | 'right'
 type Listener = () => void
-const listeners = new Set<Listener>()
-let left: string[] = loadSide('left')
-let right: string[] = loadSide('right')
 
-function validFor(side: 'left' | 'right'): readonly string[] {
-  return side === 'left' ? DEFAULT_LEFT : DEFAULT_RIGHT
+function defaultsFor(side: Side): readonly string[] {
+  if (side === 'left') return DEFAULT_LEFT
+  if (side === 'layout') return DEFAULT_LAYOUT
+  return DEFAULT_RIGHT
 }
 
-function loadSide(side: 'left' | 'right'): string[] {
-  const defaults = validFor(side)
+const listeners = new Set<Listener>()
+const left = loadSide('left')
+const layout = loadSide('layout')
+const right = loadSide('right')
+const sides: Record<Side, string[]> = { left, layout, right }
+
+function loadSide(side: Side): string[] {
+  const defaults = defaultsFor(side)
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return [...defaults]
@@ -43,7 +52,9 @@ function loadSide(side: 'left' | 'right'): string[] {
     const list = Array.isArray(parsed?.[side])
       ? (parsed[side] as unknown[])
       : (Array.isArray(parsed) ? parsed as unknown[] : [])
-    const valid = list.filter((id): id is string => typeof id === 'string' && (defaults as readonly string[]).includes(id))
+    const valid = list.filter(
+      (id): id is string => typeof id === 'string' && (defaults as readonly string[]).includes(id)
+    )
     for (const id of defaults) if (!valid.includes(id)) valid.push(id)
     return valid
   } catch {
@@ -63,24 +74,22 @@ function emit(): void {
 
 function persist(): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ left, right }))
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ left, layout, right }))
   } catch {
     // Sin storage: solo memoria.
   }
 }
 
 export function getStatusLeft(): string[] { return [...left] }
+export function getStatusLayout(): string[] { return [...layout] }
 export function getStatusRight(): string[] { return [...right] }
 
-/** Mueve `dragged` dentro de su lado, antes/después de `target`. */
+/** Mueve `dragged` dentro de SU zona, antes/después de `target`. */
 export function moveStatusBarItem(dragged: string, target: string, before: boolean): void {
-  const fromLeft = left.includes(dragged)
-  const fromRight = right.includes(dragged)
-  const list = fromLeft ? left : fromRight ? right : null
-  // Los items de la derecha NO se pueden arrastrar al grupo izquierdo.
-  if (!list) return
-  if (!list.includes(target)) return
-  moveIn(list, dragged, target, before)
+  const list = (Object.keys(sides) as Side[]).find((side) => sides[side].includes(dragged))
+  // Los items NO se pueden arrastrar a otra zona (separador / centro fijos).
+  if (!list || !sides[list].includes(target)) return
+  moveIn(sides[list], dragged, target, before)
 }
 
 function moveIn(list: string[], dragged: string, target: string, before: boolean): void {
@@ -100,8 +109,9 @@ function moveIn(list: string[], dragged: string, target: string, before: boolean
 }
 
 export function resetStatusBarOrder(): void {
-  left = [...DEFAULT_LEFT]
-  right = [...DEFAULT_RIGHT]
+  left.splice(0, left.length, ...DEFAULT_LEFT)
+  layout.splice(0, layout.length, ...DEFAULT_LAYOUT)
+  right.splice(0, right.length, ...DEFAULT_RIGHT)
   try {
     localStorage.removeItem(STORAGE_KEY)
   } catch { /* ignore */ }
@@ -155,8 +165,7 @@ export function subscribeToDragMode(listener: () => void): () => void {
 
 /** Solo tests. */
 export function _resetOrderForTests(): void {
-  left = [...DEFAULT_LEFT]
-  right = [...DEFAULT_RIGHT]
+  resetStatusBarOrder()
   listeners.clear()
   dragMode = false
   dragModeListeners.clear()

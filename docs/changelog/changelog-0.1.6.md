@@ -593,12 +593,14 @@ published are not edited. The file goes per version:
   menu (it is off by default, so chip clicks keep working normally). With it
   on, pointer-drag any chip: the item itself slides under the cursor, clamped
   to the bar so it never floats outside, and neighbours shift live. The order
-  persists in localStorage. The layout is `[panel buttons] | notifications,
-  settings`: panel buttons (LSP, Git, Problems, cursor, encoding, extension
-  items and layout toggles) reorder on the left, notifications and settings
-  stay anchored on the right and reorder only among themselves, with a fixed
-  separator between the two groups. Drag uses pointer events instead of HTML5
-  DnD because Chromium won't start a native drag from a `<button>` chip.
+  persists in localStorage. The default layout is
+  `[LSP, Git, Problems, cursor, encoding, extension items]  <empty center>  [layout] | notifications, settings`:
+  the left chips reorder among themselves, the layout toggles sit just before
+  the fixed separator, and notifications/settings stay anchored on the right
+  and reorder only among themselves. Zones never mix. Drag uses pointer events
+  instead of HTML5 DnD because Chromium won't start a native drag from a
+  `<button>` chip. The separator is tight (no wide gap) and the drag wrapper
+  adds no hover background, so chips keep a single hover state.
 
 ### Accounts (global)
 - **Switching accounts now follows you across the app.** A small global store

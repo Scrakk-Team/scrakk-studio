@@ -8,7 +8,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-3);
+  gap: var(--space-1);
   height: 28px;
   flex-shrink: 0;
   padding: 0 var(--space-2);
@@ -40,9 +40,12 @@
 .groupRight {
 }
 
-/* Empuja el separador (y con él todo el grupo derecho) al borde derecho. */
-.separatorPush {
-  margin-left: auto;
+/* Espacio vacío en el CENTRO de la barra: crece y empuja `layout`, el
+   separador y las acciones al borde derecho. */
+.centerSpacer {
+  flex: 1 1 auto;
+  min-width: 0;
+  align-self: stretch;
 }
 
 /* Items arrastrables: viven DENTRO de la barra (align-self stretch) y nunca
@@ -56,14 +59,16 @@
   transition: background-color var(--duration-fast, 120ms) ease;
 }
 
-.sortable:hover {
-  background: var(--color-hover);
-  border-radius: var(--radius-sm);
-}
-
-/* Con el modo drageable activo, el cursor invita a arrastrar. */
+/* Sin modo drag el wrapper NO pinta nada: el chip ya tiene su propio hover y
+   si no, se veía un doble hover superpuesto. */
 .sortableDragEnabled {
   cursor: grab;
+}
+
+/* En modo drag, una marca tenue (no otro fondo) para no duplicar hover. */
+.sortableDragEnabled:hover {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-accent) 35%, transparent);
+  border-radius: var(--radius-sm);
 }
 
 .sortableDragging {
@@ -81,7 +86,10 @@
   height: 14px;
   flex-shrink: 0;
   background: var(--color-border);
-  margin: 0 var(--space-1);
+  /* Antes: gap de 12px de la barra + 4px de margen a cada lado = 32px de
+     hueco. Ahora el gap es 4px y acá apenas 2px: el separador queda pegado
+     a `layout` y a notificaciones/ajustes. */
+  margin: 0 2px;
 }
 
 .item {

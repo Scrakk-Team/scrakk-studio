@@ -14,7 +14,8 @@ vi.stubGlobal('localStorage', {
 })
 
 const {
-  DEFAULT_LEFT, DEFAULT_RIGHT, getStatusLeft, getStatusRight,
+  DEFAULT_LEFT, DEFAULT_LAYOUT, DEFAULT_RIGHT,
+  getStatusLeft, getStatusLayout, getStatusRight,
   moveStatusBarItem, resetStatusBarOrder, subscribeToStatusBarOrder,
   isDragModeEnabled, setDragMode, toggleDragMode, subscribeToDragMode,
   _resetOrderForTests
@@ -26,11 +27,13 @@ beforeEach(() => {
 })
 
 describe('status bar order', () => {
-  it('orden por defecto: [botones de paneles] | notificaciones, ajustes', () => {
+  it('orden por defecto: [lsp…extensiones]  espacio  [layout] | campana, ajustes', () => {
+    expect(getStatusLeft()).toEqual(['lsp', 'git', 'problems', 'cursor', 'encoding', 'ext-left'])
     expect(getStatusLeft()).toEqual([...DEFAULT_LEFT])
-    expect(getStatusLeft().at(-1)).toBe('layout') // los toggles van a la izq
+    expect(getStatusLayout()).toEqual(['layout'])
+    expect(getStatusLayout()).toEqual([...DEFAULT_LAYOUT])
     expect(getStatusRight()).toEqual(['bell', 'settings'])
-    expect(DEFAULT_RIGHT).not.toContain('sep-right') // separador fuera
+    expect(getStatusRight()).toEqual([...DEFAULT_RIGHT])
   })
 
   it('reordena items de la izquierda', () => {
@@ -49,6 +52,12 @@ describe('status bar order', () => {
 
   it('no mezcla grupos', () => {
     moveStatusBarItem('settings', 'lsp', true)
+    expect(getStatusLeft()).toEqual([...DEFAULT_LEFT])
+    expect(getStatusRight()).toEqual([...DEFAULT_RIGHT])
+    // `layout` no se puede arrastrar al centro/izq ni a la derecha del `|`.
+    moveStatusBarItem('layout', 'lsp', true)
+    moveStatusBarItem('layout', 'bell', true)
+    expect(getStatusLayout()).toEqual(['layout'])
     expect(getStatusLeft()).toEqual([...DEFAULT_LEFT])
     expect(getStatusRight()).toEqual([...DEFAULT_RIGHT])
   })
