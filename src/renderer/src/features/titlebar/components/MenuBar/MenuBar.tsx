@@ -70,6 +70,14 @@ export function MenuBar(): JSX.Element {
     setAnchor(null)
   }, [])
 
+  /**
+   * El ContextMenu cierra en un `pointerdown` global ANTES del `onClick` del
+   * botón (el hamburger está fuera del menú). Sin esto, al hacer click para
+   * cerrar: el global pone menuOpen=false y luego el onClick lo vuelve a abrir.
+   * Marcamos el cierre en pointerdown y el onClick lo consume.
+   */
+  const closingByButtonRef = useRef(false)
+
   // Abre el menú del hamburger, anclado abajo del botón.
   const openMenu = useCallback((): void => {
     const btn = hamRef.current
@@ -248,7 +256,18 @@ export function MenuBar(): JSX.Element {
           aria-expanded={menuOpen}
           aria-label={t('titlebar.menu.de.la.aplicacion')}
           className={[styles.button, menuOpen ? styles.buttonOpen : null].filter(Boolean).join(' ')}
-          onClick={() => (menuOpen ? close() : openMenu())}
+          onPointerDown={() => {
+            if (menuOpen) closingByButtonRef.current = true
+          }}
+          onClick={() => {
+            if (closingByButtonRef.current) {
+              closingByButtonRef.current = false
+              close()
+              return
+            }
+            if (menuOpen) close()
+            else openMenu()
+          }}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
             <line x1="4" y1="7" x2="20" y2="7" />

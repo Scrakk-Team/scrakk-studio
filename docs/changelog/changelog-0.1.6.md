@@ -580,12 +580,20 @@ published are not edited. The file goes per version:
   goes through `toggleSlotPanel('left','tabs')` — the same path the activity-bar
   button uses — so the panel opens/closes in place, and the panel header's
   "back to bar" action and the `tabs.toggleDocked` command close it the same way.
-  The Tabs button keeps its `when: 'tabsDocked'` (it only shows while docked —
-  the mode is started from the strip button or the `tabs.toggleDocked` command),
+- The Tabs button keeps its `when: 'tabsDocked'` (it only shows while docked —
+  the mode is started from the strip button or the `tabs.toggleDocked` command)
   and the panel now opens in the bar where the user actually dragged the button
   — `activityButtonSlot('tabs')` replaces every hardcoded `'left'` in the strip
   action, the panel header, the command and the activity-bar click. Drag it to
   the right bar and the Tabs panel opens on the right, like all other panels.
+
+### Chrome (menus / popovers)
+- **Clicking an open menu/popover button now just closes it.** Both the
+  titlebar hamburger menu and the status-bar notifications bell were
+  reopening on the second click: their `pointerdown` "click outside" handler
+  closed the popup before the button's `onClick` fired, so the toggle ran a
+  second time. Both buttons now flag that pointerdown and the click consumes
+  it, making open → click → close behave normally.
 
 ### Tabs (settings)
 - **Experimental: same-size tabs with a configurable width.** A new toggle
