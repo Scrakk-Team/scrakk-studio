@@ -2,8 +2,9 @@
 // SPDX-License-Identifier: Apache-2.0
 // Licencia completa en LICENSE (Apache License 2.0).
 
-import { useState, type JSX } from 'react'
+import { useEffect, useState, type JSX } from 'react'
 import { ProductIcon } from '@services/productIcons/components'
+import { UserAvatar } from '@features/social'
 import { useMarket } from '../state/MarketContext'
 import { Stars } from './Stars'
 import styles from '../market.module.css'
@@ -13,6 +14,21 @@ import { t } from '@core/i18n'
 function toEmbed(url: string): string {
   const yt = /(?:youtube\.com\/watch\?v=|youtu\.be\/)([A-Za-z0-9_-]{6,})/.exec(url)
   return yt ? `https://www.youtube.com/embed/${yt[1]}` : url
+}
+
+/** Captura que se oculta sola si la URL falla (no deja un hueco vacío). */
+function ScreenImage({ src }: { src: string }): JSX.Element | null {
+  const [failed, setFailed] = useState(false)
+  if (failed) return null
+  return (
+    <img
+      className={styles.screen}
+      src={src}
+      alt=""
+      loading="lazy"
+      onError={() => setFailed(true)}
+    />
+  )
 }
 
 /** Detalle de una extensión: install, repo, media, valoraciones. */
@@ -33,6 +49,16 @@ export function ExtensionDetail(): JSX.Element | null {
   const [stars, setStars] = useState(0)
   const [comment, setComment] = useState('')
   const [message, setMessage] = useState<string | null>(null)
+
+  // Si el usuario ya valoró esta extensión, precargamos su valoración para
+  // poder editarla en vez de empezar de cero (y el form dice "Actualizar").
+  const myRating = detailRatings.find((rating) => rating.isMine) ?? null
+  useEffect(() => {
+    if (myRating) {
+      setStars(myRating.stars)
+      setComment(myRating.comment ?? '')
+    }
+  }, [myRating?.id, myRating?.stars, myRating?.comment])
 
   if (!detail) return null
 
@@ -57,9 +83,8 @@ export function ExtensionDetail(): JSX.Element | null {
     if (stars < 1) return
     const result = await rate(detail.slug, stars, comment)
     if (result.ok) {
-      setStars(0)
-      setComment('')
-      setMessage(t('market.rate.titulo'))
+      // Mantenemos las estrellas: ahora es la valoración propia (editable).
+      setMessage(t('market.rate.guardada'))
     } else {
       setMessage(result.error)
     }
@@ -172,9 +197,7 @@ export function ExtensionDetail(): JSX.Element | null {
 
       {detail.screenshots.length > 0 ? (
         <div className={styles.screens}>
-          {detail.screenshots.map((src) => (
-            <img key={src} className={styles.screen} src={src} alt="" loading="lazy" />
-          ))}
+          {detail.screenshots.map((src) => <ScreenImage key={src} src={src} />)}
         </div>
       ) : null}
 
@@ -200,11 +223,11 @@ export function ExtensionDetail(): JSX.Element | null {
         ) : (
           detailRatings.map((r) => (
             <div key={r.id} className={styles.ratingItem}>
-              {r.userAvatar ? (
-                <img className={styles.ratingAvatar} src={r.userAvatar} alt="" />
-              ) : (
-                <span className={styles.ratingAvatar} />
-              )}
+              <UserAvatar
+                name={r.userName ?? r.userHandle ?? '?'}
+                src={r.userAvatar ?? undefined}
+                size={26}
+              />
               <div className={styles.ratingBody}>
                 <span className={styles.ratingHead}>
                   <span className={styles.ratingName}>
@@ -218,9 +241,16 @@ export function ExtensionDetail(): JSX.Element | null {
           ))
         )}
 
-        {accountId && !mine ? (
+        {!accountId ? (
+          <p className={styles.hint}>{t('market.rate.requiere.cuenta')}</p>
+        ) : mine ? (
+          <p className={styles.hint}>{t('market.rate.propia')}</p>
+        ) : (
           <div className={styles.field}>
-            <span className={styles.label}>{t('market.rate.titulo')}</span>
+            <span className={styles.label}>
+              {myRating ? t('market.rate.actualizar') : t('market.rate.titulo')}
+            </span>
+            {/* Estrellas clickeables: elegí 1–5 y el botón se habilita. */}
             <Stars value={stars} onRate={setStars} />
             <textarea
               className={styles.textarea}
@@ -234,10 +264,10 @@ export function ExtensionDetail(): JSX.Element | null {
               disabled={stars < 1}
               onClick={() => void doRate()}
             >
-              {t('market.rate.enviar')}
+              {myRating ? t('market.rate.actualizar') : t('market.rate.enviar')}
             </button>
           </div>
-        ) : null}
+        )}
       </div>
     </div>
   )

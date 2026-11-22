@@ -129,7 +129,10 @@ async function enrichOwners(client: SupabaseClient, rows: Row[]): Promise<Market
   const ids = [...new Set(rows.map((r) => String(r.owner)))]
   const owners = new Map<string, Row>()
   if (ids.length > 0) {
-    const { data } = await client.from('profiles').select('id,display_name,handle,verified').in('id', ids)
+    const { data } = await client
+      .from('market_public_profiles')
+      .select('id,display_name,handle,verified')
+      .in('id', ids)
     for (const p of (data ?? []) as Row[]) owners.set(String(p.id), p)
   }
   return rows.map((r) => toExtension(r, owners.get(String(r.owner))))
@@ -254,7 +257,7 @@ export async function ratings(accountId: string | null, slug: string): Promise<M
   const users = new Map<string, Row>()
   if (ids.length > 0) {
     const { data: profiles } = await anon
-      .from('profiles')
+      .from('market_public_profiles')
       .select('id,display_name,handle,avatar_url')
       .in('id', ids)
     for (const p of (profiles ?? []) as Row[]) users.set(String(p.id), p)

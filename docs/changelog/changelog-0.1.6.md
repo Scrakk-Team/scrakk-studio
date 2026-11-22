@@ -804,6 +804,22 @@ published are not edited. The file goes per version:
   at 0.1.4: `docs.scrakk.art` now serves the 0.1.5 docs, including the full
   changelog.
 
+### Extensions (marketplace / detail)
+- **Screenshots are no longer clipped in the extension detail.** They now have a
+  fixed size and wrap inside the panel (with no border per image) instead of
+  overflowing a horizontal scroller; broken image URLs are hidden instead of
+  leaving empty gaps. Ratings now show an initials avatar instead of an empty
+  circle. Rating authors now show their real name and avatar: the marketplace
+  used to read `profiles` with the anonymous client, but RLS only allows reading
+  your own row (`auth.uid() = id`), so every rating resolved to "?" / "—".
+  Migration `0036_market_public_profiles` exposes a view with only the public
+  fields (name, handle, avatar, verification) and the service reads that.
+- **The rating control is actually usable.** The interactive stars are bigger
+  and keyboard-accessible, your own existing rating is preloaded so you can
+  update it, and the form states are explicit: if you have no account or you're
+  viewing your own extension you now get a clear message instead of a silently
+  hidden form.
+
 ### Extensions (marketplace / ranking)
 - **Real rating + a ranked catalog feed.** Ratings were already DB-backed, but
   the feed was just `rating_avg → downloads` and the download counter was dead

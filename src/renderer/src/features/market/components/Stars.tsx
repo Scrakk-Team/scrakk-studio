@@ -36,7 +36,9 @@ export function Stars({ value, onRate }: StarsProps): JSX.Element {
           key={n}
           type="button"
           role="radio"
-          aria-checked={n <= rounded}
+          aria-checked={n === rounded}
+          aria-label={`${n} ${n === 1 ? 'estrella' : 'estrellas'}`}
+          title={`${n} / 5`}
           className={[styles.star, styles.starBtn, n <= rounded ? styles.starOn : null]
             .filter(Boolean)
             .join(' ')}
