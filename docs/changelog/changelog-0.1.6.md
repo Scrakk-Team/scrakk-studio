@@ -813,7 +813,10 @@ published are not edited. The file goes per version:
   used to read `profiles` with the anonymous client, but RLS only allows reading
   your own row (`auth.uid() = id`), so every rating resolved to "?" / "—".
   Migration `0036_market_public_profiles` exposes a view with only the public
-  fields (name, handle, avatar, verification) and the service reads that.
+  fields (name, handle, avatar, verification) and the service reads that. The
+  detail view also falls back to the local active-account profile for your own
+  rating, so it never shows "?"/"—" while the main process is still on the
+  old build. (Restart the app to pick up the service-side fix.)
 - **The rating control is actually usable.** The interactive stars are bigger
   and keyboard-accessible, your own existing rating is preloaded so you can
   update it, and the form states are explicit: if you have no account or you're

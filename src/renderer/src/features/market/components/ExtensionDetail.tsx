@@ -5,6 +5,13 @@
 import { useEffect, useState, type JSX } from 'react'
 import { ProductIcon } from '@services/productIcons/components'
 import { UserAvatar } from '@features/social'
+import {
+  getAccounts,
+  getActiveAccount,
+  loadActiveAccount,
+  subscribeToActiveAccount
+} from '@services/account'
+import type { AccountSummary } from '@shared/account'
 import { useMarket } from '../state/MarketContext'
 import { Stars } from './Stars'
 import styles from '../market.module.css'
@@ -49,6 +56,18 @@ export function ExtensionDetail(): JSX.Element | null {
   const [stars, setStars] = useState(0)
   const [comment, setComment] = useState('')
   const [message, setMessage] = useState<string | null>(null)
+  // Fallback local: si el main todavía no trae el perfil del rating propio,
+  // usamos la cuenta activa del store global (foto + nombre reales).
+  const [myAccount, setMyAccount] = useState<AccountSummary | null>(null)
+  useEffect(() => {
+    const sync = (): void => {
+      const id = getActiveAccount() ?? accountId
+      setMyAccount(getAccounts()?.accounts.find((a) => a.id === id) ?? null)
+    }
+    sync()
+    void loadActiveAccount().then(sync)
+    return subscribeToActiveAccount(sync)
+  }, [accountId])
 
   // Si el usuario ya valoró esta extensión, precargamos su valoración para
   // poder editarla en vez de empezar de cero (y el form dice "Actualizar").
@@ -221,24 +240,29 @@ export function ExtensionDetail(): JSX.Element | null {
         {detailRatings.length === 0 ? (
           <p className={styles.hint}>{t('market.sin.valoraciones')}</p>
         ) : (
-          detailRatings.map((r) => (
+          detailRatings.map((r) => {
+            // La cuenta local manda en el rating propio (el main puede venir
+            // con código viejo que no resuelve el perfil desde Supabase).
+            const own = r.isMine ? myAccount : null
+            const name =
+              own?.displayName ?? own?.handle ?? r.userName ?? r.userHandle ?? '?'
+            return (
             <div key={r.id} className={styles.ratingItem}>
               <UserAvatar
-                name={r.userName ?? r.userHandle ?? '?'}
-                src={r.userAvatar ?? undefined}
+                name={name}
+                src={own?.avatarUrl ?? r.userAvatar ?? undefined}
                 size={26}
               />
               <div className={styles.ratingBody}>
                 <span className={styles.ratingHead}>
-                  <span className={styles.ratingName}>
-                    {r.userName ?? r.userHandle ?? '—'}
-                  </span>
+                  <span className={styles.ratingName}>{name}</span>
                   <Stars value={r.stars} />
                 </span>
                 {r.comment ? <span className={styles.text}>{r.comment}</span> : null}
               </div>
             </div>
-          ))
+            )
+          })
         )}
 
         {!accountId ? (
