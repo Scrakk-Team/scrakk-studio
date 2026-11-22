@@ -75,6 +75,64 @@ export function getToken(serverId: string): string | null {
   return token.accessToken
 }
 
+/**
+ * Dynamic Client Registration (RFC 7591). Registra un clienteNaturno y guarda el
+ * client_id en userData para reutilizarlo. `token_endpoint_auth_method: none`
+ * porque usamos PKCE (no secretos).
+ */
+async function dynamicRegister(endpoint: string, serverId: string): Promise<string> {
+  const cached = readClientIds()[serverId]
+  if (cached) return cached
+  try {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', accept: 'application/json' },
+      body: JSON.stringify({
+        client_name: 'Scrakk Studio',
+        client_uri: 'https://scrakk.art',
+        redirect_uris: ['http://127.0.0.1/callback', 'http://localhost/callback'],
+        grant_types: ['authorization_code', 'refresh_token'],
+        response_types: ['code'],
+        token_endpoint_auth_method: 'none'
+      })
+    })
+    if (!response.ok) return ''
+    const data = await response.json() as Record<string, unknown>
+    const id = typeof data.client_id === 'string' ? data.client_id : ''
+    if (id) {
+      const all = readClientIds()
+      all[serverId] = id
+      writeClientIds(all)
+    }
+    return id
+  } catch {
+    return ''
+  }
+}
+
+function clientIdsFile(): string {
+  return path.join(app.getPath('userData'), 'mcp', 'client-ids.json')
+}
+
+function readClientIds(): Record<string, string> {
+  try {
+    return JSON.parse(readFileSync(clientIdsFile(), 'utf-8')) as Record<string, string>
+  } catch {
+    return {}
+  }
+}
+
+function writeClientIds(ids: Record<string, string>): void {
+  const file = clientIdsFile()
+  mkdirSync(path.dirname(file), { recursive: true })
+  writeFileSync(file, JSON.stringify(ids, null, 2), 'utf-8')
+  try {
+    chmodSync(file, 0o600)
+  } catch {
+    // Windows no respeta chmod.
+  }
+}
+
 /** Canonicaliza la URI del resource server (sin query, sin fragmento). */
 function canonicalResource(url: string): string {
   try {
@@ -136,11 +194,24 @@ export async function startOAuth(
     const authorizationEndpoint = String(authMeta?.authorization_endpoint ?? `${issuer}/authorize`)
     const tokenEndpoint = String(authMeta?.token_endpoint ?? `${issuer}/token`)
 
-    // 3) CIMD como client_id (o pre-registrado si el usuario lo puso).
-    const clientId =
+    // 3) Registro de cliente, en orden de preferencia (spec MCP 2026-07-28):
+    //    a) clientId pre-registrado en la config (importado de otro agente).
+    //    b) CIMD público, SOLO si el AS lo anuncia.
+    //    c) DCR (Dynamic Client Registration) si hay registration_endpoint.
+    //    d) CIMD como último recurso (algunos servers no lo anuncian pero lo aceptan).
+    let clientId =
       config && typeof config === 'object' && config.clientId
         ? config.clientId
-        : SCRAKK_CIMD_URL
+        : ''
+    const supportsCimd = authMeta?.client_id_metadata_document_supported === true
+    const registrationEndpoint = typeof authMeta?.registration_endpoint === 'string'
+      ? authMeta.registration_endpoint as string
+      : null
+    if (!clientId && supportsCimd) clientId = SCRAKK_CIMD_URL
+    if (!clientId && registrationEndpoint) {
+      clientId = await dynamicRegister(registrationEndpoint, serverId)
+    }
+    if (!clientId) clientId = SCRAKK_CIMD_URL
 
     // 4) PKCE + state.
     const verifier = base64url(randomBytes(32))

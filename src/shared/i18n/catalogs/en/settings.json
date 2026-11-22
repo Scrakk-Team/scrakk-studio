@@ -182,7 +182,7 @@
   "settings.mcp.autorizar": "Authorize",
   "settings.mcp.detectar": "Auto-detect",
   "settings.mcp.buscando": "Scanning…",
-  "settings.mcp.detectar.hint": "Import servers from OpenCode, Codex and running MCP processes.",
+  "settings.mcp.detectar.hint": "Import servers from OpenCode, Codex, Cline, Claude and running MCP processes.",
   "settings.mcp.encontrados": "{count} servers found",
   "settings.mcp.escaneado": "Scanned",
   "settings.mcp.no.encontrados": "No servers found in other agents or running processes.",

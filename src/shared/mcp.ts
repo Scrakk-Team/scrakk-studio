@@ -116,7 +116,7 @@ export interface McpCallResult {
 }
 
 /** De dónde se importó un servidor descubierto. */
-export type McpImportSource = 'opencode' | 'codex' | 'running'
+export type McpImportSource = 'opencode' | 'codex' | 'cline' | 'claude' | 'running'
 
 /** Servidor candidato encontrado por el escáner (aún no importado). */
 export interface McpDiscoveredServer {

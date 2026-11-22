@@ -596,6 +596,11 @@ published are not edited. The file goes per version:
   "Invalid client_id" error with Cloudflare and other modern MCP servers. The
   flow also sends the `resource` parameter (RFC 8707), resolves the real
   ephemeral callback port before building the URL, and verifies `state`/`iss`.
+  Servers that explicitly do NOT support CIMD (e.g. Cloudflare Bindings, whose
+  metadata says `client_id_metadata_document_supported: false`) now fall back to
+  Dynamic Client Registration, fixing their "Invalid client_id" error. Auto-
+  detection now also reads Cline (`cline_mcp_settings.json`, including
+  pre-registered OAuth client IDs) and Claude Code (`.claude.json`).
 
 ### Preview (UI)
 - **One preview system for every file in a tab.** A global `preview` API now

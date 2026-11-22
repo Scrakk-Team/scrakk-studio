@@ -8,6 +8,7 @@ import type { McpDiscoveredServer, McpDiscoveryResult } from '@shared/mcp'
 import { discoverOpencode } from './opencode'
 import { discoverCodex } from './codex'
 import { discoverRunning } from './running'
+import { discoverCline, discoverClaude } from './agents'
 
 /** Clave estable para deduplicar (URL o command). */
 function keyOf(server: McpDiscoveredServer): string {
@@ -20,11 +21,19 @@ function keyOf(server: McpDiscoveredServer): string {
 export async function discoverMcpServers(): Promise<McpDiscoveryResult> {
   const opencode = discoverOpencode()
   const codex = discoverCodex()
+  const cline = discoverCline()
+  const claude = discoverClaude()
   const running = await discoverRunning()
 
   const seen = new Set<string>()
   const servers: McpDiscoveredServer[] = []
-  for (const candidate of [...opencode.servers, ...codex.servers, ...running.servers]) {
+  for (const candidate of [
+    ...opencode.servers,
+    ...codex.servers,
+    ...cline.servers,
+    ...claude.servers,
+    ...running.servers
+  ]) {
     const key = keyOf(candidate)
     if (!key || seen.has(key)) continue
     seen.add(key)
@@ -33,9 +42,9 @@ export async function discoverMcpServers(): Promise<McpDiscoveryResult> {
 
   return {
     servers,
-    scanned: [...opencode.scanned, ...codex.scanned, ...running.scanned],
-    errors: [...opencode.errors, ...codex.errors, ...running.errors]
+    scanned: [...opencode.scanned, ...codex.scanned, ...cline.scanned, ...claude.scanned, ...running.scanned],
+    errors: [...opencode.errors, ...codex.errors, ...cline.errors, ...claude.errors, ...running.errors]
   }
 }
 
-export { discoverOpencode, discoverCodex, discoverRunning }
+export { discoverOpencode, discoverCodex, discoverCline, discoverClaude, discoverRunning }

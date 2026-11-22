@@ -10,6 +10,7 @@
 import { describe, expect, it } from 'vitest'
 import { discoverOpencode } from '../src/main/mcp/discovery/opencode'
 import { discoverCodex } from '../src/main/mcp/discovery/codex'
+import { discoverCline, discoverClaude } from '../src/main/mcp/discovery/agents'
 
 describe('MCP discovery', () => {
   it('importa los servidores de la config de OpenCode del sistema', () => {
@@ -31,5 +32,24 @@ describe('MCP discovery', () => {
     expect(supabase?.config.type).toBe('remote')
     const codebase = result.servers.find((s) => s.id === 'codebase-memory-mcp')
     expect(codebase?.config.command?.[0]).toContain('codebase-memory-mcp')
+  })
+
+  it('importa los servidores de Cline (con client_id OAuth pre-registrado)', () => {
+    const result = discoverCline()
+    expect(result.scanned.length).toBeGreaterThan(0)
+    const supabase = result.servers.find((s) => s.id === 'supabase')
+    expect(supabase?.config.type).toBe('remote')
+    const oauth = supabase?.config.oauth
+    expect(oauth && typeof oauth === 'object' && 'clientId' in oauth && oauth.clientId).toBeTruthy()
+    const codebase = result.servers.find((s) => s.id === 'codebase-memory-mcp')
+    expect(codebase?.config.command?.[0]).toContain('codebase-memory-mcp')
+  })
+
+  it('importa los servidores de Claude Code', () => {
+    const result = discoverClaude()
+    expect(result.scanned.length).toBeGreaterThan(0)
+    const cloudflare = result.servers.find((s) => s.id === 'cloudflare')
+    expect(cloudflare?.config.type).toBe('remote')
+    expect(cloudflare?.config.url).toContain('mcp.cloudflare.com')
   })
 })

@@ -167,7 +167,7 @@
   "settings.mcp.autorizar": "Autorizar",
   "settings.mcp.detectar": "Detectar automáticamente",
   "settings.mcp.buscando": "Buscando…",
-  "settings.mcp.detectar.hint": "Importa servidores de OpenCode, Codex y procesos MCP activos.",
+  "settings.mcp.detectar.hint": "Importa servidores de OpenCode, Codex, Cline, Claude y procesos MCP activos.",
   "settings.mcp.encontrados": "{count} servidores encontrados",
   "settings.mcp.escaneado": "Escaneado",
   "settings.mcp.no.encontrados": "No se encontraron servidores en otros agentes ni procesos activos.",
