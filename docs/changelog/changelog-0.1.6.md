@@ -590,6 +590,12 @@ published are not edited. The file goes per version:
   and legacy `mcp`), Codex (`config.toml` `[mcp_servers.*]`) and currently
   running MCP processes, then offers them as a checkable list to import into
   `.scrakk/mcp.json` — no manual command/URL typing.
+- **OAuth now uses CIMD instead of a made-up client_id.** Scrakk publishes a
+  Client ID Metadata Document at `https://scrakk.art/oauth/scrakk-studio.json`
+  and uses it as the OAuth `client_id`, like OpenCode/ChatGPT — fixing the
+  "Invalid client_id" error with Cloudflare and other modern MCP servers. The
+  flow also sends the `resource` parameter (RFC 8707), resolves the real
+  ephemeral callback port before building the URL, and verifies `state`/`iss`.
 
 ### Preview (UI)
 - **One preview system for every file in a tab.** A global `preview` API now
