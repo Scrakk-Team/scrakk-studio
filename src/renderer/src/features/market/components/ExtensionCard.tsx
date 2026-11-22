@@ -30,6 +30,21 @@ export function ExtensionCard({ extension }: { extension: MarketExtension }): JS
               <ProductIcon id="verified-badge" size={12} />
             </span>
           ) : null}
+          {extension.featured || extension.pinnedUntil || extension.autoFeatured ? (
+            <span
+              className={styles.featured}
+              title={
+                extension.pinnedUntil
+                  ? t('market.destacada.fijada')
+                  : extension.featured
+                    ? t('market.destacada')
+                    : t('market.destacada.auto')
+              }
+            >
+              <ProductIcon id="crown" size={12} />
+              {t('market.destacada.corta')}
+            </span>
+          ) : null}
           {isMine ? <span className={styles.cardMeta}>· {t('market.mias')}</span> : null}
         </span>
         <span className={styles.cardSummary}>

@@ -28,6 +28,7 @@ import type {
   MarketRelease,
   MarketReportRequest,
   MarketResult,
+  MarketSort,
   MarketUpsertRequest
 } from '@shared/market'
 import { t } from '@core/i18n'
@@ -40,6 +41,9 @@ interface MarketContextValue {
   tab: MarketTab
   query: string
   category: string | null
+  /** Orden del feed (global, no personalizado). */
+  sort: MarketSort
+  days: number
   categories: string[]
   results: MarketExtension[]
   loading: boolean
@@ -59,6 +63,8 @@ interface MarketContextValue {
   setTab: (tab: MarketTab) => void
   setQuery: (query: string) => void
   setCategory: (category: string | null) => void
+  setSort: (sort: MarketSort) => void
+  setDays: (days: number) => void
   refresh: () => Promise<void>
   openDetail: (extension: MarketExtension) => Promise<void>
   closeDetail: () => void
@@ -71,6 +77,8 @@ interface MarketContextValue {
   save: (req: MarketUpsertRequest) => Promise<MarketResult<MarketExtension>>
   removeExtension: (slug: string) => Promise<MarketResult<null>>
   uploadImage: (file: File) => Promise<MarketResult<string>>
+  recordEvent: (slug: string, type: 'view' | 'install') => Promise<boolean>
+  requestFeatured: (slug: string) => Promise<MarketResult<null>>
 }
 
 const MarketContext = createContext<MarketContextValue | null>(null)
@@ -91,6 +99,8 @@ export function MarketProvider({ children }: { children: ReactNode }): JSX.Eleme
   const [tab, setTab] = useState<MarketTab>('store')
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState<string | null>(null)
+  const [sort, setSort] = useState<MarketSort>('top')
+  const [days, setDays] = useState(7)
   const [categories, setCategories] = useState<string[]>([])
   const [results, setResults] = useState<MarketExtension[]>([])
   const [loading, setLoading] = useState(true)
@@ -127,7 +137,7 @@ export function MarketProvider({ children }: { children: ReactNode }): JSX.Eleme
     setError(null)
     try {
       const [extensions, cats] = await Promise.all([
-        api.market.search({ query, category, limit: 60 }),
+        api.market.search({ query, category, limit: 60, sort, days }),
         api.market.categories()
       ])
       // `search` es una LECTURA: devuelve el array pelado (igual que
@@ -139,7 +149,7 @@ export function MarketProvider({ children }: { children: ReactNode }): JSX.Eleme
     } finally {
       setLoading(false)
     }
-  }, [query, category])
+  }, [query, category, sort, days])
 
   useEffect(() => {
     if (tab === 'store') void refresh()
@@ -269,12 +279,28 @@ export function MarketProvider({ children }: { children: ReactNode }): JSX.Eleme
     [accountId]
   )
 
+  const recordEvent = useCallback(
+    (slug: string, type: 'view' | 'install'): Promise<boolean> =>
+      api.market.recordEvent(slug, type).catch(() => false),
+    []
+  )
+
+  const requestFeatured = useCallback(
+    async (slug: string): Promise<MarketResult<null>> =>
+      accountId
+        ? api.market.requestFeatured(accountId, slug)
+        : { ok: false, error: t('market.inicia.sesion.para.valorar') },
+    [accountId]
+  )
+
   const value = useMemo<MarketContextValue>(
     () => ({
       accountId,
       tab,
       query,
       category,
+      sort,
+      days,
       categories,
       results,
       loading,
@@ -292,6 +318,8 @@ export function MarketProvider({ children }: { children: ReactNode }): JSX.Eleme
       setTab,
       setQuery,
       setCategory,
+      setSort,
+      setDays,
       refresh,
       openDetail,
       closeDetail,
@@ -303,13 +331,17 @@ export function MarketProvider({ children }: { children: ReactNode }): JSX.Eleme
       report,
       save,
       removeExtension,
-      uploadImage
+      uploadImage,
+      recordEvent,
+      requestFeatured
     }),
     [
       accountId,
       tab,
       query,
       category,
+      sort,
+      days,
       categories,
       results,
       loading,
@@ -335,7 +367,9 @@ export function MarketProvider({ children }: { children: ReactNode }): JSX.Eleme
       report,
       save,
       removeExtension,
-      uploadImage
+      uploadImage,
+      recordEvent,
+      requestFeatured
     ]
   )
 

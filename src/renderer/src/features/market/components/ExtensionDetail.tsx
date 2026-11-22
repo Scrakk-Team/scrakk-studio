@@ -17,6 +17,7 @@ function toEmbed(url: string): string {
 
 /** Detalle de una extensión: install, repo, media, valoraciones. */
 export function ExtensionDetail(): JSX.Element | null {
+  const market = useMarket()
   const {
     detail,
     detailRatings,
@@ -134,7 +135,22 @@ export function ExtensionDetail(): JSX.Element | null {
             <ProductIcon id="pencil" size={13} />
             {t('market.editar')}
           </button>
-        ) : (
+        ) : null}
+        {mine && !detail.featured && !detail.featuredRequested ? (
+          <button
+            type="button"
+            className={styles.ghost}
+            onClick={() =>
+              void market.requestFeatured(detail.slug).then((res) =>
+                setMessage(res.ok ? t('market.destacada.solicitada') : res.error)
+              )
+            }
+          >
+            <ProductIcon id="crown" size={13} />
+            {t('market.destacada.solicitar')}
+          </button>
+        ) : null}
+        {!mine ? (
           <button
             type="button"
             className={styles.ghost}
@@ -142,7 +158,7 @@ export function ExtensionDetail(): JSX.Element | null {
           >
             {t('market.reportar')}
           </button>
-        )}
+        ) : null}
       </div>
 
       {message ? <p className={styles.hint}>{message}</p> : null}

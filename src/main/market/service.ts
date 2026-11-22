@@ -14,7 +14,7 @@ import { app } from 'electron'
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
-import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from '../account/config'
+import { CLI_API_BASE, API_TIMEOUT_MS, SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from '../account/config'
 import { getClientFor } from '../supabaseClient'
 import { installSefFromBuffer } from '../ipc/extensions'
 import { confirmExtensionInstall } from '../extensions/consent'
@@ -43,6 +43,24 @@ const anon = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
 
 const ok = <T>(data: T): MarketResult<T> => ({ ok: true, data })
 const fail = <T>(error: string): MarketResult<T> => ({ ok: false, error })
+
+/**
+ * Avisa al servidor Scrakk de una instalación para que incremente
+ * `extensions.downloads` con service_role (el anon ya no puede: 0033).
+ * Fire-and-forget: es telemetría, nunca bloquea la instalación.
+ */
+async function reportInstallToServer(slug: string): Promise<void> {
+  try {
+    await fetch(`${CLI_API_BASE}/market/install`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ slug }),
+      signal: AbortSignal.timeout(API_TIMEOUT_MS)
+    }).catch(() => undefined)
+  } catch {
+    // Sin conexión: se pierde el contador, no la instalación.
+  }
+}
 
 function str(v: unknown): string | null {
   return typeof v === 'string' && v.length > 0 ? v : null
@@ -90,6 +108,15 @@ function toExtension(row: Row, owner?: Row): MarketExtension {
     downloads: num(row.downloads),
     ratingAvg: num(row.rating_avg),
     ratingCount: num(row.rating_count),
+    ratingHistogram: Array.isArray(row.rating_histogram)
+      ? (row.rating_histogram as unknown[]).map((v) => num(v))
+      : [0, 0, 0, 0, 0],
+    featured: row.featured === true,
+    featuredRequested: row.featured_requested === true,
+    pinnedUntil: str(row.pinned_until),
+    rankWeight: num(row.rank_weight),
+    // Misma regla que extension_is_auto_featured() en la DB (0033).
+    autoFeatured: num(row.rating_count) >= 20 && num(row.rating_avg) >= 4.5 && num(row.downloads) >= 100,
     latestVersion: str(row.latest_version),
     latestReleaseAt: str(row.latest_release_at),
     createdAt: String(row.created_at ?? ''),
@@ -113,7 +140,9 @@ export async function search(req: MarketSearchRequest): Promise<MarketExtension[
     p_query: req.query ?? null,
     p_category: req.category ?? null,
     p_limit: req.limit ?? 40,
-    p_offset: req.offset ?? 0
+    p_offset: req.offset ?? 0,
+    p_sort: req.sort ?? null,
+    p_days: req.days ?? 7
   })
   // Sin esto, un fallo del RPC se veía como "no hay extensiones" y nada más.
   if (error) console.warn(`[market] search_extensions falló: ${error.message}`)
@@ -247,6 +276,27 @@ export async function ratings(accountId: string | null, slug: string): Promise<M
   })
 }
 
+/** Registra un view/install para el trending del feed (rate-limit en DB). */
+export async function recordEvent(slug: string, type: 'view' | 'install'): Promise<boolean> {
+  const { data, error } = await anon.rpc('record_extension_event', {
+    p_slug: slug,
+    p_type: type
+  })
+  if (error) return false
+  return data === true
+}
+
+/** El dueño pide que su extensión sea considerada para destacada. */
+export async function requestFeatured(
+  accountId: string,
+  slug: string
+): Promise<MarketResult<null>> {
+  const client = await getClientFor(accountId)
+  if (!client) return fail(t('main.cuenta.no.encontrada'))
+  const { error } = await client.rpc('request_extension_featured', { p_slug: slug })
+  return error ? fail(error.message) : ok(null)
+}
+
 export async function report(accountId: string, req: MarketReportRequest): Promise<MarketResult<null>> {
   const client = await getClientFor(accountId)
   if (!client) return fail(t('main.cuenta.no.encontrada'))
@@ -373,10 +423,10 @@ export async function install(
     }
   })
   if (!installed.success) return fail(installed.error)
-  await anon.rpc('increment_extension_download', { p_slug: slug }).then(
-    () => undefined,
-    () => undefined
-  )
+  // El contador de downloads lo incrementa el SERVIDOR (tiene service_role):
+  // el cliente anon ya no puede inflarlo (migración 0033). No bloquea la
+  // instalación si el servidor no responde: es telemetría, no funcionalidad.
+  await reportInstallToServer(slug)
   return ok({ id: installed.extension.id, name: installed.extension.name, version: rel.version })
 }
 

@@ -215,6 +215,50 @@
   flex-shrink: 0;
 }
 
+/* Distintivo de "destacada" (manual, fijada o automática por señales). */
+.featured {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 6px;
+  padding: 1px 5px;
+  border-radius: var(--radius-capsule);
+  background: color-mix(in srgb, var(--color-accent) 16%, transparent);
+  color: var(--color-accent);
+  font-size: 9px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+/* Fila del orden del feed + ventana de trending. */
+.feedRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.days {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+}
+.days input {
+  width: 48px;
+  height: 24px;
+  padding: 0 5px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: inherit;
+  font-size: var(--text-xs);
+  outline: none;
+}
+
 .empty {
   margin: auto;
   padding: var(--space-4);

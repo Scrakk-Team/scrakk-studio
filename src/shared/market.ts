@@ -22,7 +22,9 @@ export const MARKET_IPC = {
   uploadImage: 'market:upload-image',
   resolveRelease: 'market:resolve-release',
   install: 'market:install',
-  refresh: 'market:refresh'
+  refresh: 'market:refresh',
+  recordEvent: 'market:record-event',
+  requestFeatured: 'market:request-featured'
 } as const
 
 export type RepoProvider = 'github' | 'gitlab'
@@ -52,6 +54,17 @@ export interface MarketExtension {
   downloads: number
   ratingAvg: number
   ratingCount: number
+  /** Distribución de estrellas [1★..5★] (columna rating_histogram). */
+  ratingHistogram: number[]
+  /** Destacada a mano (admin) o por solicitud del dueño. */
+  featured: boolean
+  featuredRequested: boolean
+  /** Fijada arriba del feed hasta esta fecha (admin tool). */
+  pinnedUntil: string | null
+  /** Peso editorial manual del admin tool. */
+  rankWeight: number
+  /** Calculado en renderer con las mismas reglas de la DB (rating + descargas). */
+  autoFeatured: boolean
   latestVersion: string | null
   latestReleaseAt: string | null
   createdAt: string
@@ -80,11 +93,17 @@ export interface MarketRating {
   isMine: boolean
 }
 
+/** Modos de orden del feed (deben coincidir con p_sort de search_extensions). */
+export type MarketSort = 'relevance' | 'top' | 'new' | 'trending'
+
 export interface MarketSearchRequest {
   query?: string
   category?: string | null
   limit?: number
   offset?: number
+  sort?: MarketSort
+  /** Ventana en días para 'trending'. */
+  days?: number
 }
 
 export interface MarketUpsertRequest {
@@ -141,4 +160,8 @@ export interface MarketApi {
   resolveRelease: (input: { repoProvider: RepoProvider; repoUrl: string; assetName?: string | null }) => Promise<MarketResult<MarketRelease>>
   install: (accountId: string | null, slug: string) => Promise<MarketResult<{ id: string; name: string; version: string }>>
   refresh: (accountId: string) => Promise<number>
+  /** Registra un view/install para trending (rate-limit en DB). */
+  recordEvent: (slug: string, type: 'view' | 'install') => Promise<boolean>
+  /** El dueño pide que su extensión sea considerada para destacada. */
+  requestFeatured: (accountId: string, slug: string) => Promise<MarketResult<null>>
 }

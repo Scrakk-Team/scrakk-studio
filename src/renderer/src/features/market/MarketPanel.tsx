@@ -5,7 +5,8 @@
 import { useEffect, type JSX } from 'react'
 import { HeaderActionButton, usePanelTitleOptional } from '@features/layout'
 import { ProductIcon } from '@services/productIcons/components'
-import type { MarketExtension } from '@shared/market'
+import { SegmentedTabs } from '@ui'
+import type { MarketExtension, MarketSort } from '@shared/market'
 import { useMarket, type MarketTab } from './state/MarketContext'
 import { ExtensionCard } from './components/ExtensionCard'
 import { ExtensionDetail } from './components/ExtensionDetail'
@@ -126,6 +127,38 @@ export function MarketPanel(): JSX.Element {
                 spellCheck={false}
               />
             </label>
+
+            {/* Orden del feed GLOBAL (mismo para todos). La UI sólo elige
+                entre los modos que el RPC de Supabase ya implementa. */}
+            <div className={styles.feedRow}>
+              <SegmentedTabs
+                items={[
+                  { id: 'top', label: t('market.orden.top') },
+                  { id: 'new', label: t('market.orden.nuevas') },
+                  { id: 'trending', label: t('market.orden.tendencia') },
+                  { id: 'relevance', label: t('market.orden.relevancia') }
+                ]}
+                activeId={market.sort}
+                onChange={(id) => market.setSort(id as MarketSort)}
+                ariaLabel={t('market.orden.feed')}
+              />
+              {market.sort === 'trending' ? (
+                <label className={styles.days}>
+                  <span>{t('market.orden.dias')}</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={90}
+                    value={market.days}
+                    onChange={(event) => {
+                      const n = Number.parseInt(event.target.value, 10)
+                      if (Number.isFinite(n)) market.setDays(Math.min(90, Math.max(1, n)))
+                    }}
+                  />
+                </label>
+              ) : null}
+            </div>
+
             {market.categories.length > 0 ? (
               <div className={styles.categories}>
                 <button

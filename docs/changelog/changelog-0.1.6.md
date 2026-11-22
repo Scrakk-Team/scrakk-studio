@@ -745,6 +745,22 @@ published are not edited. The file goes per version:
   at 0.1.4: `docs.scrakk.art` now serves the 0.1.5 docs, including the full
   changelog.
 
+### Extensions (marketplace / ranking)
+- **Real rating + a ranked catalog feed.** Ratings were already DB-backed, but
+  the feed was just `rating_avg → downloads` and the download counter was dead
+  (the client lost permission to the RPC). Migration `0033_extensions_ranking`
+  adds Bayesian rating (1-vote-5★ no longer outranks 200-votes-4.8★), a
+  `featured`/`pinned`/`rank_weight` editorial layer, an automatic featured flag
+  from real signals, time-windowed `extension_events` for **trending**, and a
+  versioned `search_extensions` RPC with `top | new | trending | relevance`
+  sorts. Downloads are now counted server-side via `api.scrakk.art/api/market/install`
+  (service_role), with rate limiting, so they can't be inflated from the client.
+- **The catalog order is configurable in the UI.** A segmented control picks
+  the global sort and, for trending, the window in days; the list is global for
+  everyone. Cards show a "featured" badge (manual, pinned or automatic), owners
+  can request a featured spot from their extension's detail, and the admin tool
+  has Feature/Unfeature, Pin 7d/Unpin and a manual rank weight.
+
 ### Extensions (host)
 - **Overlapping extension-host starts no longer activate before `init`.** The
   session was published in the manager with a placeholder

@@ -552,7 +552,11 @@ const api: WindowApi = {
     resolveRelease: (input) => ipcRenderer.invoke(MARKET_IPC.resolveRelease, input),
     install: (accountId: string | null, slug: string) =>
       ipcRenderer.invoke(MARKET_IPC.install, accountId, slug),
-    refresh: (accountId: string) => ipcRenderer.invoke(MARKET_IPC.refresh, accountId)
+    refresh: (accountId: string) => ipcRenderer.invoke(MARKET_IPC.refresh, accountId),
+    recordEvent: (slug: string, type: 'view' | 'install') =>
+      ipcRenderer.invoke(MARKET_IPC.recordEvent, slug, type),
+    requestFeatured: (accountId: string, slug: string) =>
+      ipcRenderer.invoke(MARKET_IPC.requestFeatured, accountId, slug)
   } satisfies MarketApi,
   social: {
     watch: (accountId: string) => ipcRenderer.invoke(SOCIAL_IPC.watch, accountId),

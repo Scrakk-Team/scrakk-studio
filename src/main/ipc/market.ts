@@ -50,4 +50,10 @@ export function registerMarketIpc(): void {
     service.install(accountId, slug)
   )
   ipcMain.handle(MARKET_IPC.refresh, (_event, accountId: string) => service.refresh(accountId))
+  ipcMain.handle(MARKET_IPC.recordEvent, (_event, slug: string, type: 'view' | 'install') =>
+    service.recordEvent(slug, type)
+  )
+  ipcMain.handle(MARKET_IPC.requestFeatured, (_event, accountId: string, slug: string) =>
+    service.requestFeatured(accountId, slug)
+  )
 }
