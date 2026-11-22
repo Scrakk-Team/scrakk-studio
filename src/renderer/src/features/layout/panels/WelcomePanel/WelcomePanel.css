@@ -60,6 +60,15 @@
   position: relative;
   display: flex;
   flex-direction: column;
+  /* Los 3 botones se reordenan arrastrándolos entre sí. */
+  cursor: grab;
+}
+.welcome-action-wrapper:active { cursor: grabbing; }
+
+/* Destino del arrastre: resaltamos el hueco donde caerá el botón. */
+.welcome-action-wrapper.drop-target .welcome-action-card {
+  outline: 2px dashed var(--accent-color, var(--color-accent, #fb923c));
+  outline-offset: 2px;
 }
 
 .action-badge {

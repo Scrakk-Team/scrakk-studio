@@ -563,6 +563,12 @@ published are not edited. The file goes per version:
   the text tabs were clipped. They are now larger proicons (`globe` / `file`)
   with accessible labels, moved away from the close button.
 
+### Welcome (UI)
+- **The three quick-action buttons are reorderable.** Drag "New file", "Open
+  file" and "Open folder" onto each other to change their position; the order
+  persists in localStorage. The drop target is highlighted, the cursor shows
+  grab/grabbing, and a drag no longer triggers the button's action.
+
 ### Tabs (settings)
 - **Experimental: same-size tabs with a configurable width.** A new toggle
   gives every tab in every strip a fixed width instead of sizing to its label.

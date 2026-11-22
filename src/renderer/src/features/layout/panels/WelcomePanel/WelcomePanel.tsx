@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Licencia completa en LICENSE (Apache License 2.0).
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, type DragEvent } from "react";
 import { ProductIcon } from '@services/productIcons/components'
 import { Markdown } from '@features/chat/components/Markdown'
 import { FileTypeIcon } from '@features/explorer/components/FileTypeIcon'
@@ -15,6 +15,8 @@ import { t, type MessageKey } from '@core/i18n'
 import { commandRegistry } from '@services/commands'
 import { formatCombo } from '@services/shortcuts'
 import "./WelcomePanel.css";
+
+import { loadActionOrder, reorderActions, type WelcomeActionId } from './actionOrder'
 
 /** Consejos desde `tips/*.json` (agregar JSON = agregar consejo). */
 const TIPS = loadTips();
@@ -83,6 +85,46 @@ export function WelcomePanel({
   // Novedad del changelog LOCAL: funciona sin release remoto.
   const [changelogSeenTick, setChangelogSeenTick] = useState(0);
   void changelogSeenTick;
+
+  // Orden de los 3 botones: se puede cambiar arrastrándolos entre sí.
+  const [actionOrder, setActionOrder] = useState<WelcomeActionId[]>(loadActionOrder);
+  const dragIdRef = useRef<WelcomeActionId | null>(null);
+  const draggedAtRef = useRef(0);
+  const [dropTarget, setDropTarget] = useState<WelcomeActionId | null>(null);
+
+  const onActionDragStart = (
+    event: DragEvent<HTMLDivElement>,
+    id: WelcomeActionId
+  ): void => {
+    dragIdRef.current = id;
+    draggedAtRef.current = Date.now();
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", id);
+  };
+  const onActionDragOver = (
+    event: DragEvent<HTMLDivElement>,
+    id: WelcomeActionId
+  ): void => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+    if (dropTarget !== id) setDropTarget(id);
+  };
+  const onActionDrop = (
+    event: DragEvent<HTMLDivElement>,
+    id: WelcomeActionId
+  ): void => {
+    event.preventDefault();
+    const from = dragIdRef.current;
+    if (from && from !== id) {
+      setActionOrder((previous) => reorderActions(previous, from, id));
+    }
+    dragIdRef.current = null;
+    setDropTarget(null);
+  };
+  const onActionDragEnd = (): void => {
+    dragIdRef.current = null;
+    setDropTarget(null);
+  };
   const changelogNews = announcement
     ? changelogHasNews(announcement.version, updates.currentVersion)
     : false;
@@ -117,70 +159,62 @@ export function WelcomePanel({
     window.location.reload();
   };
 
+  /** Config de los 3 botones (se renderizan en `actionOrder`). */
+  const actionConfig: Record<WelcomeActionId, {
+    icon: string; title: string; badge: string; onClick: () => void
+  }> = {
+    new: { icon: "file", title: t('layout.nuevo.archivo'), badge: "Ctrl+N", onClick: onNewFile },
+    open: { icon: "new-file", title: t('layout.abrir.archivo'), badge: "Ctrl+O", onClick: onOpenFile },
+    folder: { icon: "new-folder", title: t('layout.abrir.carpeta'), badge: t('layout.ctrl.k.o'), onClick: onOpenFolder }
+  };
+
   return (
     <div className="welcome-page" data-component="welcomePage">
       <div className="welcome-container">
-        {/* Grid de acciones principales */}
+        {/* Grid de acciones principales — los 3 botones se pueden reordenar
+            arrastrándolos entre sí (el orden se guarda en localStorage). */}
         <div className="welcome-actions-grid">
-          <div className="welcome-action-wrapper">
-            <span className="action-badge">
-              <ProductIcon id="keyboard" size={10} aria-hidden="true" />
-              Ctrl+N
-            </span>
-            <button
-              className={`welcome-action-card ${hoveredAction === "new" ? "hovered" : ""}`}
-              onClick={onNewFile}
-              onMouseEnter={() => setHoveredAction("new")}
-              onMouseLeave={() => setHoveredAction(null)}
-            >
-              <div className="action-icon">
-                <ProductIcon id="file" size={24} aria-hidden="true" />
+          {actionOrder.map((id) => {
+            const action = actionConfig[id];
+            const wrapperClass = [
+              "welcome-action-wrapper",
+              dropTarget === id ? "drop-target" : ""
+            ].filter(Boolean).join(" ");
+            return (
+              <div
+                key={id}
+                className={wrapperClass}
+                draggable
+                onDragStart={(event) => onActionDragStart(event, id)}
+                onDragOver={(event) => onActionDragOver(event, id)}
+                onDrop={(event) => onActionDrop(event, id)}
+                onDragEnd={onActionDragEnd}
+                title={t('layout.welcome.arrastrar.para.reordenar')}
+              >
+                <span className="action-badge">
+                  <ProductIcon id="keyboard" size={10} aria-hidden="true" />
+                  {action.badge}
+                </span>
+                <button
+                  className={`welcome-action-card ${hoveredAction === id ? "hovered" : ""}`}
+                  onClick={() => {
+                    // Un drag no debe abrir el archivo/carpeta al soltar.
+                    if (Date.now() - draggedAtRef.current < 300) return;
+                    action.onClick();
+                  }}
+                  onMouseEnter={() => setHoveredAction(id)}
+                  onMouseLeave={() => setHoveredAction(null)}
+                >
+                  <div className="action-icon">
+                    <ProductIcon id={action.icon} size={24} aria-hidden="true" />
+                  </div>
+                  <div className="action-content">
+                    <span className="action-title">{action.title}</span>
+                  </div>
+                </button>
               </div>
-              <div className="action-content">
-                <span className="action-title">{t('layout.nuevo.archivo')}</span>
-              </div>
-            </button>
-          </div>
-
-          <div className="welcome-action-wrapper">
-            <span className="action-badge">
-              <ProductIcon id="keyboard" size={10} aria-hidden="true" />
-              Ctrl+O
-            </span>
-            <button
-              className={`welcome-action-card ${hoveredAction === "open" ? "hovered" : ""}`}
-              onClick={onOpenFile}
-              onMouseEnter={() => setHoveredAction("open")}
-              onMouseLeave={() => setHoveredAction(null)}
-            >
-              <div className="action-icon">
-                <ProductIcon id="new-file" size={24} aria-hidden="true" />
-              </div>
-              <div className="action-content">
-                <span className="action-title">{t('layout.abrir.archivo')}</span>
-              </div>
-            </button>
-          </div>
-
-          <div className="welcome-action-wrapper">
-            <span className="action-badge">
-              <ProductIcon id="keyboard" size={10} aria-hidden="true" />
-              {t('layout.ctrl.k.o')}
-            </span>
-            <button
-              className={`welcome-action-card ${hoveredAction === "folder" ? "hovered" : ""}`}
-              onClick={onOpenFolder}
-              onMouseEnter={() => setHoveredAction("folder")}
-              onMouseLeave={() => setHoveredAction(null)}
-            >
-              <div className="action-icon">
-                <ProductIcon id="new-folder" size={24} aria-hidden="true" />
-              </div>
-              <div className="action-content">
-                <span className="action-title">{t('layout.abrir.carpeta')}</span>
-              </div>
-            </button>
-          </div>
+            );
+          })}
         </div>
 
         {/* Workspaces guardados */}
