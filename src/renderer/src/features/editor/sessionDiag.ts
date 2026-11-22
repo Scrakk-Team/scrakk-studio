@@ -37,8 +37,12 @@ export function diag(step: string, extra?: unknown): void {
   lines.push(`[${stamp}] ${step}${suffix}`)
   if (lines.length > MAX_ENTRIES) lines.shift()
   const snapshot = lines.join('\n') + '\n'
+  // En tests (y en previews sin bridge) `api.fs` no existe: el diagnóstico es
+  // temporal y no puede romper la apertura de archivos por no tener logger.
+  const writeFile = api?.fs?.writeFile
+  if (typeof writeFile !== 'function') return
   writing = writing.then(() =>
-    api.fs.writeFile(PATH, snapshot).then(
+    writeFile(PATH, snapshot).then(
       () => undefined,
       () => undefined
     )
