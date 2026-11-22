@@ -269,7 +269,7 @@ jobs:
       # `cloudflare/pages-action` ya no existe (404). La forma soportada es
       # wrangler-action con `pages deploy`; el directorio publicado es el repo
       # APT generado arriba y el branch main apunta a producción.
-      - name: Aviso: sin token de Cloudflare
+      - name: "Aviso: sin token de Cloudflare"
         if: env.CF_TOKEN == ''
         shell: bash
         run: |
