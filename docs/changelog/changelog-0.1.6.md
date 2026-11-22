@@ -613,8 +613,8 @@ published are not edited. The file goes per version:
   `AccountSwitcher` used by the Social panel in an anchored panel under the
   hamburger button — it opens on **hover** over the option (click works too)
   and appears **to the right of the menu item without closing the menu**, like
-  a submenu but with the real account switcher. The panel shows the active
-  account's photo and name above the switcher, and
+  a submenu but with the real account switcher. The active account's photo is
+  shown right on the **Account** menu item, and
   you can switch, add or remove accounts without leaving your current panel;
   "Add account" opens the Social panel's sign-in flow.
   A standalone avatar in the title bar was hidden by the OS window controls

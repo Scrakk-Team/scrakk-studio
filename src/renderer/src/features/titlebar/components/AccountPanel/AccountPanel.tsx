@@ -7,12 +7,12 @@
  *
  * Reutiliza el MISMO `AccountSwitcher` del panel social: cambiar de cuenta
  * acá publica en el store global `activeAccount`, así la tienda ("mis
- * extensiones") y el social siguen a la cuenta nueva. Antes había un botón
- * con avatar suelto en la titlebar; ahora vive como opción del menú.
+ * extensiones") y el social siguen a la cuenta nueva. La FOTO de la cuenta
+ * activa se muestra en la propia opción "Cuenta" del menú (ver MenuBar).
  */
 
 import { useCallback, useEffect, useState, type JSX } from 'react'
-import { AccountSwitcher, UserAvatar } from '@features/social'
+import { AccountSwitcher } from '@features/social'
 import {
   account as accountService,
   getAccounts,
@@ -22,8 +22,6 @@ import {
   subscribeToActiveAccount
 } from '@services/account'
 import type { AccountList } from '@shared/account'
-import { t } from '@core/i18n'
-import styles from './AccountPanel.module.css'
 
 interface AccountPanelProps {
   /** Cierra el modal anclado (lo pasa el MenuBar). */
@@ -73,29 +71,15 @@ export function AccountPanel({ onClose }: AccountPanelProps): JSX.Element {
     window.dispatchEvent(new CustomEvent('scrakk:open-social-add-account'))
   }, [onClose])
 
-  const current = accounts.accounts.find((account) => account.id === activeId)
-  const label = current?.displayName ?? current?.handle ?? current?.email ?? t('social.cuentas')
-
   return (
-    <div className={styles.root}>
-      {/* Foto y nombre de la cuenta activa (antes los mostraba el avatar de la
-          titlebar; ahora viven dentro del menú hamburger). */}
-      <div className={styles.active}>
-        <UserAvatar name={label} src={current?.avatarUrl ?? undefined} size={38} />
-        <div className={styles.info}>
-          <span className={styles.name}>{label}</span>
-          {current?.email ? <span className={styles.email}>{current.email}</span> : null}
-        </div>
-      </div>
-      <AccountSwitcher
-        accounts={accounts}
-        activeId={activeId}
-        onSwitch={changeAccount}
-        onOpenProfile={onClose}
-        onRemove={removeAccount}
-        onAdd={beginAdd}
-        onClose={onClose}
-      />
-    </div>
+    <AccountSwitcher
+      accounts={accounts}
+      activeId={activeId}
+      onSwitch={changeAccount}
+      onOpenProfile={onClose}
+      onRemove={removeAccount}
+      onAdd={beginAdd}
+      onClose={onClose}
+    />
   )
 }

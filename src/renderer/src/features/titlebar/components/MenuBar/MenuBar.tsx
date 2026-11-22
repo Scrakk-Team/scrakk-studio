@@ -12,6 +12,14 @@ import {
 } from 'react'
 import { ContextMenu, type ContextMenuItem } from '@ui'
 import { closeModal, showAnchoredModal } from '@services/modals'
+import { UserAvatar } from '@features/social'
+import {
+  getAccounts,
+  getActiveAccount,
+  loadActiveAccount,
+  subscribeToActiveAccount
+} from '@services/account'
+import type { AccountList } from '@shared/account'
 import { AccountPanel } from '../AccountPanel/AccountPanel'
 import { isHistoryViewOpen, subscribeToHistoryView, useLayout } from '@features/layout'
 import { performEditorEdit, type EditorEditAction } from '@features/editor'
@@ -61,6 +69,22 @@ export function MenuBar(): JSX.Element {
   // Ver necesita su estado para el check, así que se suscribe al store.
   const [historyOpen, setHistoryOpen] = useState(() => isHistoryViewOpen())
   useEffect(() => subscribeToHistoryView(() => setHistoryOpen(isHistoryViewOpen())), [])
+
+  // Cuenta activa para mostrar su FOTO en la opción "Cuenta" del menú.
+  const [accounts, setAccounts] = useState<AccountList>(
+    () => getAccounts() ?? { activeId: null, accounts: [] }
+  )
+  const [activeId, setActiveId] = useState<string | null>(() => getActiveAccount())
+  useEffect(() => {
+    const sync = (): void => {
+      setActiveId(getActiveAccount())
+      const list = getAccounts()
+      if (list) setAccounts(list)
+    }
+    sync()
+    void loadActiveAccount().then(sync)
+    return subscribeToActiveAccount(sync)
+  }, [])
 
   const [menuOpen, setMenuOpen] = useState(false)
   const [anchor, setAnchor] = useState<{ x: number; y: number } | null>(null)
@@ -259,6 +283,10 @@ export function MenuBar(): JSX.Element {
     accountHoveredRef.current = handle !== null
   }, [])
 
+  const currentAccount = accounts.accounts.find((account) => account.id === activeId)
+  const accountLabel =
+    currentAccount?.displayName ?? currentAccount?.handle ?? currentAccount?.email ?? t('menu.account')
+
   // Menú del hamburger: cada opción de la titlebar es un SUBMENÚ con sus items
   // reales (los mismos dropdowns de antes), más Terminal.
   const hamburgerItems = useMemo<ContextMenuItem[]>(
@@ -272,12 +300,20 @@ export function MenuBar(): JSX.Element {
       {
         label: t('menu.account'),
         separatorBefore: true,
+        // La FOTO de la cuenta activa va en el propio botón del menú.
+        icon: (
+          <UserAvatar
+            name={accountLabel}
+            src={currentAccount?.avatarUrl ?? undefined}
+            size={18}
+          />
+        ),
         onHover: openAccountPanel,
         onClick: () => openAccountPanel(),
         keepOpen: true
       }
     ],
-    [menuDefinitions, commandItem, openAccountPanel]
+    [menuDefinitions, commandItem, openAccountPanel, accountLabel, currentAccount?.avatarUrl]
   )
 
   return (
