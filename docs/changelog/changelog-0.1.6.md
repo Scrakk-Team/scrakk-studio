@@ -596,7 +596,9 @@ published are not edited. The file goes per version:
 - **Account button in the title bar.** Shows the active account's avatar and
   opens the same `AccountSwitcher` used by the Social panel, so you can switch,
   add or remove accounts without leaving your current panel. "Add account" opens
-  the Social panel's sign-in flow.
+  the Social panel's sign-in flow. The button sits next to the app menu on the
+  left — at the far right it was hidden under the OS window controls
+  (min/max/close), which `env(titlebar-area-*)` does not reserve on Linux.
 
 ### Chrome (menus / popovers)
 - **Clicking an open menu/popover button now just closes it.** Both the

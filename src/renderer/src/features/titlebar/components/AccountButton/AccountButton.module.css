@@ -44,7 +44,7 @@
 .popover {
   position: absolute;
   top: calc(100% + 6px);
-  right: 0;
+  left: 0;
   z-index: 100;
   width: 300px;
   max-width: calc(100vw - 16px);
