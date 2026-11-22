@@ -207,6 +207,11 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    env:
+      # Puede no estar configurado (repo nuevo / token rotado). Si falta, se
+      # avisa y se omite la publicación, pero NO se tira abajo el release: los
+      # binarios ya están en GitHub Releases y en Supabase.
+      CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -264,7 +269,14 @@ jobs:
       # `cloudflare/pages-action` ya no existe (404). La forma soportada es
       # wrangler-action con `pages deploy`; el directorio publicado es el repo
       # APT generado arriba y el branch main apunta a producción.
+      - name: Aviso: sin token de Cloudflare
+        if: env.CF_TOKEN == ''
+        shell: bash
+        run: |
+          echo "::warning::Falta CLOUDFLARE_API_TOKEN: no se publicó apt.scrakk.art. Agregá el secreto y re-ejecutá publish-apt."
+
       - name: Publicar en Cloudflare Pages (apt.scrakk.art)
+        if: env.CF_TOKEN != ''
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
