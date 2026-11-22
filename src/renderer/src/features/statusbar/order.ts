@@ -45,6 +45,9 @@ const sides: Record<Side, string[]> = { left, layout, right }
 
 function loadSide(side: Side): string[] {
   const defaults = defaultsFor(side)
+  // La derecha SIEMPRE es notificaciones → ajustes: es una posición fija, no
+  // un orden del usuario. Un guardado viejo podía traer `settings` primero.
+  if (side === 'right') return [...defaults]
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return [...defaults]
@@ -87,8 +90,9 @@ export function getStatusRight(): string[] { return [...right] }
 /** Mueve `dragged` dentro de SU zona, antes/después de `target`. */
 export function moveStatusBarItem(dragged: string, target: string, before: boolean): void {
   const list = (Object.keys(sides) as Side[]).find((side) => sides[side].includes(dragged))
-  // Los items NO se pueden arrastrar a otra zona (separador / centro fijos).
-  if (!list || !sides[list].includes(target)) return
+  // Los items NO se pueden arrastrar a otra zona (separador / centro fijos) y
+  // las acciones de la derecha NO se reordenan: notificaciones → ajustes.
+  if (!list || list === 'right' || !sides[list].includes(target)) return
   moveIn(sides[list], dragged, target, before)
 }
 

@@ -42,13 +42,12 @@ describe('status bar order', () => {
     expect(order.indexOf('problems')).toBe(order.indexOf('lsp') - 1)
   })
 
-  it('reordena items de la derecha SIN sacarlos del grupo', () => {
+  it('derecha FIJA: notificaciones a la izq de ajustes, siempre', () => {
     moveStatusBarItem('settings', 'bell', true)
-    const order = getStatusRight()
-    expect(order.indexOf('settings')).toBe(order.indexOf('bell') - 1)
+    expect(getStatusRight()).toEqual(['bell', 'settings'])
     expect(getStatusLeft()).toEqual([...DEFAULT_LEFT])
-    expect(order).not.toContain('sep-right')
   })
+
 
   it('no mezcla grupos', () => {
     moveStatusBarItem('settings', 'lsp', true)

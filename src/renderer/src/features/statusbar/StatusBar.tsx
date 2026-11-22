@@ -209,13 +209,13 @@ export function StatusBar({ onOpenSettings }: StatusBarProps): JSX.Element {
       {/* Separador FIJO entre `layout` y las acciones de la derecha. */}
       <span className={styles.separator} aria-hidden="true" />
 
-      {/* Derecha: notificaciones y ajustes, anclados y reordenables entre sí. */}
+      {/* Derecha: notificaciones → ajustes, SIEMPRE en ese orden y fijas. */}
       <div className={[styles.group, styles.groupRight].join(' ')}>
         {rightOrder.map((id) => (
           <SortableItem
             key={id}
             id={id}
-            dragEnabled={dragMode}
+            dragEnabled={false}
             getBarRect={() => barRef.current?.getBoundingClientRect() ?? null}
           >
             {renderItem(id)}
