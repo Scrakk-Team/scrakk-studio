@@ -19,6 +19,8 @@ export interface ContextMenuItem {
   onClick?: () => void
   /** Acción al pasar el cursor; recibe el rect del item para anclar paneles. */
   onHover?: (rect: DOMRect) => void
+  /** Al salir el cursor del item (ej. cerrar su panel lateral). */
+  onLeave?: () => void
   /** No cierra el menú al ejecutar el item (ej. panel lateral que lo acompaña). */
   keepOpen?: boolean
   /** Ícono opcional a la izquierda del label. */
@@ -117,6 +119,7 @@ export function ContextMenu({ items, x, y, onClose, placement = 'below' }: Conte
               setOpenSub(hasSub ? index : null)
               if (!item.disabled) item.onHover?.(event.currentTarget.getBoundingClientRect())
             }}
+            onMouseLeave={() => item.onLeave?.()}
           >
             {item.separatorBefore ? <div className={styles.separator} /> : null}
             <button

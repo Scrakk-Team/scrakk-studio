@@ -105,6 +105,8 @@ export function MenuBar(): JSX.Element {
   const closingByButtonRef = useRef(false)
   /** Evita que el hover sobre "Cuenta" abra el panel más de una vez. */
   const accountHoveredRef = useRef(false)
+  const accountHandleRef = useRef<ReturnType<typeof showAnchoredModal>>(null)
+  const accountCloseTimerRef = useRef<number | null>(null)
 
   // Abre el menú del hamburger, anclado abajo del botón.
   const openMenu = useCallback((): void => {
@@ -254,11 +256,41 @@ export function MenuBar(): JSX.Element {
     }
   }, [locale, theme, slots, historyOpen, editAction, commandItem])
 
+  /** Cancela el cierre diferido (el cursor entró al panel). */
+  const cancelAccountClose = useCallback((): void => {
+    if (accountCloseTimerRef.current !== null) {
+      window.clearTimeout(accountCloseTimerRef.current)
+      accountCloseTimerRef.current = null
+    }
+  }, [])
+
+  /**
+   * Al sacar el cursor del item, cerrar el panel. Se diferencia un instante
+   * para poder cruzar el hueco de 8px hasta el panel sin que se cierre.
+   */
+  const closeAccountPanel = useCallback(
+    (immediate = false): void => {
+      const doClose = (): void => {
+        if (accountHandleRef.current) {
+          closeModal(accountHandleRef.current)
+          accountHandleRef.current = null
+        }
+        accountHoveredRef.current = false
+        accountCloseTimerRef.current = null
+      }
+      cancelAccountClose()
+      if (immediate) doClose()
+      else accountCloseTimerRef.current = window.setTimeout(doClose, 180)
+    },
+    [cancelAccountClose]
+  )
+
   /**
    * "Cuenta": con el hover se abre el panel a la DERECHA del item, sin cerrar
    * el menú (parece un submenú, pero con el selector real de cuentas).
    */
   const openAccountPanel = useCallback((rect?: DOMRect): void => {
+    cancelAccountClose()
     if (accountHoveredRef.current) return
     const anchor = rect
       ? // Item del menú: el panel arranca justo a su derecha, a la misma altura.
@@ -268,20 +300,25 @@ export function MenuBar(): JSX.Element {
           const r = btn?.getBoundingClientRect()
           return { x: r?.left ?? 0, y: r?.bottom ?? 0, width: r?.width ?? 0, height: 0 }
         })()
-    let handle: ReturnType<typeof showAnchoredModal> = null
-    handle = showAnchoredModal({
+    const handle = showAnchoredModal({
       key: 'titlebar-account',
       title: t('menu.account'),
       anchor,
       width: 300,
       placement: 'below',
       align: 'start',
-      render: () => <AccountPanel onClose={() => { if (handle) closeModal(handle) }} />
+      render: () => (
+        <AccountPanel
+          onClose={() => closeAccountPanel(true)}
+          onEnter={cancelAccountClose}
+        />
+      )
     })
+    accountHandleRef.current = handle
     // Sólo marcamos como "ya abierto" si el modal quedó abierto (si estaba
     // abierto, showAnchoredModal lo cerró y devolvió null).
     accountHoveredRef.current = handle !== null
-  }, [])
+  }, [cancelAccountClose, closeAccountPanel])
 
   const currentAccount = accounts.accounts.find((account) => account.id === activeId)
   const accountLabel =
@@ -309,11 +346,19 @@ export function MenuBar(): JSX.Element {
           />
         ),
         onHover: openAccountPanel,
+        onLeave: () => closeAccountPanel(),
         onClick: () => openAccountPanel(),
         keepOpen: true
       }
     ],
-    [menuDefinitions, commandItem, openAccountPanel, accountLabel, currentAccount?.avatarUrl]
+    [
+      menuDefinitions,
+      commandItem,
+      openAccountPanel,
+      closeAccountPanel,
+      accountLabel,
+      currentAccount?.avatarUrl
+    ]
   )
 
   return (

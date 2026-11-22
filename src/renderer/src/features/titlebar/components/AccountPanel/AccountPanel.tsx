@@ -26,9 +26,11 @@ import type { AccountList } from '@shared/account'
 interface AccountPanelProps {
   /** Cierra el modal anclado (lo pasa el MenuBar). */
   onClose: () => void
+  /** El cursor entró al panel: cancela el cierre diferido del hover. */
+  onEnter: () => void
 }
 
-export function AccountPanel({ onClose }: AccountPanelProps): JSX.Element {
+export function AccountPanel({ onClose, onEnter }: AccountPanelProps): JSX.Element {
   const [accounts, setAccounts] = useState<AccountList>(
     () => getAccounts() ?? { activeId: null, accounts: [] }
   )
@@ -72,14 +74,16 @@ export function AccountPanel({ onClose }: AccountPanelProps): JSX.Element {
   }, [onClose])
 
   return (
-    <AccountSwitcher
-      accounts={accounts}
-      activeId={activeId}
-      onSwitch={changeAccount}
-      onOpenProfile={onClose}
-      onRemove={removeAccount}
-      onAdd={beginAdd}
-      onClose={onClose}
-    />
+    <div onPointerEnter={onEnter}>
+      <AccountSwitcher
+        accounts={accounts}
+        activeId={activeId}
+        onSwitch={changeAccount}
+        onOpenProfile={onClose}
+        onRemove={removeAccount}
+        onAdd={beginAdd}
+        onClose={onClose}
+      />
+    </div>
   )
 }
