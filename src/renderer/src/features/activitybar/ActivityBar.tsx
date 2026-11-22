@@ -27,7 +27,7 @@ import {
 import { evaluateWhen } from '@services/extensions/when'
 import { bindTabsDockedContext, setTabsDocked } from '@features/tabs'
 import type { ActivityBarButton, ActivityBarSide } from './types'
-import { getOrderedButtons, subscribeToButtonLayout } from './layout'
+import { buttonPosition, getOrderedButtons, subscribeToButtonLayout } from './layout'
 import { consumeDragClick, startButtonDrag } from './buttonDrag'
 import { DragGhost } from './DragGhost'
 import { getActivityBadge, subscribeToActivityBadges } from './badges'
@@ -112,13 +112,19 @@ export function ActivityBar({ side }: { side: ActivityBarSide }): JSX.Element {
             onClick={() => {
               // El click que dispara el pointerup del drag no abre el panel.
               if (consumeDragClick(button.id)) return
-              // El botón "tabs" acopla/desacopla además de togglear el panel:
-              // si ya está abierto se cerrará (→ desacoplar); si no, se abrirá
-              // (→ acoplar, ocultando la barra de tabs horizontal del centro).
-              if (button.id === 'tabs') {
-                setTabsDocked(slots[side] !== button.panelId)
+              // El panel sigue al botón: si el usuario lo draggeó a la otra
+              // barra, usar SU posición efectiva (no el `side` del componente).
+              const position = buttonPosition(button.id)
+              const targetSide =
+                position && (position.side === 'left' || position.side === 'right')
+                  ? position.side
+                  : side
+              // El botón "tabs" desacopla al cerrarse (el modo se activa desde
+              // el botón del strip / comando, no desde acá).
+              if (button.id === 'tabs' && slots[targetSide] === button.panelId) {
+                setTabsDocked(false)
               }
-              toggleSlotPanel(side, button.panelId)
+              toggleSlotPanel(targetSide, button.panelId)
             }}
           >
             {typeof button.icon === 'string' ? (

@@ -580,10 +580,10 @@ published are not edited. The file goes per version:
   goes through `toggleSlotPanel('left','tabs')` — the same path the activity-bar
   button uses — so the panel opens/closes in place, and the panel header's
   "back to bar" action and the `tabs.toggleDocked` command close it the same way.
-  The Tabs button in the activity bar is now ALWAYS visible (its old
-  `when: 'tabsDocked'` was a chicken-and-egg: it only appeared after docking, so
-  you could never start docking from the bar) and toggles the docked mode along
-  with the panel.
+  The Tabs button keeps its `when: 'tabsDocked'` (it only shows while docked —
+  the mode is started from the strip button or the `tabs.toggleDocked` command),
+  and its click now opens the panel in the bar where the user actually dragged
+  the button, via `buttonPosition()` instead of a hardcoded left side.
 
 ### Tabs (settings)
 - **Experimental: same-size tabs with a configurable width.** A new toggle
