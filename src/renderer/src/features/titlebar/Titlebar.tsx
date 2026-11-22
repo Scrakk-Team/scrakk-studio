@@ -4,7 +4,6 @@
 
 import { useEffect, type JSX, type MouseEvent } from 'react'
 import { MenuBar } from './components/MenuBar/MenuBar'
-import { AccountButton } from './components/AccountButton/AccountButton'
 import { WidgetContainer } from './widgets/WidgetContainer'
 import { useWindowControls } from './hooks/useWindowControls'
 import { subscribeToThemes } from '@services/extensions'
@@ -62,9 +61,6 @@ export function Titlebar(_props: TitlebarProps): JSX.Element {
       <div className={styles.content}>
         <div className={styles.left}>
           <MenuBar />
-          {/* A la IZQUIERDA, junto al menú: el extremo derecho lo tapan los
-              controles nativos de ventana (min/max/close) en Linux/Windows. */}
-          <AccountButton />
         </div>
         <div className={styles.center}>
           <WidgetContainer />

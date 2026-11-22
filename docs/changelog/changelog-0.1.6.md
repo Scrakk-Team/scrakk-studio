@@ -608,11 +608,12 @@ published are not edited. The file goes per version:
   new title-bar avatar update the moment you switch in the Social panel (the
   market used to read the account once on mount and stay stale). Removing an
   account publishes the change too.
-- **Account button in the title bar.** Shows the active account's avatar and
-  opens the same `AccountSwitcher` used by the Social panel, so you can switch,
-  add or remove accounts without leaving your current panel. "Add account" opens
-  the Social panel's sign-in flow. The button sits next to the app menu on the
-  left — at the far right it was hidden under the OS window controls
+- **Account switcher in the hamburger menu.** The title-bar avatar button was
+  removed: the app menu now has an **Account** option that opens the same
+  `AccountSwitcher` used by the Social panel in an anchored panel under the
+  hamburger button. You can switch, add or remove accounts without leaving
+  your current panel; "Add account" opens the Social panel's sign-in flow.
+  A standalone avatar in the title bar was hidden by the OS window controls
   (min/max/close), which `env(titlebar-area-*)` does not reserve on Linux.
 
 ### Chrome (menus / popovers)

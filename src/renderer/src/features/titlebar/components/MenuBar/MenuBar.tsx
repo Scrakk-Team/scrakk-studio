@@ -11,6 +11,8 @@ import {
   type JSX
 } from 'react'
 import { ContextMenu, type ContextMenuItem } from '@ui'
+import { closeModal, showAnchoredModal } from '@services/modals'
+import { AccountPanel } from '../AccountPanel/AccountPanel'
 import { isHistoryViewOpen, subscribeToHistoryView, useLayout } from '@features/layout'
 import { performEditorEdit, type EditorEditAction } from '@features/editor'
 import { SCRAKK_WEBSITE } from '@shared/links'
@@ -225,6 +227,23 @@ export function MenuBar(): JSX.Element {
     }
   }, [locale, theme, slots, historyOpen, editAction, commandItem])
 
+  /** "Cuenta": abre el selector de cuentas como panel anclado al hamburger. */
+  const openAccountPanel = useCallback((): void => {
+    const btn = hamRef.current
+    if (!btn) return
+    const rect = btn.getBoundingClientRect()
+    let handle: ReturnType<typeof showAnchoredModal> = null
+    handle = showAnchoredModal({
+      key: 'titlebar-account',
+      title: t('menu.account'),
+      anchor: { x: rect.left, y: rect.bottom + 2, width: rect.width, height: rect.height },
+      width: 300,
+      placement: 'below',
+      align: 'start',
+      render: () => <AccountPanel onClose={() => { if (handle) closeModal(handle) }} />
+    })
+  }, [])
+
   // Menú del hamburger: cada opción de la titlebar es un SUBMENÚ con sus items
   // reales (los mismos dropdowns de antes), más Terminal.
   const hamburgerItems = useMemo<ContextMenuItem[]>(
@@ -234,9 +253,10 @@ export function MenuBar(): JSX.Element {
         submenu: menuDefinitions[id].items
       })),
       commandItem('terminal.toggle', { separatorBefore: true }),
-      commandItem('terminal.new')
+      commandItem('terminal.new'),
+      { label: t('menu.account'), separatorBefore: true, onClick: openAccountPanel }
     ],
-    [menuDefinitions, commandItem]
+    [menuDefinitions, commandItem, openAccountPanel]
   )
 
   return (
