@@ -95,6 +95,9 @@ create or replace function public.extension_trend_score(
 $$;
 
 -- ── Feed versionado ───────────────────────────────────────────────────────
+-- Borrar la firma vieja de 4 args: si quedan DOS sobrecargas, PostgREST no
+-- resuelve el rpc() y el catálogo sale vacío (la extensión "no aparece").
+drop function if exists public.search_extensions(text, text, integer, integer);
 create or replace function public.search_extensions(
   p_query text default null,
   p_category text default null,
