@@ -44,6 +44,15 @@ export const account = {
   }
 }
 
+export {
+  loadActiveAccount,
+  getActiveAccount,
+  getAccounts,
+  setActiveAccount,
+  setAccountsList,
+  subscribeToActiveAccount
+} from './activeAccount'
+
 export type {
   AccountList,
   AccountProfile,

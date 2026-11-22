@@ -587,6 +587,17 @@ published are not edited. The file goes per version:
   action, the panel header, the command and the activity-bar click. Drag it to
   the right bar and the Tabs panel opens on the right, like all other panels.
 
+### Accounts (global)
+- **Switching accounts now follows you across the app.** A small global store
+  publishes the active account, so the marketplace's "My extensions" and the
+  new title-bar avatar update the moment you switch in the Social panel (the
+  market used to read the account once on mount and stay stale). Removing an
+  account publishes the change too.
+- **Account button in the title bar.** Shows the active account's avatar and
+  opens the same `AccountSwitcher` used by the Social panel, so you can switch,
+  add or remove accounts without leaving your current panel. "Add account" opens
+  the Social panel's sign-in flow.
+
 ### Chrome (menus / popovers)
 - **Clicking an open menu/popover button now just closes it.** Both the
   titlebar hamburger menu and the status-bar notifications bell were

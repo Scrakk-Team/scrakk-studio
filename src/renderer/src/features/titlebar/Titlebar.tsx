@@ -4,6 +4,7 @@
 
 import { useEffect, type JSX, type MouseEvent } from 'react'
 import { MenuBar } from './components/MenuBar/MenuBar'
+import { AccountButton } from './components/AccountButton/AccountButton'
 import { WidgetContainer } from './widgets/WidgetContainer'
 import { useWindowControls } from './hooks/useWindowControls'
 import { subscribeToThemes } from '@services/extensions'
@@ -65,7 +66,9 @@ export function Titlebar(_props: TitlebarProps): JSX.Element {
         <div className={styles.center}>
           <WidgetContainer />
         </div>
-        <div className={styles.trailing} />
+        <div className={styles.trailing}>
+          <AccountButton />
+        </div>
       </div>
     </header>
   )

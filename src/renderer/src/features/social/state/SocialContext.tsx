@@ -13,7 +13,7 @@ import {
   type JSX,
   type ReactNode
 } from 'react'
-import { account as accountService } from '@services/account'
+import { account as accountService, setActiveAccount, setAccountsList } from '@services/account'
 import { social } from '@services/social'
 import { notify } from '@services/notifications'
 import { setActivityBadge, clearActivityBadge } from '@features/activitybar/badges'
@@ -343,6 +343,8 @@ export function SocialProvider({
     const result = await accountService.listAccounts()
     if (!result.ok) return null
     setAccounts(result.data)
+    setAccountsList(result.data)
+    if (accountIdRef.current === null) setActiveAccount(result.data.activeId ?? result.data.accounts[0]?.id ?? '')
     return result.data
   }, [])
 
@@ -737,10 +739,15 @@ export function SocialProvider({
     }
     setAccountId(id)
     setViewState('home')
+    // Publicar al resto de la app (tienda "mis extensiones", titlebar…).
+    setActiveAccount(id)
     // Persistir la elección: si el panel se remonta (cambio de pestaña),
     // vuelve a esta cuenta en vez de la default.
     void accountService.setDefault(id).then((result) => {
-      if (result.ok) setAccounts(result.data)
+      if (result.ok) {
+        setAccounts(result.data)
+        setAccountsList(result.data)
+      }
     })
   }, [])
 
@@ -749,9 +756,12 @@ export function SocialProvider({
       const result = await accountService.removeAccount(id)
       if (!result.ok) return { ok: false, error: result.error }
       setAccounts(result.data)
+      setAccountsList(result.data)
       // Si borré la cuenta de este panel, salto a otra (o a onboarding).
       if (accountIdRef.current === id) {
-        setAccountId(result.data.activeId ?? result.data.accounts[0]?.id ?? null)
+        const next = result.data.activeId ?? result.data.accounts[0]?.id ?? null
+        setAccountId(next)
+        setActiveAccount(next ?? '')
       }
       return { ok: true }
     },

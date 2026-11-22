@@ -33,6 +33,11 @@ import type {
 } from '@shared/market'
 import { t } from '@core/i18n'
 import { api } from '@services/api'
+import {
+  getActiveAccount,
+  loadActiveAccount,
+  subscribeToActiveAccount
+} from '@services/account'
 
 export type MarketTab = 'store' | 'installed' | 'mine'
 
@@ -114,12 +119,13 @@ export function MarketProvider({ children }: { children: ReactNode }): JSX.Eleme
   const [installed, setInstalled] = useState<InstalledExtensionInfo[]>([])
   const [busy, setBusy] = useState<string | null>(null)
 
-  // Cuenta activa (para subir / ratear / mis extensiones).
+  // Cuenta activa GLOBAL: si el usuario cambia de cuenta en el panel social,
+  // "mis extensiones" y las escrituras siguen a la cuenta nueva.
   useEffect(() => {
-    void (async () => {
-      const list = await api.account.listAccounts()
-      if (list.ok) setAccountId(list.data.activeId)
-    })()
+    const sync = (): void => setAccountId(getActiveAccount())
+    sync()
+    void loadActiveAccount().then(sync)
+    return subscribeToActiveAccount(sync)
   }, [])
 
   const openEditor = useCallback((extension?: MarketExtension): void => {

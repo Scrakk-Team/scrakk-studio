@@ -5,6 +5,7 @@
 import { useEffect, useState, type JSX } from 'react'
 import { ProductIcon } from '@services/productIcons/components'
 import { HeaderActionButton, usePanelTitleOptional } from '@features/layout'
+import { openPanelTab } from '@features/layout/actions'
 import {
   AccountSwitcher,
   AddFriend,
@@ -75,6 +76,17 @@ function SocialPanelInner(): JSX.Element {
   } = useSocial()
 
   const [editingProfile, setEditingProfile] = useState(false)
+
+  // La titlebar dispara este evento al elegir "Agregar cuenta" en su selector:
+  // abrimos este panel y su flujo de alta con la cuenta ya listada.
+  useEffect(() => {
+    const onAdd = (): void => {
+      openPanelTab('right', 'social')
+      addAccount()
+    }
+    window.addEventListener('scrakk:open-social-add-account', onAdd)
+    return () => window.removeEventListener('scrakk:open-social-add-account', onAdd)
+  }, [addAccount])
 
   const panelHeader = usePanelTitleOptional()
   /**
