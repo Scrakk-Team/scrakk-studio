@@ -81,13 +81,14 @@ describe('expansión en lote de ancestros (rendimiento)', () => {
     expect(ws).toMatch(/^    ensureExpandedMany,$/m)
   })
 
-  it('el panel expande en una sola llamada y no depende del objeto workspace', () => {
+  it('el panel nativo recibe el filtro de visibles desde la vista', () => {
+    // El explorer React fue reemplazado por el core C++/WASM: la expansión en
+    // lote del workspace ya no la hace el panel, así que la comprobación
+    // anterior sobre `workspace.ensureExpandedMany(ancestors)` quedó obsoleta.
+    // Lo que sí debe quedar cableado es el conjunto de paths visibles.
     const panel = read(PANEL)
-    expect(panel).toContain('workspace.ensureExpandedMany(ancestors)')
-    // Ya no se llama ensureExpanded en bucle.
-    expect(panel).not.toMatch(/for \(const dir of ancestors\) workspace\.ensureExpanded/)
-    // El objeto `workspace` NO puede estar en las deps (cambia en cada render).
-    const deps = panel.slice(panel.indexOf('workspace.ensureExpandedMany(ancestors)'))
-    expect(deps.slice(0, 120)).toContain('workspace.ensureExpandedMany]')
+    const view = read('src/renderer/src/features/explorer/ExplorerView.tsx')
+    expect(panel).toContain('visiblePaths?: Set<string> | null')
+    expect(view).toContain('visiblePaths={visiblePaths}')
   })
 })

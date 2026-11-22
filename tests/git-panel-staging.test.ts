@@ -42,14 +42,15 @@ describe('acciones por fila en el árbol', () => {
     expect(row).toContain('className={styles.dots}')
   })
 
-  it('la prop llega desde el panel hasta la fila (sin cortarse en el medio)', () => {
-    for (const file of [VIEW, PANEL, ROW]) {
-      const code = src(file)
-      expect(code, `${file} no declara ni usa rowActions`).toContain('rowActions')
-    }
-    // ExplorerView la reenvía al panel, y el panel a cada fila.
+  it('la vista reenvía las acciones y el panel nativo recibe el estado de Git', () => {
+    // Con el explorer nativo (C++/WASM) el panel ya no pasa `rowActions` a una
+    // fila React: el core pinta las badges y recibe el estado por bridge.
+    // Se comprueba el cableo que sí existe en el panel actual.
     expect(src(VIEW)).toContain('rowActions={rowActions}')
-    expect(src(PANEL)).toContain('rowActions={rowActions}')
+    const panel = src(PANEL)
+    expect(panel).toContain('rowActions?: unknown')
+    expect(panel).toMatch(/ex\.setGitBadges\(/)
+    expect(panel).toMatch(/ex\.setGitVisible\(/)
   })
 
   it('el panel de Git ofrece stage/unstage por archivo', () => {
@@ -77,9 +78,11 @@ describe('acciones por fila en el árbol', () => {
     const panel = src(PANEL)
     // Default: seleccionar (y con Ctrl/Cmd, SUMAR). Con `onLasso`, decide el consumidor.
     expect(panel).toMatch(/if \(onLasso\) \{/)
-    expect(panel).toMatch(/onLasso\(paths, \{ select, additive \}\)/)
-    expect(panel).toMatch(/if \(additive\) select\(\[\.\.\.new Set\(\[\.\.\.selection\.selected, \.\.\.paths\]\)\]\)/)
-    // El contrato expone `select` + `additive` para poder COMPONER.
+    expect(panel).toMatch(/onLasso\(paths, \{/)
+    // El core nativo hace el lasso; el host sólo publica el resultado y el
+    // contexto (`select` + `additive`) para que el consumidor pueda COMPONER.
+    expect(panel).toMatch(/ex\.lassoPaths\(\)/)
+    expect(panel).toMatch(/additive/)
     expect(panel).toMatch(/onLasso\?:\s*\(paths: string\[\], ctx: LassoContext\) => void/)
     expect(src(VIEW)).toMatch(/onLasso\?:\s*\(paths: string\[\], ctx: LassoContext\)/)
   })

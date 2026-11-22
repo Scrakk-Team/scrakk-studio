@@ -12,6 +12,7 @@
  */
 
 import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { Language, Parser, Query } from 'web-tree-sitter'
 
@@ -28,7 +29,9 @@ interface RealGrammar {
 
 async function loadGrammar(grammar: string, query: string): Promise<RealGrammar> {
   const parser = new Parser()
-  const language = await Language.load(new URL(grammar, root).pathname)
+  // `new URL(...).pathname` produce `/C:/…` en Windows: fileURLToPath da la
+  // ruta real del sistema para el loader nativo de wasm.
+  const language = await Language.load(fileURLToPath(new URL(grammar, root)))
   parser.setLanguage(language)
   return { parser, query: new Query(language, read(query)) }
 }

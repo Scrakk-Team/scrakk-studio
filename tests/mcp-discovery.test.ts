@@ -5,12 +5,84 @@
 /**
  * Auto-detección de MCPs de otros agentes: parsea la config REAL de OpenCode
  * (/mcp.servers y /mcp V1) y la TOML de Codex ([mcp_servers.x]).
+ *
+ * HERMÉTICO: antes estas pruebas leían el HOME del desarrollador, así que en
+ * CI (sin esos archivos) fallaban. Ahora se crean configs fixture en un HOME
+ * temporal y se mockea `os.homedir()` antes de importar los discovery.
  */
 
-import { describe, expect, it } from 'vitest'
-import { discoverOpencode } from '../src/main/mcp/discovery/opencode'
-import { discoverCodex } from '../src/main/mcp/discovery/codex'
-import { discoverCline, discoverClaude } from '../src/main/mcp/discovery/agents'
+import { mkdirSync, writeFileSync } from 'node:fs'
+import path from 'node:path'
+import { beforeAll, describe, expect, it, vi } from 'vitest'
+
+const fixture = vi.hoisted(
+  () => (process.env['TMPDIR'] ?? '/tmp') + '/scrakk-mcp-discovery-fixture'
+)
+
+vi.mock('node:os', () => ({
+  default: { homedir: () => fixture, tmpdir: () => '/tmp' },
+  homedir: () => fixture,
+  tmpdir: () => '/tmp'
+}))
+
+beforeAll(() => {
+  const config = path.join(fixture, 'config')
+  mkdirSync(path.join(config, 'opencode'), { recursive: true })
+  mkdirSync(path.join(fixture, '.codex'), { recursive: true })
+  mkdirSync(path.join(fixture, '.cline', 'data', 'settings'), { recursive: true })
+  process.env['XDG_CONFIG_HOME'] = config
+
+  writeFileSync(
+    path.join(config, 'opencode', 'opencode.json'),
+    JSON.stringify({
+      mcp: {
+        servers: {
+          supabase: { type: 'remote', url: 'https://mcp.supabase.com/mcp' },
+          hostinger: {
+            command: ['hostinger-api-mcp'],
+            environment: { HOSTINGER_API_TOKEN: 'fixture-token' }
+          }
+        }
+      }
+    })
+  )
+  writeFileSync(
+    path.join(fixture, '.codex', 'config.toml'),
+    [
+      '[mcp_servers.supabase]',
+      'url = "https://mcp.supabase.com/mcp"',
+      '',
+      '[mcp_servers.codebase-memory-mcp]',
+      'command = "codebase-memory-mcp"',
+      ''
+    ].join('\n')
+  )
+  writeFileSync(
+    path.join(fixture, '.cline', 'data', 'settings', 'cline_mcp_settings.json'),
+    JSON.stringify({
+      mcpServers: {
+        supabase: {
+          type: 'streamableHttp',
+          url: 'https://mcp.supabase.com/mcp',
+          oauth: { clientInformation: { client_id: 'fixture-client' } }
+        },
+        'codebase-memory-mcp': { command: 'codebase-memory-mcp' }
+      }
+    })
+  )
+  writeFileSync(
+    path.join(fixture, '.claude.json'),
+    JSON.stringify({
+      mcpServers: {
+        cloudflare: { type: 'http', url: 'https://mcp.cloudflare.com/mcp' }
+      }
+    })
+  )
+})
+
+const { discoverOpencode } = await import('../src/main/mcp/discovery/opencode')
+const { discoverCodex } = await import('../src/main/mcp/discovery/codex')
+const { discoverCline, discoverClaude } = await import('../src/main/mcp/discovery/agents')
 
 describe('MCP discovery', () => {
   it('importa los servidores de la config de OpenCode del sistema', () => {

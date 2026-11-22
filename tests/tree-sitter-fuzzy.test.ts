@@ -12,7 +12,7 @@
  * el camino incremental y full-parse del mismo texto. Si el merge se equivoca
  * esto lo destapa.
  */
-import { mkdtempSync, mkdirSync, writeFileSync, copyFileSync, readFileSync } from 'node:fs'
+import { mkdtempSync, mkdirSync, copyFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, dirname } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -32,12 +32,20 @@ const QY = [
   { file: join(root, 'queries', 'folds.scm'), category: 'folds' as const }
 ]
 
-const text = readFileSync(
-  process.env['SCRAKK_PYTHON_SAMPLE'] ??
-    '/home/julian/Documentos/Proyectos/InnertaEngine/InnertaEngine-Linux/build-linux/typing.py',
-  'utf8'
-)
-const initial = text.slice(0, 20000) // recortar para velocidad
+/**
+ * Texto sintético grande y reproducible. Antes se leía un `typing.py` de la
+ * stdlib con una ruta ABSOLUTA del equipo de desarrollo: el test se cargaba
+ * (aunque estuviera skipped) y reventaba con ENOENT en CI. Cualquier código
+ * Python suficientemente largo sirve para el fuzz incremental ↔ full-parse.
+ */
+const snippet = `class SpanX:
+    def measure(self, value: int) -> str:
+        if value < 0:
+            return f"negativo: {value}"
+        return "".join(str(i) for i in range(value))
+
+`
+const initial = snippet.repeat(260).slice(0, 20000)
 
 function request(t: string, documentId?: string): DynamicTokenizeRequest {
   return {
