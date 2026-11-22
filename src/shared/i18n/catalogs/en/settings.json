@@ -252,6 +252,8 @@
   "settings.rendimiento": "Performance",
   "settings.experimental": "Experimental",
   "settings.experimental.descripcion": "Settings under test. They may change or disappear.",
+  "settings.tema.por.proyecto": "Per-project theme",
+  "settings.tema.por.proyecto.hint": "Saves the active theme to the project's .scrakk/theme.json and applies it when you open that project. Turning it off ignores that file and restores your own theme.",
   "settings.expandir.todo.omitir.archivos": "Skip files when expanding all",
   "settings.expandir.todo.omitir.archivos.hint": "When using \"Expand all folders\", show only folders and hide files.",
   "settings.requiere": "Requires",

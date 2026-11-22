@@ -25,6 +25,7 @@ import { initDiagnosticsDecorations, initLspFileSync, initLspWorkspaceSync } fro
 import { initDiffViews } from '@services/diff'
 import { installAudioUnlock } from '@services/audio'
 import { bootEvents, registerEventCommands } from '@services/events'
+import { installProjectThemeService } from '@services/projectTheme'
 import { initZoomGuard } from './core/zoomGuard'
 
 // Módulos de estilo global (tokens) — se importan aquí, una sola vez.
@@ -87,6 +88,9 @@ initZoomGuard()
 installAudioUnlock()
 registerEventCommands()
 bootEvents()
+// Tema por proyecto (experimental): guarda el tema en `<root>/.scrakk/theme.json`
+// y lo reaplica al abrir ese proyecto. Si la opción está apagada, no hace nada.
+installProjectThemeService()
 
 /**
  * Corre `fn` DESPUÉS del primer paint (primer idle), no antes.

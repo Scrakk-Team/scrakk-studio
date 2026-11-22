@@ -236,6 +236,8 @@
   "settings.rendimiento": "Rendimiento",
   "settings.experimental": "Experimental",
   "settings.experimental.descripcion": "Ajustes en prueba. Pueden cambiar o desaparecer.",
+  "settings.tema.por.proyecto": "Tema por proyecto",
+  "settings.tema.por.proyecto.hint": "Guarda el tema activo en .scrakk/theme.json del proyecto y lo aplica al abrirlo. Al desactivarlo, ignora ese archivo y vuelve al tema que tenías.",
   "settings.expandir.todo.omitir.archivos": "Omitir archivos al expandir todo",
   "settings.expandir.todo.omitir.archivos.hint": "Al usar \"Expandir todas las carpetas\", muestra solo carpetas y oculta los archivos.",
   "settings.requiere": "Requiere",

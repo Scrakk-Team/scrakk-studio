@@ -625,6 +625,15 @@ published are not edited. The file goes per version:
   with `data-anchored-anchor` so the anchored panel ignores its own trigger's
   pointerdown (that listener runs in capture). Both now go open → click → close.
 
+### Themes (experimental)
+- **Per-project themes.** A new toggle in Settings → Experimental saves the
+  active theme to `.scrakk/theme.json` in the current project and reapplies it
+  whenever that project is opened, using the existing project-scoped `.scrakk`
+  storage (same layer used for subagents, modes, permissions and MCP config).
+  When the toggle is off, the file is ignored and your own global theme is
+  restored. Your theme is snapshotted separately so applying a project theme
+  never overwrites the preference you had before.
+
 ### Tabs (settings)
 - **Experimental: same-size tabs with a configurable width.** A new toggle
   gives every tab in every strip a fixed width instead of sizing to its label.

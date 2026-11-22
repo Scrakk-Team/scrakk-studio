@@ -14,6 +14,11 @@ import {
   subscribeExternalOpenSettings
 } from '@services/externalOpenSettings'
 import {
+  isProjectThemeEnabled,
+  setProjectThemeEnabled,
+  subscribeToProjectTheme
+} from '@services/projectTheme'
+import {
   TabStrip,
   isTabWidthFixed,
   getTabWidth,
@@ -35,6 +40,7 @@ import styles from './ExperimentalSection.module.css'
 export function ExperimentalSection(): JSX.Element {
   const [skipFiles, setSkipFiles] = useState<boolean>(() => isSkipFilesOnExpandAll())
   const [hidePanels, setHidePanels] = useState<boolean>(() => isExternalOpenHidePanels())
+  const [projectTheme, setProjectTheme] = useState<boolean>(() => isProjectThemeEnabled())
   const [fixedTabs, setFixedTabs] = useState<boolean>(() => isTabWidthFixed())
   const [tabWidth, setTabWidthState] = useState<number>(() => getTabWidth())
   const [centerLabel, setCenterLabel] = useState<boolean>(() => isTabLabelCentered())
@@ -51,6 +57,11 @@ export function ExperimentalSection(): JSX.Element {
   )
 
   useEffect(() => subscribeExternalOpenSettings(() => setHidePanels(isExternalOpenHidePanels())), [])
+
+  useEffect(
+    () => subscribeToProjectTheme(() => setProjectTheme(isProjectThemeEnabled())),
+    []
+  )
 
   useEffect(
     () =>
@@ -112,6 +123,21 @@ export function ExperimentalSection(): JSX.Element {
             setHidePanels(next)
           }}
           label={t('settings.abrir.desde.so.ocultar.paneles')}
+        />
+      </div>
+
+      <div className={styles.row}>
+        <div className={styles.rowText}>
+          <span className={styles.rowTitle}>{t('settings.tema.por.proyecto')}</span>
+          <span className={styles.rowHint}>{t('settings.tema.por.proyecto.hint')}</span>
+        </div>
+        <ToggleSwitch
+          checked={projectTheme}
+          onChange={(next) => {
+            setProjectThemeEnabled(next)
+            setProjectTheme(next)
+          }}
+          label={t('settings.tema.por.proyecto')}
         />
       </div>
 
