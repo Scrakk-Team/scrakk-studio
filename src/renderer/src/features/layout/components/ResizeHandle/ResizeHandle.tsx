@@ -286,6 +286,7 @@ export function ResizeHandle({
       data-dragging={dragging || undefined}
       data-direction={direction}
       data-square={square || undefined}
+      data-chrome-handle=""
       className={styles.handle}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}

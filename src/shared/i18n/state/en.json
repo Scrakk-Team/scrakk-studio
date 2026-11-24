@@ -14195,6 +14195,22 @@
       "needsReview": false,
       "at": "2026-11-22T23:05:12.374Z",
       "approvedAt": "2026-11-22T23:05:12.374Z"
+    },
+    "settings.chrome.compacto": {
+      "src": "a192eb9e9c8a0236",
+      "area": "settings",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-24T06:25:39.982Z",
+      "approvedAt": "2026-11-24T06:25:39.982Z"
+    },
+    "settings.chrome.compacto.hint": {
+      "src": "448bb9117c709854",
+      "area": "settings",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-24T06:25:39.982Z",
+      "approvedAt": "2026-11-24T06:25:39.982Z"
     }
   },
   "version": 1

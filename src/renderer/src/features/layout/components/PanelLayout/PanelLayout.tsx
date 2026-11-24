@@ -38,6 +38,8 @@ function clamp(value: number, min: number, max: number): number {
 interface SlotSectionProps {
   slot: StripId
   className: string
+  /** Marca la tarjeta exterior para el CSS del modo compacto. */
+  card?: boolean
   style?: React.CSSProperties
   /** Ref al <section> para escrituras DOM directas durante el drag. */
   sectionRef?: (el: HTMLElement | null) => void
@@ -65,9 +67,14 @@ function cardClass(className: string, slot: SlotId): string {
  * Sección de un slot: mantiene la tarjeta visual (borde, radio, fondo) y
  * renderiza adentro la raíz del árbol de splits de ese slot.
  */
-function SlotSection({ slot, className, style, sectionRef }: SlotSectionProps): JSX.Element {
+function SlotSection({ slot, className, card, style, sectionRef }: SlotSectionProps): JSX.Element {
   return (
-    <section ref={sectionRef} className={className} style={style}>
+    <section
+      ref={sectionRef}
+      className={className}
+      style={style}
+      data-panel-chrome={card ? '' : undefined}
+    >
       <SplitView slot={slot as 'left' | 'center' | 'right' | 'bottom'} />
     </section>
   )
@@ -215,7 +222,7 @@ export function PanelLayout(): JSX.Element {
   const hasAny = hasLeft || hasRight || hasCenter || hasBottom
   if (!hasAny) {
     return (
-      <div className={styles.layout}>
+      <div className={styles.layout} data-chrome-layout="">
         <p className={styles.empty} role="status" aria-live="polite">
           {t('layout.no.hay.panel.activo')}
         </p>
@@ -226,10 +233,11 @@ export function PanelLayout(): JSX.Element {
   const hasCenterColumn = hasCenter || hasBottom
 
   return (
-    <div className={styles.layout}>
+    <div className={styles.layout} data-chrome-layout="">
       {hasLeft ? (
         <SlotSection
           slot="left"
+          card
           className={cardClass(styles.slot, 'left')}
           style={leftStyle}
           sectionRef={setSectionEl('left')}
@@ -251,7 +259,7 @@ export function PanelLayout(): JSX.Element {
       {hasCenterColumn ? (
         <div className={styles.centerColumn}>
           {hasCenter ? (
-            <main className={cardClass(styles.center, 'center')}>
+            <main className={cardClass(styles.center, 'center')} data-panel-chrome="">
               <SlotSection slot="center" className={styles.centerInner} />
             </main>
           ) : null}
@@ -292,6 +300,7 @@ export function PanelLayout(): JSX.Element {
             <section
               ref={setSectionEl('bottom')}
               className={cardClass(styles.slotBottom, 'bottom')}
+              data-panel-chrome=""
               style={
                 hasCenter
                   ? { height: bottomHeight, minHeight: BOTTOM_MIN, flex: '0 0 auto' }
@@ -359,6 +368,7 @@ export function PanelLayout(): JSX.Element {
       {hasRight ? (
         <SlotSection
           slot="right"
+          card
           className={cardClass(styles.slot, 'right')}
           style={rightStyle}
           sectionRef={setSectionEl('right')}

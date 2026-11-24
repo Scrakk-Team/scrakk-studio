@@ -63,6 +63,60 @@ body {
   padding: var(--space-2) 0;
 }
 
+/* ── Modo compacto (experimental) ─────────────────────────────────────────
+   Default intacto: estas reglas SOLO aplican cuando el servicio de_preferencia
+   pone `data-compact-chrome` en <html>. Quita el inset y las tarjetas flotantes
+   y deja UNA línea de 1px entre paneles con el color del tema. Las esquinas
+   redondeadas son de la VENTANA (Electron), no de estos elementos, así que se
+   conservan. */
+[data-compact-chrome] .app-workspace,
+[data-compact-chrome] [data-chrome-layout] {
+  padding: 0;
+}
+
+[data-compact-chrome] [data-panel-chrome] {
+  border: none;
+  border-radius: 0;
+}
+
+/* El handle sigue teniendo área de agarre (4px) pero dibuja sólo la raya de
+   1px: se solapa 2px a cada lado para que no quede hueco entre paneles. */
+[data-compact-chrome] [data-chrome-handle] {
+  width: 4px;
+  margin: 0 -2px;
+  background: transparent;
+}
+[data-compact-chrome] [data-chrome-handle]::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  transform: translateX(-50%);
+  background: var(--chrome-border, var(--color-border));
+}
+[data-compact-chrome] [data-chrome-handle][data-direction='horizontal'] {
+  width: auto;
+  height: 4px;
+  margin: -2px 0;
+}
+[data-compact-chrome] [data-chrome-handle][data-direction='horizontal']::before {
+  top: 50%;
+  bottom: auto;
+  left: 0;
+  right: 0;
+  width: auto;
+  height: 1px;
+  transform: translateY(-50%);
+}
+
+/* Activity bars: sin radio hacia los paneles, la línea corre continua. El
+   borde ya usa --chrome-border en su CSS de módulo. */
+[data-compact-chrome] nav[data-side] {
+  border-radius: 0;
+}
+
 /* ── Scrollbar universal ──────────────────────────────────────────────────
    Réplica del scrollbar de Innerta (ScrollbarRenderer.cpp) con DOS reglas
    globales que se aplican solas a CUALQUIER contenedor con scroll (ningún

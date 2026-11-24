@@ -26,6 +26,7 @@ import { initDiffViews } from '@services/diff'
 import { installAudioUnlock } from '@services/audio'
 import { bootEvents, registerEventCommands } from '@services/events'
 import { installProjectThemeService } from '@services/projectTheme'
+import { installCompactChrome } from '@services/compactChrome'
 import { initZoomGuard } from './core/zoomGuard'
 
 // Módulos de estilo global (tokens) — se importan aquí, una sola vez.
@@ -91,6 +92,8 @@ bootEvents()
 // Tema por proyecto (experimental): guarda el tema en `<root>/.scrakk/theme.json`
 // y lo reaplica al abrir ese proyecto. Si la opción está apagada, no hace nada.
 installProjectThemeService()
+// Modo compacto (experimental): publica el estado en <html> para el CSS global.
+installCompactChrome()
 
 /**
  * Corre `fn` DESPUÉS del primer paint (primer idle), no antes.

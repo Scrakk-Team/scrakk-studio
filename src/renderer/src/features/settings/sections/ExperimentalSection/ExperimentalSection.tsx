@@ -16,6 +16,11 @@ import {
   type DisabledActivitySide
 } from '@services/activityBarSettings'
 import {
+  isCompactChromeEnabled,
+  setCompactChromeEnabled,
+  subscribeToCompactChrome
+} from '@services/compactChrome'
+import {
   isSkipFilesOnExpandAll,
   setSkipFilesOnExpandAll,
   subscribeExplorerSettings
@@ -53,6 +58,7 @@ export function ExperimentalSection(): JSX.Element {
   const [skipFiles, setSkipFiles] = useState<boolean>(() => isSkipFilesOnExpandAll())
   const [hidePanels, setHidePanels] = useState<boolean>(() => isExternalOpenHidePanels())
   const [projectTheme, setProjectTheme] = useState<boolean>(() => isProjectThemeEnabled())
+  const [compactChrome, setCompactChrome] = useState<boolean>(() => isCompactChromeEnabled())
   const [activityMode, setActivityMode] = useState<ActivityBarMode>(getActivityBarMode)
   const [disabledSide, setDisabledSide] = useState<DisabledActivitySide>(getDisabledActivitySide)
   const [fixedTabs, setFixedTabs] = useState<boolean>(() => isTabWidthFixed())
@@ -74,6 +80,11 @@ export function ExperimentalSection(): JSX.Element {
 
   useEffect(
     () => subscribeToProjectTheme(() => setProjectTheme(isProjectThemeEnabled())),
+    []
+  )
+
+  useEffect(
+    () => subscribeToCompactChrome(() => setCompactChrome(isCompactChromeEnabled())),
     []
   )
 
@@ -200,6 +211,21 @@ export function ExperimentalSection(): JSX.Element {
             setProjectTheme(next)
           }}
           label={t('settings.tema.por.proyecto')}
+        />
+      </div>
+
+      <div className={styles.row}>
+        <div className={styles.rowText}>
+          <span className={styles.rowTitle}>{t('settings.chrome.compacto')}</span>
+          <span className={styles.rowHint}>{t('settings.chrome.compacto.hint')}</span>
+        </div>
+        <ToggleSwitch
+          checked={compactChrome}
+          onChange={(next) => {
+            setCompactChromeEnabled(next)
+            setCompactChrome(next)
+          }}
+          label={t('settings.chrome.compacto')}
         />
       </div>
 

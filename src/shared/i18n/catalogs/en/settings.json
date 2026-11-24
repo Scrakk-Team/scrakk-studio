@@ -252,6 +252,8 @@
   "settings.rendimiento": "Performance",
   "settings.experimental": "Experimental",
   "settings.experimental.descripcion": "Settings under test. They may change or disappear.",
+  "settings.chrome.compacto": "Compact mode",
+  "settings.chrome.compacto.hint": "Removes the gap between panels and leaves a single 1px divider like VS Code. Applies to panels, titlebar, statusbar and activity bars at once; the default layout is untouched.",
   "settings.tema.por.proyecto": "Per-project theme",
   "settings.tema.por.proyecto.hint": "Saves the active theme to the project's .scrakk/theme.json and applies it when you open that project. Turning it off ignores that file and restores your own theme.",
   "settings.activitybar.centrado": "Activity bar icons",
