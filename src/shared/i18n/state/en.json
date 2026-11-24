@@ -14211,6 +14211,22 @@
       "needsReview": false,
       "at": "2026-11-24T06:25:39.982Z",
       "approvedAt": "2026-11-24T06:25:39.982Z"
+    },
+    "settings.chrome.bordes.extra": {
+      "src": "1da983bcb97c5436",
+      "area": "settings",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-24T06:35:41.355Z",
+      "approvedAt": "2026-11-24T06:35:41.355Z"
+    },
+    "settings.chrome.bordes.extra.hint": {
+      "src": "b769514df5c6dc1a",
+      "area": "settings",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-24T06:35:41.355Z",
+      "approvedAt": "2026-11-24T06:35:41.355Z"
     }
   },
   "version": 1

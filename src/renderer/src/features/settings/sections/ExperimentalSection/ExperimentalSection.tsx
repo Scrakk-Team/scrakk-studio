@@ -18,6 +18,8 @@ import {
 import {
   isCompactChromeEnabled,
   setCompactChromeEnabled,
+  isExtraBordersEnabled,
+  setExtraBordersEnabled,
   subscribeToCompactChrome
 } from '@services/compactChrome'
 import {
@@ -59,6 +61,7 @@ export function ExperimentalSection(): JSX.Element {
   const [hidePanels, setHidePanels] = useState<boolean>(() => isExternalOpenHidePanels())
   const [projectTheme, setProjectTheme] = useState<boolean>(() => isProjectThemeEnabled())
   const [compactChrome, setCompactChrome] = useState<boolean>(() => isCompactChromeEnabled())
+  const [extraBorders, setExtraBorders] = useState<boolean>(() => isExtraBordersEnabled())
   const [activityMode, setActivityMode] = useState<ActivityBarMode>(getActivityBarMode)
   const [disabledSide, setDisabledSide] = useState<DisabledActivitySide>(getDisabledActivitySide)
   const [fixedTabs, setFixedTabs] = useState<boolean>(() => isTabWidthFixed())
@@ -84,7 +87,11 @@ export function ExperimentalSection(): JSX.Element {
   )
 
   useEffect(
-    () => subscribeToCompactChrome(() => setCompactChrome(isCompactChromeEnabled())),
+    () =>
+      subscribeToCompactChrome(() => {
+        setCompactChrome(isCompactChromeEnabled())
+        setExtraBorders(isExtraBordersEnabled())
+      }),
     []
   )
 
@@ -226,6 +233,22 @@ export function ExperimentalSection(): JSX.Element {
             setCompactChrome(next)
           }}
           label={t('settings.chrome.compacto')}
+        />
+      </div>
+
+      <div className={styles.row}>
+        <div className={styles.rowText}>
+          <span className={styles.rowTitle}>{t('settings.chrome.bordes.extra')}</span>
+          <span className={styles.rowHint}>{t('settings.chrome.bordes.extra.hint')}</span>
+        </div>
+        <ToggleSwitch
+          checked={extraBorders}
+          disabled={!compactChrome}
+          onChange={(next) => {
+            setExtraBordersEnabled(next)
+            setExtraBorders(next)
+          }}
+          label={t('settings.chrome.bordes.extra')}
         />
       </div>
 

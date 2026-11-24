@@ -26,4 +26,11 @@ published are not edited. The file goes per version:
   `data-compact-chrome` attribute on `<html>`, and scoped CSS overrides do the
   rest — so switching it off restores exactly the previous look. The window's
   rounded corners stay, and dividers use the theme's `--chrome-border` token.
-  Resize handles keep a 4px grab area while drawing only the 1px line.
+  Resize handles keep a 4px grab area while drawing only the 1px line. The
+  dividers are drawn by the handles alone: panel and split-pane borders are
+  suppressed in this mode so the line never looks doubled.
+- **"Extra borders" sub-option.** Only available with Compact mode on, it draws
+  a visible border on the side of each activity bar facing the panels, plus the
+  titlebar and statusbar edges. It uses the theme's own border tokens
+  (`--chrome-border`, falling back to `--color-border`), so themes keep control
+  of the color, and it is fully localised.

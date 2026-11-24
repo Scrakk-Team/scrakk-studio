@@ -13,6 +13,9 @@
 
 const KEY = 'scrakk-studio:compact-chrome'
 const ATTR = 'data-compact-chrome'
+/** "Bordes extra": línea visible hacia activity bars, titlebar y statusbar. */
+const EXTRA_KEY = 'scrakk-studio:compact-extra-borders'
+const EXTRA_ATTR = 'data-extra-borders'
 
 type Listener = () => void
 const listeners = new Set<Listener>()
@@ -26,11 +29,25 @@ function read(): boolean {
 }
 
 let enabled = read()
+let extraBorders = readExtra()
+
+function readExtra(): boolean {
+  try {
+    return localStorage.getItem(EXTRA_KEY) === '1'
+  } catch {
+    return false
+  }
+}
 
 function applyAttribute(): void {
   if (typeof document === 'undefined') return
-  if (enabled) document.documentElement.setAttribute(ATTR, '')
-  else document.documentElement.removeAttribute(ATTR)
+  const html = document.documentElement
+  if (enabled) html.setAttribute(ATTR, '')
+  else html.removeAttribute(ATTR)
+  // El CSS exige AMBOS atributos: los bordes extra sólo tienen efecto en modo
+  // compacto, pero se guardan aparte para no perder la preferencia.
+  if (extraBorders) html.setAttribute(EXTRA_ATTR, '')
+  else html.removeAttribute(EXTRA_ATTR)
 }
 
 function emit(): void {
@@ -57,6 +74,20 @@ export function setCompactChromeEnabled(next: boolean): void {
   emit()
 }
 
+export function isExtraBordersEnabled(): boolean {
+  return extraBorders
+}
+
+export function setExtraBordersEnabled(next: boolean): void {
+  if (extraBorders === next) return
+  extraBorders = next
+  try {
+    localStorage.setItem(EXTRA_KEY, next ? '1' : '0')
+  } catch { /* sin storage: solo memoria */ }
+  applyAttribute()
+  emit()
+}
+
 export function subscribeToCompactChrome(listener: Listener): () => void {
   listeners.add(listener)
   return () => {
@@ -68,13 +99,20 @@ export function subscribeToCompactChrome(listener: Listener): () => void {
 export function installCompactChrome(): () => void {
   applyAttribute()
   return () => {
-    if (typeof document !== 'undefined') document.documentElement.removeAttribute(ATTR)
+    if (typeof document !== 'undefined') {
+      document.documentElement.removeAttribute(ATTR)
+      document.documentElement.removeAttribute(EXTRA_ATTR)
+    }
   }
 }
 
 /** Solo tests. */
 export function _resetCompactChromeForTests(): void {
   enabled = false
+  extraBorders = false
   listeners.clear()
-  if (typeof document !== 'undefined') document.documentElement.removeAttribute(ATTR)
+  if (typeof document !== 'undefined') {
+    document.documentElement.removeAttribute(ATTR)
+    document.documentElement.removeAttribute(EXTRA_ATTR)
+  }
 }

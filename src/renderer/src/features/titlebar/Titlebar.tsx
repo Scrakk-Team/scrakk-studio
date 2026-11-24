@@ -57,7 +57,7 @@ export function Titlebar(_props: TitlebarProps): JSX.Element {
   }
 
   return (
-    <header className={styles.titlebar} onDoubleClick={handleDoubleClick}>
+    <header className={styles.titlebar} data-chrome-bar="titlebar" onDoubleClick={handleDoubleClick}>
       <div className={styles.content}>
         <div className={styles.left}>
           <MenuBar />

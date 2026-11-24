@@ -218,6 +218,7 @@ function SplitPanes({ stripId, tabs, dir, zoneRef }: SplitPanesProps): JSX.Eleme
           paneEls.current.set(tabId, el)
         }}
         className={styles.pane}
+        data-pane=""
         style={{ flex: `${weights[index] ?? 1} 1 0%` }}
       >
         <TabContentView tab={tab} stripId={stripId} />

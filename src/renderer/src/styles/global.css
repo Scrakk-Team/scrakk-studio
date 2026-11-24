@@ -69,24 +69,28 @@ body {
    y deja UNA línea de 1px entre paneles con el color del tema. Las esquinas
    redondeadas son de la VENTANA (Electron), no de estos elementos, así que se
    conservan. */
-[data-compact-chrome] .app-workspace,
-[data-compact-chrome] [data-chrome-layout] {
+html[data-compact-chrome] .app-workspace,
+html[data-compact-chrome] [data-chrome-layout] {
   padding: 0;
 }
 
-[data-compact-chrome] [data-panel-chrome] {
-  border: none;
-  border-radius: 0;
+/* `html[...]` (especificidad 0-1-1) gana al borde del CSS module de cada panel
+   y evita la línea doble: los paneles NO dibujan borde, la raya la pone el
+   handle. Lo mismo para las hojas de un split. */
+html[data-compact-chrome] [data-panel-chrome],
+html[data-compact-chrome] [data-pane] {
+  border: none !important;
+  border-radius: 0 !important;
 }
 
 /* El handle sigue teniendo área de agarre (4px) pero dibuja sólo la raya de
    1px: se solapa 2px a cada lado para que no quede hueco entre paneles. */
-[data-compact-chrome] [data-chrome-handle] {
+html[data-compact-chrome] [data-chrome-handle] {
   width: 4px;
   margin: 0 -2px;
   background: transparent;
 }
-[data-compact-chrome] [data-chrome-handle]::before {
+html[data-compact-chrome] [data-chrome-handle]::before {
   content: '';
   position: absolute;
   top: 0;
@@ -96,12 +100,12 @@ body {
   transform: translateX(-50%);
   background: var(--chrome-border, var(--color-border));
 }
-[data-compact-chrome] [data-chrome-handle][data-direction='horizontal'] {
+html[data-compact-chrome] [data-chrome-handle][data-direction='horizontal'] {
   width: auto;
   height: 4px;
   margin: -2px 0;
 }
-[data-compact-chrome] [data-chrome-handle][data-direction='horizontal']::before {
+html[data-compact-chrome] [data-chrome-handle][data-direction='horizontal']::before {
   top: 50%;
   bottom: auto;
   left: 0;
@@ -113,8 +117,29 @@ body {
 
 /* Activity bars: sin radio hacia los paneles, la línea corre continua. El
    borde ya usa --chrome-border en su CSS de módulo. */
-[data-compact-chrome] nav[data-side] {
+html[data-compact-chrome] nav[data-side] {
   border-radius: 0;
+}
+
+/* ── Bordes extra (sólo dentro del modo compacto) ──────────────────────────
+   Cuando se activan, el canto de cada activity bar que mira a los paneles y
+   el borde interior de titlebar/statusbar dejan de ser transparentes y usan
+   los tokens de borde del tema: --chrome-border si el tema lo define, si no
+   --color-border. No se toca el layout ni el radio de la ventana. */
+html[data-compact-chrome][data-extra-borders] [data-chrome-bar='titlebar'] {
+  border-bottom: 1px solid var(--chrome-border, var(--color-border));
+}
+
+html[data-compact-chrome][data-extra-borders] [data-chrome-bar='statusbar'] {
+  border-top: 1px solid var(--chrome-border, var(--color-border));
+}
+
+html[data-compact-chrome][data-extra-borders] [data-chrome-bar='activitybar'][data-side='left'] {
+  border-right: 1px solid var(--chrome-border, var(--color-border));
+}
+
+html[data-compact-chrome][data-extra-borders] [data-chrome-bar='activitybar'][data-side='right'] {
+  border-left: 1px solid var(--chrome-border, var(--color-border));
 }
 
 /* ── Scrollbar universal ──────────────────────────────────────────────────

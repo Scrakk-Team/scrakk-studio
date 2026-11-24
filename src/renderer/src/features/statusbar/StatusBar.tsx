@@ -168,6 +168,7 @@ export function StatusBar({ onOpenSettings }: StatusBarProps): JSX.Element {
     <footer
       ref={barRef}
       className={styles.bar}
+      data-chrome-bar="statusbar"
       aria-label={t('statusbar.barra.de.estado')}
       onContextMenu={openContextMenu}
     >

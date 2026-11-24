@@ -21,6 +21,8 @@ vi.stubGlobal('document', { documentElement: html })
 const {
   isCompactChromeEnabled,
   setCompactChromeEnabled,
+  isExtraBordersEnabled,
+  setExtraBordersEnabled,
   subscribeToCompactChrome,
   installCompactChrome,
   _resetCompactChromeForTests
@@ -54,6 +56,16 @@ describe('compact chrome', () => {
     setCompactChromeEnabled(false)
     expect(store.get('scrakk-studio:compact-chrome')).toBe('0')
     expect(html.removeAttribute).toHaveBeenCalledWith('data-compact-chrome')
+  })
+
+  it('bordes extra: desactivados por defecto y persisten su propia clave', () => {
+    expect(isExtraBordersEnabled()).toBe(false)
+    setExtraBordersEnabled(true)
+    expect(isExtraBordersEnabled()).toBe(true)
+    expect(store.get('scrakk-studio:compact-extra-borders')).toBe('1')
+    expect(html.setAttribute).toHaveBeenCalledWith('data-extra-borders', '')
+    setExtraBordersEnabled(false)
+    expect(html.removeAttribute).toHaveBeenCalledWith('data-extra-borders')
   })
 
   it('installCompactChrome refleja la preferencia al arrancar', () => {

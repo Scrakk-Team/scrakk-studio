@@ -7,6 +7,8 @@
 export {
   isCompactChromeEnabled,
   setCompactChromeEnabled,
+  isExtraBordersEnabled,
+  setExtraBordersEnabled,
   subscribeToCompactChrome,
   installCompactChrome,
   _resetCompactChromeForTests

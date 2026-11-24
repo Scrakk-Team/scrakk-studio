@@ -138,6 +138,7 @@ export function ActivityBar({ side }: { side: ActivityBarSide }): JSX.Element | 
         mode === 'wheel' ? styles.wheel : null
       ].filter(Boolean).join(' ')}
       data-side={side}
+      data-chrome-bar="activitybar"
       aria-label={side === 'left' ? t('activitybar.barra.lateral.izquierda') : t('activitybar.barra.lateral.derecha')}
     >
       <ActivityBarItems
