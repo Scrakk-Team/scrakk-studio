@@ -256,10 +256,12 @@ export function ExplorerPanel({
   /** Revela y selecciona un path del workspace en el core nativo. */
   const revealPath = useCallback(
     async (path: string): Promise<void> => {
-      const ex = explorerRef.current
-      if (!ex || !root || !path.startsWith(root)) return
+      if (!explorerRef.current || !root || !path.startsWith(root)) return
+      // `g.roots` se llena en explorer_open y NO ve lo que se creó después:
+      // refrescar el root es obligatorio para que la fila nueva exista.
+      await reopenPreserving()
       const parent = path.replace(/[\\/][^\\/]+$/, '')
-      if (parent && parent !== root) await ex.expandPath(parent)
+      if (parent && parent !== root) await explorerRef.current?.expandPath(parent)
       const after = explorerRef.current
       if (!after) return
       after.setSelection([path])
@@ -267,7 +269,7 @@ export function ExplorerPanel({
       if (idx >= 0) after.setScroll(Math.max(0, (idx - 4) * ROW_HEIGHT))
       canvasRef.current?.focus()
     },
-    [root]
+    [root, reopenPreserving]
   )
 
   // Un archivo creado desde la bienvenida puede llegar antes de que el panel

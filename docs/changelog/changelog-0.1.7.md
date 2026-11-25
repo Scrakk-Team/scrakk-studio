@@ -21,7 +21,9 @@ published are not edited. The file goes per version:
 - **A new file from the Welcome page is selected in the native explorer.**
   File creation publishes a reveal request that the explorer consumes when it
   is mounted, so the new row is selected (and its ancestors expanded) instead
-  of only opening a tab in the editor.
+  of only opening a tab in the editor. The native tree is re-opened from disk
+  before selecting — `g.roots` is filled at `explorer_open` and otherwise never
+  sees files created later — while preserving the folders already expanded.
 - **Renaming a file renames its open tab in place.** The tab id, path and label
   change together with the editor's open-file list and the live editor session,
   without recreating the tab or saving the content to a second file with the
