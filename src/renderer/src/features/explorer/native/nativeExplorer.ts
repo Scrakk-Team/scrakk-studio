@@ -135,6 +135,8 @@ export interface NativeExplorer {
   contentHeight(): number
   setViewport(w: number, h: number): void
   expandAllProgressive(root: string, skipFiles: boolean): Promise<void>
+  /** Cachea una carpeta y la expande en el core nativo (para items creados dentro). */
+  expandPath(path: string): Promise<void>
   collapseAll(): void
   beginRename(path: string, initial: string): void
   cancelRename(): void
@@ -323,6 +325,13 @@ export async function createNativeExplorer(): Promise<NativeExplorer> {
     contentHeight: () => mod._explorer_content_height(),
     setViewport: (w, h) => mod._explorer_set_viewport(w, h),
     expandAllProgressive,
+    expandPath: async (path) => {
+      await setDir(path)
+      const p = allocString(mod, path)
+      mod._explorer_expand_path(p)
+      mod._free(p)
+      mod._explorer_rebuild()
+    },
     collapseAll: () => mod._explorer_collapse_all(),
     beginRename: (path, initial) => {
       const p = allocString(mod, path)

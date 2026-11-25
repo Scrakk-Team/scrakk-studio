@@ -17,6 +17,16 @@ published are not edited. The file goes per version:
 
 ## 0.1.7 — Compact mode for the whole chrome
 
+### Explorer (native)
+- **New file / New folder now use the native inline rename input.** Both the
+  panel header buttons and the context menu actions create the item with a
+  temporary unique name, refresh the native WASM tree and start the same
+  `beginRename` the F2/rename action uses, so you type the name in the row
+  itself instead of getting an `untitled.txt` tab. "New file" inside a folder
+  expands that folder in the native core so the new row is visible. Renaming
+  still performs the real `moveFile` on commit; cancelling (Escape or a blank
+  name) deletes the temporary item instead of leaving it behind.
+
 ### Chrome (experimental)
 - **One toggle for the whole chrome.** Settings → Experimental has a new
   **Compact mode**: it removes the inset and the floating-card look from the

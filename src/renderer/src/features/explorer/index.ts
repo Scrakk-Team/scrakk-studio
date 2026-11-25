@@ -10,7 +10,12 @@
 export { ExplorerPanel } from './ExplorerPanel'
 export { ExplorerRow, type RowAction } from './components/ExplorerRow'
 export { setWorkspaceRoot, getWorkspaceRoot } from './hooks/useWorkspaceState'
-export { createNewFile, openFilesViaDialog, openFolderViaDialog } from './fileActions'
+export {
+  createNewFile,
+  createNewFolderPending,
+  openFilesViaDialog,
+  openFolderViaDialog
+} from './fileActions'
 export { ExplorerView, type ExplorerViewProps } from './ExplorerView'
 export {
   ExplorerItemsView,

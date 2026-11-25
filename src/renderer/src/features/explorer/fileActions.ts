@@ -57,23 +57,53 @@ export async function openFolderViaDialog(): Promise<string | null> {
  * pide (crear un archivo "en el aire" no tiene destino). El nombre se autogenera
  * libre para no pisar nada — renombrarlo es cosa del Explorer.
  */
-export async function createNewFile(workspaceRoot = getWorkspaceRoot()): Promise<string | null> {
+export async function createNewFile(
+  workspaceRoot = getWorkspaceRoot(),
+  /** false cuando el Explorer va a poner el item en rename inline nativo. */
+  openInEditor = true
+): Promise<string | null> {
   const root = workspaceRoot ?? (await openFolderViaDialog())
   if (!root) return null
   const path = await uniqueUntitledPath(root)
   const written = await api.fs.writeFile(path, '')
   if (!written.success) return null
-  openFileInEditor(path, baseNameOf(path))
+  if (openInEditor) openFileInEditor(path, baseNameOf(path))
   return path
 }
 
-/** Crea una carpeta nueva en la raíz del workspace. */
-export async function createNewFolder(workspaceRoot = getWorkspaceRoot()): Promise<string | null> {
+/** Nombre base libre para una carpeta recién creada. */
+async function uniqueFolderName(root: string): Promise<string> {
+  for (let i = 1; i < 1000; i += 1) {
+    const name = i === 1 ? 'nueva-carpeta' : `nueva-carpeta-${i}`
+    const res = await api.fs.exists(joinPath(root, name))
+    if (!res.exists) return name
+  }
+  return `nueva-carpeta-${Date.now()}`
+}
+
+/**
+ * Crea una carpeta nueva. Sin `name` se pide por diálogo (comportamiento
+ * anterior); con `name` se crea directo para que el Explorer nativo pueda
+ * ponerla en modo edición con su propio input.
+ */
+export async function createNewFolder(
+  workspaceRoot = getWorkspaceRoot(),
+  name?: string
+): Promise<string | null> {
   const root = workspaceRoot ?? (await openFolderViaDialog())
   if (!root) return null
-  const name = window.prompt('Nombre de la carpeta', 'nueva-carpeta')?.trim()
-  if (!name) return null
-  const path = joinPath(root, name)
+  const finalName = (name ?? window.prompt('Nombre de la carpeta', 'nueva-carpeta') ?? '').trim()
+  if (!finalName) return null
+  const path = joinPath(root, finalName)
   const res = await api.fs.mkdir(path)
   return res.success ? path : null
+}
+
+/** Crea una carpeta con nombre libre, sin pedirlo, para el rename inline. */
+export async function createNewFolderPending(
+  workspaceRoot = getWorkspaceRoot()
+): Promise<string | null> {
+  const root = workspaceRoot ?? (await openFolderViaDialog())
+  if (!root) return null
+  return createNewFolder(root, await uniqueFolderName(root))
 }

@@ -8,7 +8,7 @@
 
 import { useCallback, useEffect, useRef, useState, type JSX } from 'react'
 import { getWorkspaceRoot } from './hooks/useWorkspaceState'
-import { createNewFile, createNewFolder, openFolderViaDialog } from './fileActions'
+import { createNewFile, createNewFolderPending, openFolderViaDialog } from './fileActions'
 import {
   isGitDecorationsVisible,
   setGitDecorationsVisible,
@@ -87,6 +87,8 @@ export function ExplorerPanel({
   // Native inline rename: value, caret and selection all live in the C++ core.
   // The canvas only measures glyphs and paints what the core reports.
   const textDragRef = useRef(false)
+  /** Item recién creado esperando nombre: se descarta si se cancela el rename. */
+  const pendingCreateRef = useRef<{ path: string; isDir: boolean } | null>(null)
   // Native lasso: the core owns rectangle, hit-testing and preview selection.
   // These refs only carry the drag state between DOM events.
   const lassoDragRef = useRef(false)
@@ -222,15 +224,37 @@ export function ExplorerPanel({
     await explorerRef.current?.open(root)
   }, [root])
 
-  const newFile = useCallback(async (): Promise<void> => {
-    await createNewFile(root ?? undefined)
-    await reopen()
-  }, [root, reopen])
+  /**
+   * Crea el item y lo pone en modo edición con el input NATIVO del explorer
+   * (el mismo que F2/Renombrar). No abre la tab del editor: el nombre lo elige
+   * el usuario en la fila y `commitRename` hace el move real.
+   */
+  const beginCreate = useCallback(
+    async (kind: 'file' | 'folder', parent?: string): Promise<void> => {
+      const dir = parent ?? root
+      if (!dir) return
+      const path =
+        kind === 'file' ? await createNewFile(dir, false) : await createNewFolderPending(dir)
+      if (!path) return
+      pendingCreateRef.current = { path, isDir: kind === 'folder' }
+      await reopen()
+      // Si se creó dentro de una carpeta, el reopen la dejó colapsada: la
+      // expandimos en el core nativo para que la fila nueva sea visible.
+      if (parent && parent !== root) await explorerRef.current?.expandPath(parent)
+      const ex = explorerRef.current
+      if (!ex) return
+      ex.beginRename(path, baseNameOf(path))
+      if (ex.editRow() < 0) {
+        const idx = ex.rows().findIndex((row) => row.path === path)
+        if (idx >= 0) ex.setScroll(Math.max(0, (idx - 4) * ROW_HEIGHT))
+      }
+      canvasRef.current?.focus()
+    },
+    [root, reopen]
+  )
 
-  const newFolder = useCallback(async (): Promise<void> => {
-    await createNewFolder(root ?? undefined)
-    await reopen()
-  }, [root, reopen])
+  const newFile = useCallback(async (): Promise<void> => beginCreate('file'), [beginCreate])
+  const newFolder = useCallback(async (): Promise<void> => beginCreate('folder'), [beginCreate])
 
   const expandAllFolders = useCallback(async (): Promise<void> => {
     if (!root) return
@@ -337,6 +361,24 @@ export function ExplorerPanel({
     return best
   }, [editInputRect])
 
+  /** Borra el item temporal si el usuario canceló su primer nombre. */
+  const removePending = useCallback(
+    async (path: string): Promise<void> => {
+      pendingCreateRef.current = null
+      await api.fs.deleteFile(path)
+      await reopen()
+    },
+    [reopen]
+  )
+
+  const cancelRename = useCallback(async (): Promise<void> => {
+    const ex = explorerRef.current
+    const path = ex?.editingPath()
+    if (!ex || !path) return
+    ex.cancelRename()
+    if (pendingCreateRef.current?.path === path) await removePending(path)
+  }, [removePending])
+
   const commitRename = useCallback(async (): Promise<void> => {
     const ex = explorerRef.current
     if (!ex) return
@@ -344,12 +386,18 @@ export function ExplorerPanel({
     if (!oldPath) return
     const value = ex.editValue().trim()
     const name = oldPath.split(/[/\\]/).pop() ?? ''
+    const isPending = pendingCreateRef.current?.path === oldPath
     ex.cancelRename()
-    if (!value || value === name) return
+    if (!value || value === name) {
+      // Sin nombre nuevo: un item recién creado no debe quedar como untitled.
+      if (isPending) await removePending(oldPath)
+      return
+    }
+    pendingCreateRef.current = null
     const parent = oldPath.replace(/[\\/][^\\/]+$/, '')
     await api.fs.moveFile(oldPath, `${parent}/${value}`)
     await reopen()
-  }, [reopen])
+  }, [reopen, removePending])
 
   const menuItems = ((): ContextMenuItem[] => {
     if (!menu) return []
@@ -398,17 +446,11 @@ export function ExplorerPanel({
       items.push(
         {
           label: t('explorer.nuevo.archivo'),
-          onClick: () => void (async () => {
-            await createNewFile(row.path)
-            await reopen()
-          })()
+          onClick: () => void beginCreate('file', row.path)
         },
         {
           label: t('explorer.nueva.carpeta'),
-          onClick: () => void (async () => {
-            await createNewFolder(row.path)
-            await reopen()
-          })()
+          onClick: () => void beginCreate('folder', row.path)
         }
       )
     } else {
@@ -914,7 +956,7 @@ export function ExplorerPanel({
           const mod = e.ctrlKey || e.metaKey
           if (e.key === 'Escape') {
             e.preventDefault()
-            ex.cancelRename()
+            void cancelRename()
             return
           }
           if (e.key === 'Enter') {
