@@ -225,6 +225,24 @@ export function ExplorerPanel({
   }, [root])
 
   /**
+   * `explorer_open` reinicia el estado del core (g = State{}), así que un
+   * reopen normal cierra TODAS las carpetas abiertas. Capturamos expandidos,
+   * selección y scroll antes y los restauramos después.
+   */
+  const reopenPreserving = useCallback(async (): Promise<void> => {
+    const before = explorerRef.current
+    const expanded = before?.rows().filter((r) => r.isDir && r.expanded).map((r) => r.path) ?? []
+    const selection = before?.selection() ?? []
+    const scroll = before?.scrollY() ?? 0
+    await reopen()
+    const after = explorerRef.current
+    if (!after) return
+    for (const path of expanded) await after.expandPath(path)
+    if (selection.length > 0) after.setSelection(selection)
+    after.setScroll(scroll)
+  }, [reopen])
+
+  /**
    * Crea el item y lo pone en modo edición con el input NATIVO del explorer
    * (el mismo que F2/Renombrar). No abre la tab del editor: el nombre lo elige
    * el usuario en la fila y `commitRename` hace el move real.
@@ -249,10 +267,10 @@ export function ExplorerPanel({
         kind === 'file' ? await createNewFile(dir, false) : await createNewFolderPending(dir)
       if (!path) return
       pendingCreateRef.current = { path, isDir: kind === 'folder' }
-      await reopen()
-      // Si se creó dentro de una carpeta, el reopen la dejó colapsada: la
-      // expandimos en el core nativo para que la fila nueva sea visible.
-      if (parent && parent !== root) await explorerRef.current?.expandPath(parent)
+      await reopenPreserving()
+      // Creado dentro de una carpeta (por menú o por selección): la expandimos
+      // en el core nativo para que la fila nueva sea visible y editable.
+      if (dir !== root) await explorerRef.current?.expandPath(dir)
       const ex = explorerRef.current
       if (!ex) return
       ex.beginRename(path, baseNameOf(path))
@@ -262,7 +280,7 @@ export function ExplorerPanel({
       }
       canvasRef.current?.focus()
     },
-    [root, reopen]
+    [root, reopenPreserving]
   )
 
   const newFile = useCallback(async (): Promise<void> => beginCreate('file'), [beginCreate])
@@ -294,9 +312,9 @@ export function ExplorerPanel({
         }
       }
       explorerRef.current?.clearSelection()
-      await reopen()
+      await reopenPreserving()
     },
-    [reopen]
+    [reopenPreserving]
   )
 
   const deleteRow = useCallback(
@@ -378,9 +396,9 @@ export function ExplorerPanel({
     async (path: string): Promise<void> => {
       pendingCreateRef.current = null
       await api.fs.deleteFile(path)
-      await reopen()
+      await reopenPreserving()
     },
-    [reopen]
+    [reopenPreserving]
   )
 
   const cancelRename = useCallback(async (): Promise<void> => {
@@ -408,8 +426,8 @@ export function ExplorerPanel({
     pendingCreateRef.current = null
     const parent = oldPath.replace(/[\\/][^\\/]+$/, '')
     await api.fs.moveFile(oldPath, `${parent}/${value}`)
-    await reopen()
-  }, [reopen, removePending])
+    await reopenPreserving()
+  }, [reopenPreserving, removePending])
 
   const menuItems = ((): ContextMenuItem[] => {
     if (!menu) return []

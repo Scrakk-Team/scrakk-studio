@@ -25,9 +25,12 @@ published are not edited. The file goes per version:
   itself instead of getting an `untitled.txt` tab. The header buttons use the
   native selection as the destination: a selected folder creates inside it, a
   selected file creates beside it. "New file" inside a folder expands that
-  folder in the native core so the new row is visible. Renaming
-  still performs the real `moveFile` on commit; cancelling (Escape or a blank
-  name) deletes the temporary item instead of leaving it behind.
+  folder in the native core so the new row is visible. Refreshing the tree no
+  longer collapses the folders you had open: expanded state, selection and
+  scroll are captured before the native reopen and restored after it (the core
+  resets its state on `explorer_open`). Renaming still performs the real
+  `moveFile` on commit; cancelling (Escape or a blank name) deletes the
+  temporary item instead of leaving it behind.
 
 ### Chrome (experimental)
 - **One toggle for the whole chrome.** Settings → Experimental has a new
