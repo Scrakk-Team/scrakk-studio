@@ -84,36 +84,37 @@ html[data-compact-chrome] [data-split-leaf] {
   border-radius: 0 !important;
 }
 
-/* El handle sigue teniendo área de agarre (4px) pero dibuja sólo la raya de
-   1px: se solapa 2px a cada lado para que no quede hueco entre paneles. */
+/* El handle ES la raya: 1px del MISMO color que los bordes extra
+   (--chrome-border, o --color-border si el tema no lo define). Sin
+   pseudo-elementos ni solapes: así no puede haber dos líneas juntas.
+   El área de agarre se amplía con ::after, transparente, que NO dibuja nada. */
 html[data-compact-chrome] [data-chrome-handle] {
-  width: 4px;
-  margin: 0 -2px;
-  background: transparent;
+  width: 1px !important;
+  margin: 0 !important;
+  background: var(--chrome-border, var(--color-border)) !important;
 }
 html[data-compact-chrome] [data-chrome-handle]::before {
+  content: none !important;
+}
+html[data-compact-chrome] [data-chrome-handle]::after {
   content: '';
   position: absolute;
   top: 0;
   bottom: 0;
-  left: 50%;
-  width: 1px;
-  transform: translateX(-50%);
-  background: var(--chrome-border, var(--color-border));
+  left: -3px;
+  right: -3px;
+  z-index: 1;
 }
 html[data-compact-chrome] [data-chrome-handle][data-direction='horizontal'] {
-  width: auto;
-  height: 4px;
-  margin: -2px 0;
+  width: auto !important;
+  height: 1px !important;
+  margin: 0 !important;
 }
-html[data-compact-chrome] [data-chrome-handle][data-direction='horizontal']::before {
-  top: 50%;
-  bottom: auto;
+html[data-compact-chrome] [data-chrome-handle][data-direction='horizontal']::after {
+  top: -3px;
+  bottom: -3px;
   left: 0;
   right: 0;
-  width: auto;
-  height: 1px;
-  transform: translateY(-50%);
 }
 
 /* Activity bars: sin radio hacia los paneles, la línea corre continua. El
