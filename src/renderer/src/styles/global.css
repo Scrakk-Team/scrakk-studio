@@ -74,6 +74,13 @@ html[data-compact-chrome] [data-chrome-layout] {
   padding: 0;
 }
 
+/* Color de borde canónico de los paneles: el MISMO que usa el header de cada
+   panel (ver PanelFrame.module.css). Las líneas del modo compacto y los bordes
+   extra LO usan, así no puede haber dos tonos distintos en el mismo chrome. */
+:root {
+  --panel-header-border: color-mix(in srgb, var(--color-border) 35%, transparent);
+}
+
 /* `html[...]` (especificidad 0-1-1) gana al borde del CSS module de cada panel
    y evita la línea doble: los paneles NO dibujan borde, la raya la pone el
    handle. Lo mismo para las hojas de un split. */
@@ -85,13 +92,13 @@ html[data-compact-chrome] [data-split-leaf] {
 }
 
 /* El handle ES la raya: 1px del MISMO color que los bordes extra
-   (--chrome-border, o --color-border si el tema no lo define). Sin
+   (--panel-header-border, el MISMO del header de los paneles). Sin
    pseudo-elementos ni solapes: así no puede haber dos líneas juntas.
    El área de agarre se amplía con ::after, transparente, que NO dibuja nada. */
 html[data-compact-chrome] [data-chrome-handle] {
   width: 1px !important;
   margin: 0 !important;
-  background: var(--chrome-border, var(--color-border)) !important;
+  background: var(--panel-header-border, var(--color-border)) !important;
 }
 html[data-compact-chrome] [data-chrome-handle]::before {
   content: none !important;
@@ -126,22 +133,23 @@ html[data-compact-chrome] nav[data-side] {
 /* ── Bordes extra (sólo dentro del modo compacto) ──────────────────────────
    Cuando se activan, el canto de cada activity bar que mira a los paneles y
    el borde interior de titlebar/statusbar dejan de ser transparentes y usan
-   los tokens de borde del tema: --chrome-border si el tema lo define, si no
-   --color-border. No se toca el layout ni el radio de la ventana. */
+   el token de borde del tema compartido con los headers de panel
+   (--panel-header-border, derivado de --color-border). No se toca el layout
+   ni el radio de la ventana. */
 html[data-compact-chrome][data-extra-borders] [data-chrome-bar='titlebar'] {
-  border-bottom: 1px solid var(--chrome-border, var(--color-border));
+  border-bottom: 1px solid var(--panel-header-border, var(--color-border));
 }
 
 html[data-compact-chrome][data-extra-borders] [data-chrome-bar='statusbar'] {
-  border-top: 1px solid var(--chrome-border, var(--color-border));
+  border-top: 1px solid var(--panel-header-border, var(--color-border));
 }
 
 html[data-compact-chrome][data-extra-borders] [data-chrome-bar='activitybar'][data-side='left'] {
-  border-right: 1px solid var(--chrome-border, var(--color-border));
+  border-right: 1px solid var(--panel-header-border, var(--color-border));
 }
 
 html[data-compact-chrome][data-extra-borders] [data-chrome-bar='activitybar'][data-side='right'] {
-  border-left: 1px solid var(--chrome-border, var(--color-border));
+  border-left: 1px solid var(--panel-header-border, var(--color-border));
 }
 
 /* ── Scrollbar universal ──────────────────────────────────────────────────

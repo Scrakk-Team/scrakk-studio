@@ -239,7 +239,7 @@
   "settings.chrome.compacto": "Modo compacto",
   "settings.chrome.compacto.hint": "Quita la separación entre paneles y deja una sola línea de 1px como VS Code. Aplica a paneles, titlebar, statusbar y activity bars a la vez; el layout por defecto no se toca.",
   "settings.chrome.bordes.extra": "Bordes extra",
-  "settings.chrome.bordes.extra.hint": "Sólo con el modo compacto: dibuja el borde del lado de cada activity bar que mira a los paneles, más el de titlebar y statusbar, con los colores de borde del tema.",
+  "settings.chrome.bordes.extra.hint": "Sólo con el modo compacto: dibuja el borde del lado de cada activity bar que mira a los paneles, más el de titlebar y statusbar, con el mismo color que los bordes de los headers de paneles.",
   "settings.tema.por.proyecto": "Tema por proyecto",
   "settings.tema.por.proyecto.hint": "Guarda el tema activo en .scrakk/theme.json del proyecto y lo aplica al abrirlo. Al desactivarlo, ignora ese archivo y vuelve al tema que tenías.",
   "settings.activitybar.centrado": "Iconos de la activity bar",

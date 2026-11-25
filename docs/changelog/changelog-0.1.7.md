@@ -32,6 +32,7 @@ published are not edited. The file goes per version:
   thicker than 1px.
 - **"Extra borders" sub-option.** Only available with Compact mode on, it draws
   a visible border on the side of each activity bar facing the panels, plus the
-  titlebar and statusbar edges. It uses the theme's own border tokens
-  (`--chrome-border`, falling back to `--color-border`), so themes keep control
-  of the color, and it is fully localised.
+  titlebar and statusbar edges. It shares one token with the panel headers
+  (`--panel-header-border`, derived from the theme's `--color-border`), so the
+  divider, the extra borders and the header lines are exactly the same color,
+  and it is fully localised.
