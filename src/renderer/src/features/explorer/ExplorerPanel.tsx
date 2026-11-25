@@ -242,7 +242,7 @@ export function ExplorerPanel({
           const row = explorerRef.current?.rows().find((item) => item.path === first)
           dir = row?.isDir ? first : first.replace(/[\\/][^\\/]+$/, '')
         }
-        dir = dir || root
+        dir = dir || root || undefined
       }
       if (!dir) return
       const path =
