@@ -27,6 +27,7 @@ import { installAudioUnlock } from '@services/audio'
 import { bootEvents, registerEventCommands } from '@services/events'
 import { installProjectThemeService } from '@services/projectTheme'
 import { installCompactChrome } from '@services/compactChrome'
+import { installExplorerSelectionBridge } from '@features/explorer/selectInExplorer'
 import { initZoomGuard } from './core/zoomGuard'
 
 // Módulos de estilo global (tokens) — se importan aquí, una sola vez.
@@ -94,6 +95,8 @@ bootEvents()
 installProjectThemeService()
 // Modo compacto (experimental): publica el estado en <html> para el CSS global.
 installCompactChrome()
+// Puente para revelar/seleccionar archivos en el explorer nativo.
+installExplorerSelectionBridge()
 
 /**
  * Corre `fn` DESPUÉS del primer paint (primer idle), no antes.

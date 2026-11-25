@@ -17,6 +17,18 @@ published are not edited. The file goes per version:
 
 ## 0.1.7 — Compact mode for the whole chrome
 
+### Editor tabs
+- **A new file from the Welcome page is selected in the native explorer.**
+  File creation publishes a reveal request that the explorer consumes when it
+  is mounted, so the new row is selected (and its ancestors expanded) instead
+  of only opening a tab in the editor.
+- **Renaming a file renames its open tab in place.** The tab id, path and label
+  change together with the editor's open-file list and the live editor session,
+  without recreating the tab or saving the content to a second file with the
+  old name. The active file keeps focus.
+- **Deleted files show a deleted tab.** The tab stays open but its name is
+  drawn in red, italic and crossed out with a red line through the middle.
+
 ### Explorer (native)
 - **New file / New folder now use the native inline rename input.** Both the
   panel header buttons and the context menu actions create the item with a

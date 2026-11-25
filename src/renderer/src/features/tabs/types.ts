@@ -34,6 +34,8 @@ export interface TabSpec {
   panelId?: string
   /** Ruta del archivo (kind 'file'). */
   filePath?: string
+  /** El archivo fue borrado en disco: la tab se dibuja como eliminada. */
+  deleted?: boolean
   /** Id de sesión viva (kind 'terminal'). */
   sessionId?: string
   /** Raíz a mostrar (kind 'explorer'): una instancia del explorador por carpeta. */

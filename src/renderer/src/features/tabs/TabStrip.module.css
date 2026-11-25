@@ -161,6 +161,20 @@
   white-space: nowrap;
 }
 
+/* Archivo borrado en disco: la tab sigue abierta pero se ve claramente como
+   eliminada — nombre en rojo, cursiva y una raya roja cruzando la palabra. */
+.tab[data-deleted] > .label {
+  color: var(--color-error, #f14c4c);
+  font-style: italic;
+  text-decoration: line-through;
+  text-decoration-color: var(--color-error, #f14c4c);
+  text-decoration-thickness: 1px;
+}
+
+.tab[data-deleted] svg {
+  opacity: 0.6;
+}
+
 /* Cadena de la tab dueña (índice 0): los íconos del resto de las tabs del
    strip unidos por ⇄. Decorativo: muteado, más chico, sin interacción. */
 .chainSep {

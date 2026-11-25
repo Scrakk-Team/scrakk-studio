@@ -25,6 +25,8 @@ import {
 export interface EditorFileTab {
   path: string
   name: string
+  /** El archivo fue borrado en disco: la tab sigue abierta pero marcada. */
+  deleted?: boolean
 }
 
 export interface EditorFilesState {
@@ -77,6 +79,29 @@ export function closeFile(path: string): void {
   if (state.activePath === path) {
     state.activePath = state.openFiles[Math.min(index, state.openFiles.length - 1)]?.path ?? null
   }
+  emit()
+}
+
+/**
+ * Renombra un archivo abierto IN-PLACE: misma posición en la lista, misma
+ * sesión de editor (sólo cambian path y nombre). Si era el activo, el activePath
+ * sigue apuntando al mismo archivo con su ruta nueva.
+ */
+export function renameFileTab(oldPath: string, newPath: string, newName: string): void {
+  const file = state.openFiles.find((item) => item.path === oldPath)
+  if (!file) return
+  file.path = newPath
+  file.name = newName
+  file.deleted = false
+  if (state.activePath === oldPath) state.activePath = newPath
+  emit()
+}
+
+/** Marca un archivo abierto como borrado en disco (no cierra su tab). */
+export function markFileDeleted(path: string): void {
+  const file = state.openFiles.find((item) => item.path === path)
+  if (!file || file.deleted) return
+  file.deleted = true
   emit()
 }
 

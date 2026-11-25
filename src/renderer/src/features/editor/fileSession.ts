@@ -90,6 +90,30 @@ class FileSessionImpl implements FileSession {
     void this.ensureSession()
   }
 
+  /**
+   * Re-key de la sesión cuando el archivo se renombra en disco: el buffer (y
+   * su estado dirty) sobrevive bajo la ruta nueva, para que guardar no cree
+   * un archivo aparte con el nombre viejo.
+   */
+  rekey(newPath: string): void {
+    if (newPath === this.path) return
+    const engine = this.engine
+    if (engine) {
+      const text = engine.fileSessionText(this.path)
+      const wasDirty = this.dirty || engine.fileSessionDirty(this.path)
+      engine.dropFileSession(this.path)
+      if (typeof text === 'string') {
+        engine.createFileSession(newPath, text)
+        if (!wasDirty) {
+          engine.markFileSessionClean(newPath, engine.fileSessionRevision(newPath) ?? 0)
+        }
+      }
+    }
+    // `path` es readonly para los consumidores; acá lo re-asignamos a propósito.
+    ;(this as { path: string }).path = newPath
+    this.subscribeEngine()
+  }
+
   private subscribeEngine(): void {
     this.unsubRevision?.()
     this.unsubRevision =
@@ -328,6 +352,18 @@ export function getFileSession(path: string): FileSession {
     sessions.set(path, session)
   }
   return session
+}
+
+/**
+ * Cambia la ruta de una sesión viva (rename desde el explorer). Mantiene el
+ * MISMO objeto FileSession, así la tab no pierde su buffer ni su estado dirty.
+ */
+export function renameFileSession(oldPath: string, newPath: string): void {
+  const session = sessions.get(oldPath)
+  if (!session) return
+  session.rekey(newPath)
+  sessions.delete(oldPath)
+  sessions.set(newPath, session)
 }
 
 /** Destruye la sesión de un archivo (al cerrar su tab). */

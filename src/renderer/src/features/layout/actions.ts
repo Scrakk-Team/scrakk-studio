@@ -47,6 +47,21 @@ import { splitTreeStore } from './splitTree'
 import type { PanelId, SlotId } from './types'
 
 import { t } from '@core/i18n'
+
+/**
+ * Un rename modifica editorBus y tabsStore en dos pasos. El emit intermedio de
+ * editorBus no debe disparar la reconciliación (cerraría la tab vieja y
+ * crearía otra, matando la sesión): se suspende durante la transacción.
+ */
+let reconcileDepth = 0
+export function withReconcileSuspended(fn: () => void): void {
+  reconcileDepth += 1
+  try {
+    fn()
+  } finally {
+    reconcileDepth -= 1
+  }
+}
 /** PanelId histórico de la terminal (el extension contribuía así el panel). */
 export const TERMINAL_PANEL_ID = 'innerta-terminal'
 
@@ -377,6 +392,7 @@ export function showCenter(): void {
  * la tab se elimina de donde esté y su sesión se destruye.
  */
 export function reconcileFileTabs(): void {
+  if (reconcileDepth > 0) return
   const { openFiles, activePath } = getEditorFiles()
 
   // 1) Tabs de archivo cuyo archivo ya no está abierto → cerrar + destruir.
@@ -413,6 +429,7 @@ export function reconcileFileTabs(): void {
         kind: 'file',
         filePath: file.path,
         label: file.name,
+        deleted: file.deleted,
         closable: true,
         persist: true
       }

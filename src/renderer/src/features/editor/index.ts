@@ -8,6 +8,8 @@ export type { EditorEngine, EditorEngineId } from './engine'
 export {
   openFileInEditor,
   closeFile,
+  renameFileTab,
+  markFileDeleted,
   activateFile,
   clearActiveFile,
   moveFileTab,
@@ -20,6 +22,7 @@ export { FileTabView } from './FileTabView'
 export { openVirtualTab } from './virtualTabs'
 export {
   getFileSession,
+  renameFileSession,
   destroyFileSession,
   hasFileSession,
   getFileSessionText,

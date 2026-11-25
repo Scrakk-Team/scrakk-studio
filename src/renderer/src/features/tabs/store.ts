@@ -21,6 +21,8 @@ export type TabsEvent =
   | { type: 'hydrate' }
   | { type: 'spawn'; stripId: string; tabId: string; index: number }
   | { type: 'close'; stripId: string; tabId: string }
+  | { type: 'rename-file'; stripId: string; oldId: string; newId: string }
+  | { type: 'deleted'; stripId: string; tabId: string; deleted: boolean }
   | { type: 'activate'; stripId: string; tabId: string }
   | { type: 'reorder'; stripId: string; tabId: string; from: number; to: number }
   | { type: 'move'; fromStrip: string; toStrip: string; tabId: string; index: number }
@@ -180,6 +182,45 @@ class TabsStore {
     this.strips.set(stripId, { stripId, tabs: strip.tabs, activeId, splitDir })
     this.emit({ type: 'close', stripId, tabId })
     return removed
+  }
+
+  /**
+   * Renombra una tab de archivo IN-PLACE (mismo índice, misma sesión): cambia
+   * su id `file:<path>`, su `filePath` y su etiqueta. La activa se mantiene.
+   */
+  renameFileTab(oldPath: string, newPath: string, name: string): boolean {
+    const oldId = `file:${oldPath}`
+    for (const [stripId, strip] of this.strips) {
+      const index = strip.tabs.findIndex((tab) => tab.id === oldId)
+      if (index === -1) continue
+      const nextId = `file:${newPath}`
+      const tab: TabSpec = {
+        ...strip.tabs[index],
+        id: nextId,
+        filePath: newPath,
+        label: name,
+        deleted: false
+      }
+      strip.tabs[index] = tab
+      if (strip.activeId === oldId) strip.activeId = nextId
+      this.emit({ type: 'rename-file', stripId, oldId, newId: nextId })
+      return true
+    }
+    return false
+  }
+
+  /** Marca/desmarca una tab de archivo como borrada (estilo visual). */
+  setFileTabDeleted(path: string, deleted: boolean): boolean {
+    const tabId = `file:${path}`
+    let changed = false
+    for (const [stripId, strip] of this.strips) {
+      const tab = strip.tabs.find((item) => item.id === tabId)
+      if (!tab || !!tab.deleted === deleted) continue
+      tab.deleted = deleted
+      changed = true
+      this.emit({ type: 'deleted', stripId, tabId, deleted })
+    }
+    return changed
   }
 
   /**

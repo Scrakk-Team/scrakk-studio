@@ -197,6 +197,7 @@ function TabItem({
       type="button"
       role="tab"
       aria-selected={active}
+      data-deleted={tab.deleted ? '' : undefined}
       className={classes}
       style={
         dragging

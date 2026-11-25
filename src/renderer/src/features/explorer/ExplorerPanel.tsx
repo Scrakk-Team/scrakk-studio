@@ -18,7 +18,18 @@ import { HeaderActionButton, usePanelTitle } from '@features/layout'
 import { DeleteModal, type DeleteTarget } from './components/DeleteModal'
 import { t } from '@core/i18n'
 import { ContextMenu, type ContextMenuItem } from '@ui'
-import { openFileInEditor } from '@features/editor'
+import {
+  openFileInEditor,
+  renameFileTab,
+  renameFileSession,
+  markFileDeleted
+} from '@features/editor'
+import { tabsStore } from '@features/tabs'
+import { withReconcileSuspended } from '@features/layout/actions'
+import {
+  consumePendingExplorerSelection,
+  subscribeToExplorerSelection
+} from './selectInExplorer'
 import { setResourceDragData } from '@features/dnd'
 import { api } from '@services/api'
 import {
@@ -242,6 +253,32 @@ export function ExplorerPanel({
     after.setScroll(scroll)
   }, [reopen])
 
+  /** Revela y selecciona un path del workspace en el core nativo. */
+  const revealPath = useCallback(
+    async (path: string): Promise<void> => {
+      const ex = explorerRef.current
+      if (!ex || !root || !path.startsWith(root)) return
+      const parent = path.replace(/[\\/][^\\/]+$/, '')
+      if (parent && parent !== root) await ex.expandPath(parent)
+      const after = explorerRef.current
+      if (!after) return
+      after.setSelection([path])
+      const idx = after.rows().findIndex((row) => row.path === path)
+      if (idx >= 0) after.setScroll(Math.max(0, (idx - 4) * ROW_HEIGHT))
+      canvasRef.current?.focus()
+    },
+    [root]
+  )
+
+  // Un archivo creado desde la bienvenida puede llegar antes de que el panel
+  // esté montado: mantenemos el path pendiente hasta tener un root.
+  useEffect(() => subscribeToExplorerSelection((path) => void revealPath(path)), [revealPath])
+  useEffect(() => {
+    if (!root) return
+    const pending = consumePendingExplorerSelection()
+    if (pending) void revealPath(pending)
+  }, [root, revealPath])
+
   /**
    * Crea el item y lo pone en modo edición con el input NATIVO del explorer
    * (el mismo que F2/Renombrar). No abre la tab del editor: el nombre lo elige
@@ -310,6 +347,11 @@ export function ExplorerPanel({
         if (!res.success) {
           throw new Error(res.error ?? `No se pudo eliminar "${path}".`)
         }
+      }
+      // La tab sigue abierta pero marcada como borrada (rojo/cursiva/raya).
+      for (const path of paths) {
+        markFileDeleted(path)
+        tabsStore.setFileTabDeleted(path, true)
       }
       explorerRef.current?.clearSelection()
       await reopenPreserving()
@@ -425,7 +467,15 @@ export function ExplorerPanel({
     }
     pendingCreateRef.current = null
     const parent = oldPath.replace(/[\\/][^\\/]+$/, '')
-    await api.fs.moveFile(oldPath, `${parent}/${value}`)
+    const newPath = `${parent}/${value}`
+    await api.fs.moveFile(oldPath, newPath)
+    // Renombramos la tab y el archivo abierto SIN pasar por la reconciliación
+    // intermedia: se conserva la misma tab y su sesión de editor.
+    withReconcileSuspended(() => {
+      tabsStore.renameFileTab(oldPath, newPath, value)
+      renameFileSession(oldPath, newPath)
+      renameFileTab(oldPath, newPath, value)
+    })
     await reopenPreserving()
   }, [reopenPreserving, removePending])
 

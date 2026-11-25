@@ -16,6 +16,7 @@ import { openFileInEditor } from '@features/editor'
 import { getWorkspaceRoot, setWorkspaceRoot } from './hooks/useWorkspaceState'
 import { baseNameOf } from '@services/workspaces/history'
 import { api } from '@services/api'
+import { revealInExplorer } from './selectInExplorer'
 
 /** Separa con el separador que ya usa la ruta (Windows o POSIX). */
 function joinPath(dir: string, name: string): string {
@@ -67,7 +68,12 @@ export async function createNewFile(
   const path = await uniqueUntitledPath(root)
   const written = await api.fs.writeFile(path, '')
   if (!written.success) return null
-  if (openInEditor) openFileInEditor(path, baseNameOf(path))
+  if (openInEditor) {
+    openFileInEditor(path, baseNameOf(path))
+    // La bienvenida / menú Archivo crean el archivo fuera del panel: pedimos
+    // al explorer nativo que seleccione la fila (ahora o al montarse).
+    revealInExplorer(path)
+  }
   return path
 }
 
