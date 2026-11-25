@@ -231,7 +231,19 @@ export function ExplorerPanel({
    */
   const beginCreate = useCallback(
     async (kind: 'file' | 'folder', parent?: string): Promise<void> => {
-      const dir = parent ?? root
+      // El botón del header no recibe row: usa la selección del core nativo.
+      // Una carpeta seleccionada es el destino; un archivo seleccionado crea
+      // en su mismo directorio (comportamiento de VS Code).
+      let dir = parent
+      if (!dir) {
+        const selected = explorerRef.current?.selection() ?? []
+        const first = selected.length === 1 ? selected[0] : null
+        if (first) {
+          const row = explorerRef.current?.rows().find((item) => item.path === first)
+          dir = row?.isDir ? first : first.replace(/[\\/][^\\/]+$/, '')
+        }
+        dir = dir || root
+      }
       if (!dir) return
       const path =
         kind === 'file' ? await createNewFile(dir, false) : await createNewFolderPending(dir)

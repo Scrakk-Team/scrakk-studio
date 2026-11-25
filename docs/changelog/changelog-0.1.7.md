@@ -22,8 +22,10 @@ published are not edited. The file goes per version:
   panel header buttons and the context menu actions create the item with a
   temporary unique name, refresh the native WASM tree and start the same
   `beginRename` the F2/rename action uses, so you type the name in the row
-  itself instead of getting an `untitled.txt` tab. "New file" inside a folder
-  expands that folder in the native core so the new row is visible. Renaming
+  itself instead of getting an `untitled.txt` tab. The header buttons use the
+  native selection as the destination: a selected folder creates inside it, a
+  selected file creates beside it. "New file" inside a folder expands that
+  folder in the native core so the new row is visible. Renaming
   still performs the real `moveFile` on commit; cancelling (Escape or a blank
   name) deletes the temporary item instead of leaving it behind.
 
