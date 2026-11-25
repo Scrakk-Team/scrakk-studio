@@ -108,7 +108,7 @@ function SplitNode({
     // (los bordes de ambos lados flanquean el handle). La raíz leaf (slot
     // SIN partir) queda lisa: la tarjeta exterior ya da el borde.
     return (
-      <div className={nested ? styles.leaf : styles.leafRoot}>
+      <div className={nested ? styles.leaf : styles.leafRoot} data-split-leaf={nested ? '' : undefined}>
         {/* Una hoja DENTRO de un split SIEMPRE muestra el strip de tabs,
             como los grupos de VS Code: el lado partido muestra la tab
             (p.ej. Chat <-> Terminal), NO un PanelFrame con título — el

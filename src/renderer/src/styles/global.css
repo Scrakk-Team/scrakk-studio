@@ -78,7 +78,8 @@ html[data-compact-chrome] [data-chrome-layout] {
    y evita la línea doble: los paneles NO dibujan borde, la raya la pone el
    handle. Lo mismo para las hojas de un split. */
 html[data-compact-chrome] [data-panel-chrome],
-html[data-compact-chrome] [data-pane] {
+html[data-compact-chrome] [data-pane],
+html[data-compact-chrome] [data-split-leaf] {
   border: none !important;
   border-radius: 0 !important;
 }
