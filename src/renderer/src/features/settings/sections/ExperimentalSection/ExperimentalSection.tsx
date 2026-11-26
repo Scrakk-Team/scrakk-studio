@@ -15,6 +15,7 @@ import {
   type ActivityBarMode,
   type DisabledActivitySide
 } from '@services/activityBarSettings'
+import { isNativeTabsEnabled, setNativeTabsEnabled, subscribeToNativeTabs } from '@services/nativeTabs'
 import {
   isCompactChromeEnabled,
   setCompactChromeEnabled,
@@ -61,6 +62,7 @@ export function ExperimentalSection(): JSX.Element {
   const [hidePanels, setHidePanels] = useState<boolean>(() => isExternalOpenHidePanels())
   const [projectTheme, setProjectTheme] = useState<boolean>(() => isProjectThemeEnabled())
   const [compactChrome, setCompactChrome] = useState<boolean>(() => isCompactChromeEnabled())
+  const [nativeTabs, setNativeTabs] = useState<boolean>(() => isNativeTabsEnabled())
   const [extraBorders, setExtraBorders] = useState<boolean>(() => isExtraBordersEnabled())
   const [activityMode, setActivityMode] = useState<ActivityBarMode>(getActivityBarMode)
   const [disabledSide, setDisabledSide] = useState<DisabledActivitySide>(getDisabledActivitySide)
@@ -94,6 +96,8 @@ export function ExperimentalSection(): JSX.Element {
       }),
     []
   )
+
+  useEffect(() => subscribeToNativeTabs(() => setNativeTabs(isNativeTabsEnabled())), [])
 
   useEffect(
     () =>
@@ -233,6 +237,21 @@ export function ExperimentalSection(): JSX.Element {
             setCompactChrome(next)
           }}
           label={t('settings.chrome.compacto')}
+        />
+      </div>
+
+      <div className={styles.row}>
+        <div className={styles.rowText}>
+          <span className={styles.rowTitle}>{t('settings.tabs.nativas')}</span>
+          <span className={styles.rowHint}>{t('settings.tabs.nativas.hint')}</span>
+        </div>
+        <ToggleSwitch
+          checked={nativeTabs}
+          onChange={(next) => {
+            setNativeTabsEnabled(next)
+            setNativeTabs(next)
+          }}
+          label={t('settings.tabs.nativas')}
         />
       </div>
 

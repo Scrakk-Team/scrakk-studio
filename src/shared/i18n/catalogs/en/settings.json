@@ -252,6 +252,8 @@
   "settings.rendimiento": "Performance",
   "settings.experimental": "Experimental",
   "settings.experimental.descripcion": "Settings under test. They may change or disappear.",
+  "settings.tabs.nativas": "Native tabs (WASM)",
+  "settings.tabs.nativas.hint": "Draws tabs with Innerta's C++/WASM module inside the same TabStrip container. Turn it off to go back to the React tabs.",
   "settings.chrome.compacto": "Compact mode",
   "settings.chrome.compacto.hint": "Removes the gap between panels and leaves a single 1px divider like VS Code. Applies to panels, titlebar, statusbar and activity bars at once; the default layout is untouched.",
   "settings.chrome.bordes.extra": "Extra borders",

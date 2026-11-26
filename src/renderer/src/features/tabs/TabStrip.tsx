@@ -42,6 +42,8 @@ import {
   isTabLabelCentered,
   subscribeToTabWidth
 } from './tabSize'
+import { NativeTabStrip } from './components/NativeTabStrip/NativeTabStrip'
+import { isNativeTabsEnabled, subscribeToNativeTabs } from '@services/nativeTabs'
 import styles from './TabStrip.module.css'
 
 import { t } from '@core/i18n'
@@ -300,6 +302,10 @@ export function TabStrip({ stripId, iconFor, onActivate, onClose, onAddTab, addT
   useEffect(() => subscribeTabHeaders(() => setVersion((v) => v + 1)), [])
   // Ancho fijo opcional: repintar al activarlo/cambiar el valor desde Ajustes.
   useEffect(() => subscribeToTabWidth(() => setVersion((v) => v + 1)), [])
+  // Las tabs nativas se dibujan en el MISMO contenedor; el componente React
+  // sigue intacto y se usa como fallback al desactivar la preferencia.
+  const [nativeTabs, setNativeTabs] = useState(isNativeTabsEnabled)
+  useEffect(() => subscribeToNativeTabs(() => setNativeTabs(isNativeTabsEnabled())), [])
   void version
 
   // Se calcula en cada render (barato) para que el cambio se refleje al instante.
@@ -428,7 +434,7 @@ export function TabStrip({ stripId, iconFor, onActivate, onClose, onAddTab, addT
    * context menu. Para archivos: alternar visor ⇄ editor (si el formato lo
    * permite) + compartir en Social.
    */
-  const openTabMenu = (event: ReactMouseEvent<HTMLButtonElement>, tab: TabSpec): void => {
+  const openTabMenu = (event: ReactMouseEvent<Element>, tab: TabSpec): void => {
     if (tab.kind !== 'file' || !tab.filePath) return
     event.preventDefault()
     event.stopPropagation()
@@ -480,7 +486,17 @@ export function TabStrip({ stripId, iconFor, onActivate, onClose, onAddTab, addT
         role="tablist"
         aria-label={t('features.tabs.abiertas')}
       >
-        {rendered}
+        {nativeTabs ? (
+          <NativeTabStrip
+            stripId={stripId}
+            iconFor={iconFor}
+            onActivate={handleSelect}
+            onClose={handleClose}
+            onContextMenu={openTabMenu}
+          />
+        ) : (
+          rendered
+        )}
         {onAddTab ? (
           <button
             type="button"

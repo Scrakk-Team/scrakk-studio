@@ -236,6 +236,8 @@
   "settings.rendimiento": "Rendimiento",
   "settings.experimental": "Experimental",
   "settings.experimental.descripcion": "Ajustes en prueba. Pueden cambiar o desaparecer.",
+  "settings.tabs.nativas": "Tabs nativas (WASM)",
+  "settings.tabs.nativas.hint": "Dibuja las pestañas con el módulo C++/WASM de Innerta en el mismo contenedor del TabStrip. Desactívalo para volver a las pestañas React.",
   "settings.chrome.compacto": "Modo compacto",
   "settings.chrome.compacto.hint": "Quita la separación entre paneles y deja una sola línea de 1px como VS Code. Aplica a paneles, titlebar, statusbar y activity bars a la vez; el layout por defecto no se toca.",
   "settings.chrome.bordes.extra": "Bordes extra",

@@ -1,0 +1,15 @@
+/*
+ * Copyright 2026 Scrakk Studio
+ * SPDX-License-Identifier: Apache-2.0
+ * Licencia completa en LICENSE (Apache License 2.0).
+ */
+
+/* Ocupa el MISMO contenedor que las tabs React: el strip no cambia de sitio. */
+.canvas {
+  display: block;
+  width: 100%;
+  height: 34px;
+  outline: none;
+  cursor: default;
+  touch-action: none;
+}

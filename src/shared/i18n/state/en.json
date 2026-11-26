@@ -14227,6 +14227,22 @@
       "needsReview": false,
       "at": "2026-11-24T06:35:41.355Z",
       "approvedAt": "2026-11-25T18:25:28.371Z"
+    },
+    "settings.tabs.nativas": {
+      "src": "0be9c8e72c2dbb71",
+      "area": "settings",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-26T19:15:06.370Z",
+      "approvedAt": "2026-11-26T19:15:06.370Z"
+    },
+    "settings.tabs.nativas.hint": {
+      "src": "0752c571361dc9bf",
+      "area": "settings",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-26T19:15:06.370Z",
+      "approvedAt": "2026-11-26T19:15:06.370Z"
     }
   },
   "version": 1

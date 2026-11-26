@@ -17,6 +17,20 @@ published are not edited. The file goes per version:
 
 ## 0.1.7 — Compact mode for the whole chrome
 
+### Tabs (native / experimental)
+- **Tab strips can now be drawn by a native C++/WASM module, in the same
+  container.** The React `TabStrip` is kept intact as a fallback; the
+  Experimental preference "Native tabs (WASM)" swaps its tab list for a canvas
+  inside that exact container. The rendering reproduces Scrakk's real tab UI
+  (radius from the theme's `--radius-sm`, active background/underline, hover,
+  close button and dirty dot, deleted styling, fixed-width mode) and uses the
+  same icon pipeline as the native explorer (file-icon themes + ProductIcons
+  rasterized to images). The core owns layout, hit-testing, hover, wheel scroll
+  and same-strip drag reorder; `tabsStore` stays the source of truth. Snapshots
+  are pushed only on state changes and painting is frame-coalesced, so pointer
+  movement never re-uploads the tab list (no lag). One WASM instance per strip.
+  The module is shipped prebuilt; no build command is exposed publicly.
+
 ### Editor tabs
 - **A new file from the Welcome page is selected in the native explorer.**
   File creation publishes a reveal request that the explorer consumes when it
