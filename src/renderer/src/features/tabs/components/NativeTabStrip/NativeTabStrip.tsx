@@ -22,7 +22,7 @@ import {
 import { renderToStaticMarkup } from 'react-dom/server'
 import { tabsStore } from '../../store'
 import type { TabSpec } from '../../types'
-import { isFileDirty } from '@features/editor/fileSession'
+import { isFileDirty, activateFileSessionNow } from '@features/editor/fileSession'
 import { getTabTitle, tabHeaderKey } from '../../tabHeaders'
 import { getFileIconUrl, subscribeToFileIcons } from '@services/fileIcons'
 import { resolveProductIcon, subscribeToProductIcons } from '@services/productIcons/registry'
@@ -419,6 +419,10 @@ export function NativeTabStrip({
           return
         }
         if (kind === 1 && ex.hitIndex() >= 0) {
+          // Switch en el pointerdown, como el explorer: el motor C++ ya tiene
+          // el buffer y se activa SIN await, antes de que React re-renderice.
+          if (tab?.filePath) activateFileSessionNow(tab.filePath)
+          if (tab) onActivate(tab)
           draggingRef.current = true
           ex.dragBegin(ex.hitIndex(), x, y)
           event.currentTarget.setPointerCapture(event.pointerId)
@@ -444,8 +448,7 @@ export function NativeTabStrip({
           tabsStore.reorderTab(stripId, ex.reorderFrom(), ex.reorderTo())
           return
         }
-        const tab = tabsAt()[ex.hitIndex()]
-        if (tab) onActivate(tab)
+        // La activación ya ocurrió en pointerdown; acá sólo termina el drag.
       }}
       onPointerLeave={() => {
         nativeRef.current?.hover(-1, -1)

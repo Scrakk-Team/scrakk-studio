@@ -137,6 +137,20 @@ class FileSessionImpl implements FileSession {
     engine.setReadOnly(provided?.readOnly === true)
   }
 
+  /**
+   * Activa una sesión ya creada SIN esperar a `whenReady()`: es el camino
+   * caliente al cambiar de pestaña. El motor ya tiene el buffer, así que el
+   * switch debe ser inmediato (mismo comportamiento que el explorer nativo).
+   */
+  activateNow(): boolean {
+    const engine = this.engine
+    if (!engine || !engine.hasFileSession(this.path)) return false
+    engine.activateFileSession(this.path)
+    this.applyReadOnly(engine, getProvidedContent(this.path))
+    this.recomputeDirty()
+    return true
+  }
+
   /** Crea la sesión si no existe (contenido provisto, disco o snapshot) y la activa. */
   private async ensureSession(): Promise<void> {
     const engine = this.engine
@@ -145,6 +159,13 @@ class FileSessionImpl implements FileSession {
       return
     }
     diag('ensureSession: start', this.path)
+    // Fast path: si el motor YA tiene el buffer, activar sin pasar por
+    // `whenReady()` (eso metía un tick de async en cada cambio de tab).
+    if (engine.hasFileSession(this.path)) {
+      diag('ensureSession: already have session (sync)', this.path)
+      this.activateNow()
+      return
+    }
     await engine.whenReady()
     diag('ensureSession: engine ready', this.path)
     if (!this.engine || this.engine !== engine) return
@@ -152,14 +173,6 @@ class FileSessionImpl implements FileSession {
     // Contenido provisto por la app (tab de diff): no se lee el disco con un
     // path sintético — la lectura fallaría y la tab quedaría en blanco.
     const provided = getProvidedContent(this.path)
-
-    if (engine.hasFileSession(this.path)) {
-      diag('ensureSession: already have session', this.path)
-      engine.activateFileSession(this.path)
-      this.applyReadOnly(engine, provided)
-      this.recomputeDirty()
-      return
-    }
 
     if (this.loading) return
     this.loading = true
@@ -352,6 +365,11 @@ export function getFileSession(path: string): FileSession {
     sessions.set(path, session)
   }
   return session
+}
+
+/** Fast path síncrono para cambiar de tab: activa el buffer ya existente. */
+export function activateFileSessionNow(path: string): boolean {
+  return sessions.get(path)?.activateNow() ?? false
 }
 
 /**

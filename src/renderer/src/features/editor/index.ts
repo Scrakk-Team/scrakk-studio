@@ -22,6 +22,7 @@ export { FileTabView } from './FileTabView'
 export { openVirtualTab } from './virtualTabs'
 export {
   getFileSession,
+  activateFileSessionNow,
   renameFileSession,
   destroyFileSession,
   hasFileSession,
