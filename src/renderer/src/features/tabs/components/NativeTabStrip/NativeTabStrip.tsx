@@ -261,8 +261,17 @@ export function NativeTabStrip({
     const tabs = tabsRef.current
     const hovered = ex.hovered()
 
-    for (let i = 0; i < data.length; i += 1) {
-      const left = ex.rowLeft(i)
+    // La tab arrastrada se pinta al final para quedar por encima del resto.
+    const draggedIdx = ex.dragActive() ? ex.dragIndex() : -1
+    const order = data.map((_, k) => k)
+    if (draggedIdx >= 0 && draggedIdx < order.length) {
+      order.splice(draggedIdx, 1)
+      order.push(draggedIdx)
+    }
+    for (const i of order) {
+      // Mientras se arrastra, ESA tab sigue al cursor dentro del container.
+      const dx = ex.dragActive() && ex.dragIndex() === i ? ex.dragDx() : 0
+      const left = ex.rowLeft(i) + dx
       const tw = ex.rowWidth(i)
       const flags = ex.flags(i)
       const active = (flags & 1) !== 0
@@ -412,6 +421,7 @@ export function NativeTabStrip({
         if (kind === 1 && ex.hitIndex() >= 0) {
           draggingRef.current = true
           ex.dragBegin(ex.hitIndex(), x, y)
+          event.currentTarget.setPointerCapture(event.pointerId)
         }
       }}
       onPointerMove={(event) => {

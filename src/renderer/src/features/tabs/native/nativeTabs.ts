@@ -33,6 +33,9 @@ interface NativeModule {
   _tabs_drag_begin(index: number, x: number, y: number): void
   _tabs_drag_move(x: number, y: number): void
   _tabs_drag_end(): number
+  _tabs_drag_active(): number
+  _tabs_drag_index(): number
+  _tabs_drag_dx(): number
   _tabs_take_reorder(): number
   _tabs_reorder_from(): number
   _tabs_reorder_to(): number
@@ -70,6 +73,9 @@ export interface NativeTabs {
   dragBegin(index: number, x: number, y: number): void
   dragMove(x: number, y: number): void
   dragEnd(): boolean
+  dragActive(): boolean
+  dragIndex(): number
+  dragDx(): number
   takeReorder(): boolean
   reorderFrom(): number
   reorderTo(): number
@@ -116,6 +122,9 @@ export async function createNativeTabs(): Promise<NativeTabs> {
     dragBegin: (i, x, y) => mod._tabs_drag_begin(i, x, y),
     dragMove: (x, y) => mod._tabs_drag_move(x, y),
     dragEnd: () => mod._tabs_drag_end() !== 0,
+    dragActive: () => mod._tabs_drag_active() !== 0,
+    dragIndex: () => mod._tabs_drag_index(),
+    dragDx: () => mod._tabs_drag_dx(),
     takeReorder: () => mod._tabs_take_reorder() !== 0,
     reorderFrom: () => mod._tabs_reorder_from(),
     reorderTo: () => mod._tabs_reorder_to(),
