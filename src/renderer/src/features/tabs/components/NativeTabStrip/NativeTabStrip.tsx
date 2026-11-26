@@ -370,6 +370,20 @@ export function NativeTabStrip({
     })
   }, [paint])
 
+  // Tema y radius: repintar INMEDIATAMENTE, sin esperar a un re-render de
+  // React (el explorer lo hace igual: el canvas lee los tokens al pintar).
+  useEffect(() => {
+    if (!ready) return
+    const onTheme = (): void => {
+      iconCacheRef.current.clear()
+      schedulePaint()
+    }
+    // `activateTheme` publica este evento en el MISMO tick en que cambia los
+    // tokens, así que el canvas repinta con el color/radius nuevos al instante.
+    window.addEventListener('theme-changed', onTheme)
+    return () => window.removeEventListener('theme-changed', onTheme)
+  }, [ready, schedulePaint])
+
   useEffect(() => {
     if (!ready) return
     push()

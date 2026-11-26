@@ -33,7 +33,12 @@ published are not edited. The file goes per version:
   cross their midpoint (browser-tab behaviour). Switching tabs is immediate:
   the pointerdown activates the already-loaded Innerta buffer synchronously
   (`activateFileSessionNow`) instead of waiting for a React effect and
-  `engine.whenReady()`, so the C++→C++ switch happens in the same input event. Icons use the native explorer's pipeline
+  `engine.whenReady()`, so the C++→C++ switch happens in the same input event.
+  Theme changes repaint the native canvas immediately from the `theme-changed`
+  event (colors and `--radius-sm`), with no React re-render in between. Drag
+  was polished: a data push during the gesture no longer cancels it, and the
+  dragged tab stays under the pointer when neighbours shift (no jumps).
+  Icons use the native explorer's pipeline
   (file-icon themes + ProductIcons rasterized to images). The core owns layout, hit-testing, hover, wheel scroll
   and same-strip drag reorder; `tabsStore` stays the source of truth. Snapshots
   are pushed only on state changes and painting is frame-coalesced, so pointer
