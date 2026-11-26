@@ -23,9 +23,12 @@ published are not edited. The file goes per version:
   Experimental preference "Native tabs (WASM)" swaps its tab list for a canvas
   inside that exact container. The rendering reproduces Scrakk's real tab UI
   (radius from the theme's `--radius-sm`, active background/underline, hover,
-  close button and dirty dot, deleted styling, fixed-width mode) and uses the
-  same icon pipeline as the native explorer (file-icon themes + ProductIcons
-  rasterized to images). The core owns layout, hit-testing, hover, wheel scroll
+  close button and dirty dot, deleted styling, fixed-width mode) with the same
+  padding, gaps and icon sizes as the React strip, so tabs start at the same x
+  and the welcome tab has the same width. The active tab never takes the hover
+  or drag feedback. The close X is the same `x` ProductIcon as Scrakk, and the
+  welcome label comes from i18n. Icons use the native explorer's pipeline
+  (file-icon themes + ProductIcons rasterized to images). The core owns layout, hit-testing, hover, wheel scroll
   and same-strip drag reorder; `tabsStore` stays the source of truth. Snapshots
   are pushed only on state changes and painting is frame-coalesced, so pointer
   movement never re-uploads the tab list (no lag). One WASM instance per strip.

@@ -26,6 +26,7 @@ import { isFileDirty } from '@features/editor/fileSession'
 import { getTabTitle, tabHeaderKey } from '../../tabHeaders'
 import { getFileIconUrl, subscribeToFileIcons } from '@services/fileIcons'
 import { resolveProductIcon, subscribeToProductIcons } from '@services/productIcons/registry'
+import { productIcon } from '@services/productIcons/components'
 import { createNativeTabs, type NativeTabs, type NativeTabData } from '../../native/nativeTabs'
 import { isTabWidthFixed, getTabWidth, subscribeToTabWidth } from '../../tabSize'
 import { t } from '@core/i18n'
@@ -90,6 +91,38 @@ function ellipsize(ctx: CanvasRenderingContext2D, text: string, maxW: number): s
   let out = text
   while (out.length > 1 && ctx.measureText(`${out}…`).width > maxW) out = out.slice(0, -1)
   return `${out}…`
+}
+
+/** Rasteriza un ProductIcon (el mismo pipeline que el explorer) a imagen. */
+function glyphImage(
+  id: string,
+  size: number,
+  color: string,
+  cache: Map<string, HTMLImageElement | null>
+): HTMLImageElement | null {
+  const key = `glyph:${id}|${size}|${color}`
+  if (cache.has(key)) return cache.get(key) ?? null
+  const resolved = resolveProductIcon(id)
+  let url: string | null = null
+  if (resolved?.kind === 'font') {
+    cache.set(key, null)
+    return null
+  }
+  const Component = resolved?.kind === 'component'
+    ? productIcon(resolved.componentId)
+    : null
+  if (Component) {
+    const markup = renderToStaticMarkup(createElement(Component, { size }))
+      .replace(/currentColor/g, color)
+    url = `data:image/svg+xml;utf8,${encodeURIComponent(markup)}`
+  }
+  let img: HTMLImageElement | null = null
+  if (url) {
+    img = new Image()
+    img.src = url
+  }
+  cache.set(key, img)
+  return img
 }
 
 /** Iconos igual que el explorer nativo: file-icon theme + ProductIcon glyph. */
@@ -240,9 +273,11 @@ export function NativeTabStrip({
       const top = 4
       const innerH = 26
       const textColor = deleted ? colors.error : active || hovered === i ? colors.text : colors.muted
-      const dragging = draggingRef.current && ex.hitIndex() === i
+      // La tab activa YA está presionada: nunca toma el fondo de hover ni el
+      // feedback de drag (antes parecía que se hundía al pasar el cursor).
+      const dragging = !active && draggingRef.current && ex.hitIndex() === i
 
-      if (active || hovered === i || dragging) {
+      if (active || (!active && (hovered === i || dragging))) {
         ctx.fillStyle = dragging
           ? cssVar('--color-surface-raised', colors.border)
           : active ? colors.activeBg : colors.hover
@@ -299,14 +334,20 @@ export function NativeTabStrip({
           ctx.arc(cx, cy, 3.5, 0, Math.PI * 2)
           ctx.fill()
         } else {
-          ctx.strokeStyle = textColor
-          ctx.lineWidth = 1.2
-          ctx.beginPath()
-          ctx.moveTo(cx - 3, cy - 3)
-          ctx.lineTo(cx + 3, cy + 3)
-          ctx.moveTo(cx + 3, cy - 3)
-          ctx.lineTo(cx - 3, cy + 3)
-          ctx.stroke()
+          // La X es el MISMO proicon que usa el TabStrip de Scrakk.
+          const xIcon = glyphImage('x', 11, textColor, iconCacheRef.current)
+          if (xIcon && xIcon.complete && xIcon.naturalWidth > 0) {
+            ctx.drawImage(xIcon, cx - 5.5, cy - 5.5, 11, 11)
+          } else {
+            ctx.strokeStyle = textColor
+            ctx.lineWidth = 1.2
+            ctx.beginPath()
+            ctx.moveTo(cx - 3, cy - 3)
+            ctx.lineTo(cx + 3, cy + 3)
+            ctx.moveTo(cx + 3, cy - 3)
+            ctx.lineTo(cx - 3, cy + 3)
+            ctx.stroke()
+          }
         }
       }
     }
