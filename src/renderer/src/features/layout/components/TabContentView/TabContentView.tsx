@@ -86,7 +86,10 @@ export function TabContentView({ tab, stripId }: { tab: TabSpec; stripId?: Strip
       return spec.filePath ? (
         <>
           <BreadcrumbsBar key={`crumbs-${spec.id}`} path={spec.filePath} />
-          <FileTabView key={spec.id} filePath={spec.filePath} stripId={stripId} />
+          {/* Host ESTABLE por strip: al cambiar de archivo NO se desmonta el
+              canvas de Innerta (eso metía un frame de retraso). Cambia sólo
+              el filePath; la sesión se activa en el pointerdown. */}
+          <FileTabView key={`file-${stripId ?? 'center'}`} filePath={spec.filePath} stripId={stripId} />
         </>
       ) : null
     case 'terminal':

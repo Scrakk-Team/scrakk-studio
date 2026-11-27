@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Licencia completa en LICENSE (Apache License 2.0).
 
-import { useEffect, useRef, type JSX } from 'react'
+import { useLayoutEffect, useRef, type JSX } from 'react'
 import { getFileSession } from './fileSession'
 import { useFileViewDispatcher } from './FileViewDispatcher'
 import { ColorSwatchLayer } from './colorpicker'
@@ -32,7 +32,9 @@ export function FileTabView({ filePath, stripId }: FileTabViewProps): JSX.Elemen
   // Sólo se adjunta la sesión de Innerta si el formato NO tiene visor
   // montado: en un PNG/escaneo no tiene sentido abrir un buffer de texto
   // (leería bytes como texto). El toggle del ojo lo dispara este mismo efecto.
-  useEffect(() => {
+  // layout effect: adjuntar la sesión ANTES del paint, para que el cambio de
+  // tab se vea en el mismo frame (el engine ya fue activado en pointerdown).
+  useLayoutEffect(() => {
     const host = hostRef.current
     if (!host || viewing) return
     const session = getFileSession(filePath)
