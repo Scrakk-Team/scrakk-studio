@@ -47,6 +47,13 @@ published are not edited. The file goes per version:
   theme's real `--text-sm`/`--font-sans` (so they follow the file name/title
   length), header-title changes re-measure them, and identical snapshots are
   not re-uploaded to WASM.
+- **Instant tab switching inside Innerta.** Switching to an already-prepared
+  session now only calls `activateSession` and clears the previous file's
+  decorations; it no longer re-pushes the whole theme, re-reads the buffer into
+  JS, or restarts the semantic/grammar/tree-sitter highlight pipelines. Those
+  expensive channels are deferred to idle after the switch. The first
+  activation of a session still does the full setup, and renames transfer the
+  "prepared" state.
   Icons use the native explorer's pipeline
   (file-icon themes + ProductIcons rasterized to images). The core owns layout, hit-testing, hover, wheel scroll
   and same-strip drag reorder; `tabsStore` stays the source of truth. Snapshots

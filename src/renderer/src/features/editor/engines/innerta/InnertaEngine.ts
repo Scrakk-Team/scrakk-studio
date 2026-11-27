@@ -392,6 +392,12 @@ export class InnertaEngine implements EditorEngine {
   private pending: PendingRequest[] = []
   /** Sesiones de archivo que viven en ESTE módulo (ids = paths). */
   private fileSessions = new Set<string>()
+  /**
+   * Sesiones que YA recibieron el chrome completo (tema, highlight, bookmarks).
+   * Cambiar a ellas es sólamente `activateSession` + limpiar decoraciones:
+   * no se re-empuja el tema ni se re-tokeniza el archivo (eso era el lag).
+   */
+  private preparedSessions = new Set<string>()
   /** Esperas por "módulo listo" (la primera activación puede llegar antes). */
   private sessionReadyWaiters: Array<() => void> = []
   /** Canvas persistente entre remounts (tabs Welcome ↔ archivos). */
@@ -928,14 +934,63 @@ export class InnertaEngine implements EditorEngine {
     if (!module?.activateSession) return
     if (this.currentPath === id) return
     module.activateSession(id)
-    this.activatePath(id, module.getSessionText?.(id) ?? '')
+    this.currentPath = id
+    this.bridge?.setPath(id)
+    if (this.preparedSessions.has(id)) {
+      this.activatePreparedSession(id)
+    } else {
+      // Primera activación de ESTA sesión: sí necesita el chrome completo.
+      this.activatePath(id, module.getSessionText?.(id) ?? '')
+      this.preparedSessions.add(id)
+    }
     this.host?.querySelector<HTMLCanvasElement>('.scrakk-innerta-canvas')?.focus()
+  }
+
+  /**
+   * Fast path de cambio de tab: el buffer y sus tokens ya viven en la sesión.
+   * Sólo se limpian las decoraciones del archivo anterior (baratas) y se
+   * difieren los canales de resaltado a idle, para que el contenido aparezca
+   * en el mismo frame del click.
+   */
+  private activatePreparedSession(id: string): void {
+    const module = this.module
+    if (!module) return
+    resetHostTokens(module, id)
+    applyInnertaFolds(id, [])
+    this.pushUnderlines()
+    this.pushDiffDecorations()
+    this.pushBookmarks()
+    requestAnimationFrame(() => this.bridge?.syncCursor())
+
+    const defer: (fn: () => void) => void =
+      typeof requestIdleCallback === 'function'
+        ? (fn) => { requestIdleCallback(fn) }
+        : (fn) => { setTimeout(fn, 0) }
+    defer(() => {
+      if (this.currentPath !== id || !this.module) return
+      const text = this.module.getSessionText?.(id)
+      if (text === undefined) return
+      refreshSemanticTokens(this.module, id, true)
+      refreshLanguageHighlight(this.module, id, text, { immediate: true })
+      refreshDynamicHighlight(this.module, id, text, { immediate: true })
+    })
+  }
+
+  /** Traslada el estado "preparado" al renombrar un archivo abierto. */
+  renameSession(oldPath: string, newPath: string): void {
+    if (this.preparedSessions.delete(oldPath)) this.preparedSessions.add(newPath)
+    if (this.fileSessions.delete(oldPath)) this.fileSessions.add(newPath)
+    if (this.currentPath === oldPath) {
+      this.currentPath = newPath
+      this.bridge?.setPath(newPath)
+    }
   }
 
   /** Destruye la sesión del archivo (cerrar la tab). */
   dropFileSession(id: string): void {
     this.module?.destroySession?.(id)
     this.fileSessions.delete(id)
+    this.preparedSessions.delete(id)
     if (this.currentPath === id) this.currentPath = null
   }
 
@@ -978,6 +1033,7 @@ export class InnertaEngine implements EditorEngine {
     this.startHighlightPipelines(id, text)
     requestAnimationFrame(() => this.bridge?.syncCursor())
     this.applyAutoPairs(id)
+    this.preparedSessions.add(id)
   }
 
   /**

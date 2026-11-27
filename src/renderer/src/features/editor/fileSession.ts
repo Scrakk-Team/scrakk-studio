@@ -99,6 +99,7 @@ class FileSessionImpl implements FileSession {
     if (newPath === this.path) return
     const engine = this.engine
     if (engine) {
+      engine.renameSession(this.path, newPath)
       const text = engine.fileSessionText(this.path)
       const wasDirty = this.dirty || engine.fileSessionDirty(this.path)
       engine.dropFileSession(this.path)
