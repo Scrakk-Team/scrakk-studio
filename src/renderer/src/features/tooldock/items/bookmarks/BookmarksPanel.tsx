@@ -18,6 +18,7 @@
 import { useEffect, useMemo, useState, type JSX } from 'react'
 import { IconButton } from '@ui'
 import { ProductIcon } from '@services/productIcons/components'
+import { subscribeToProductIcons } from '@services/productIcons'
 import { getEditorFiles, openFileInEditor, subscribeToEditorFiles } from '@features/editor'
 import { revealInnertaPosition } from '@features/editor/engines/innerta/hostBridge'
 import { usePanelTitleOptional } from '@features/layout'
@@ -79,6 +80,10 @@ export default function BookmarksPanel({ currentFile }: ToolDockPanelProps): JSX
   const [scope, setScope] = useState<Scope>('global')
   const [data, setData] = useState<Record<string, number[]>>(() => getAllBookmarks())
   const [files, setFiles] = useState(() => getEditorFiles())
+  // Los iconos del header viven en este panel: recargar el tema de iconos debe
+  // forzar un render aunque ProductIcon ya se suscriba internamente.
+  const [, setIconVersion] = useState(0)
+  useEffect(() => subscribeToProductIcons(() => setIconVersion((v) => v + 1)), [])
   const workspaceRoot = useWorkspaceRoot()
   const panelHeader = usePanelTitleOptional()
   const setHeaderActions = panelHeader?.setActions ?? null

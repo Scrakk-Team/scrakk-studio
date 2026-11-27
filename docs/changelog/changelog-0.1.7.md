@@ -61,6 +61,14 @@ published are not edited. The file goes per version:
   movement never re-uploads the tab list (no lag). One WASM instance per strip.
   The module is shipped prebuilt; no build command is exposed publicly.
 
+### Icons (icon themes)
+- **Problems, Bookmarks and the workspace switcher now follow the active icon
+  theme.** These panels kept their header glyphs frozen when an extension
+  theme was selected. They now re-render on `subscribeToProductIcons`, and
+  semantic aliases (`file`, `folder`, `alert`, `close`, `info`, `plus`, …) map
+  app ids to the names icon themes actually use (`symbol-file`, `warning`,
+  `new-file`, …), so their icons change together with the rest of the chrome.
+
 ### Editor tabs
 - **A new file from the Welcome page is selected in the native explorer.**
   File creation publishes a reveal request that the explorer consumes when it

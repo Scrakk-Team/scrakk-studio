@@ -4,6 +4,7 @@
 
 import { useCallback, useEffect, useRef, useState, type JSX } from 'react'
 import { ProductIcon } from '@services/productIcons/components'
+import { subscribeToProductIcons } from '@services/productIcons'
 import { setWorkspaceRoot } from '@features/explorer'
 import {
   baseNameOf,
@@ -46,6 +47,7 @@ export function WorkspacesWidget(): JSX.Element {
     }
     sync()
     const unsubHistory = subscribeToWorkspaces(sync)
+    const unsubIcons = subscribeToProductIcons(sync)
     const onWorkspaceChanged = (): void => sync()
     window.addEventListener('workspace-changed', onWorkspaceChanged)
     const unsubModals = subscribeToModals(() => {
@@ -53,6 +55,7 @@ export function WorkspacesWidget(): JSX.Element {
     })
     return () => {
       unsubHistory()
+      unsubIcons()
       window.removeEventListener('workspace-changed', onWorkspaceChanged)
       unsubModals()
     }

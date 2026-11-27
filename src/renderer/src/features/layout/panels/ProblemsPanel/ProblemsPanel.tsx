@@ -38,6 +38,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type JSX } from 'react'
 import { ProductIcon } from '@services/productIcons/components'
+import { subscribeToProductIcons } from '@services/productIcons'
 import { SegmentedTabs } from '@ui'
 import { HeaderActionButton, usePanelTitle } from '@features/layout'
 import { getEditorFiles, openFileInEditor } from '@features/editor'
@@ -124,6 +125,8 @@ export function ProblemsPanel(): JSX.Element {
   const [query, setQuery] = useState('')
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
   const [groupBy, setGroupBy] = useState<'file' | 'severity'>('file')
+  const [iconVersion, setIconVersion] = useState(0)
+  useEffect(() => subscribeToProductIcons(() => setIconVersion((v) => v + 1)), [])
   /** El foco del input no se pierde al refrescar (los diagnósticos llegan en vivo). */
   const queryRef = useRef(query)
   queryRef.current = query
@@ -274,7 +277,7 @@ export function ProblemsPanel(): JSX.Element {
       </>
     ))
     return () => setActions(null)
-  }, [setActions, refresh, allCollapsed, toggleAll])
+  }, [setActions, refresh, allCollapsed, toggleAll, iconVersion])
 
   return (
     <div className={styles.problems}>

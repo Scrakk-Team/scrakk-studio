@@ -4,6 +4,7 @@
 
 import { useEffect, useState, type JSX } from 'react'
 import { ProductIcon } from '@services/productIcons/components'
+import { subscribeToProductIcons } from '@services/productIcons'
 import { setWorkspaceRoot } from '@features/explorer'
 import {
   baseNameOf,
@@ -33,6 +34,8 @@ export function WorkspacesHistoryPanel({ onNavigate }: WorkspacesHistoryPanelPro
   const [history, setHistory] = useState<string[]>(() => listWorkspaces())
   const [current, setCurrent] = useState<string | null>(() => getActiveWorkspace())
   const [page, setPage] = useState(0)
+  const [, setIconVersion] = useState(0)
+  useEffect(() => subscribeToProductIcons(() => setIconVersion((v) => v + 1)), [])
 
   useEffect(() => {
     const sync = (): void => {

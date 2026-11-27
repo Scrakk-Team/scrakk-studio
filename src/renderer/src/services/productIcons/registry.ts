@@ -231,7 +231,20 @@ function themeGlyph(
  * cuando el id exacto no está definido; el builtin no cambia.
  */
 const THEME_ID_ALIASES: Record<string, string[]> = {
-  chat: ['comment-discussion', 'comment']
+  chat: ['comment-discussion', 'comment'],
+  // Ids propios del IDE que los temas de iconos (codicons/Zed) nombran distinto.
+  file: ['symbol-file', 'files'],
+  folder: ['symbol-folder', 'files'],
+  files: ['files'],
+  alert: ['warning'],
+  close: ['close-all'],
+  info: ['symbol-text', 'info'],
+  plus: ['new-file'],
+  settings: ['settings'],
+  'settings-gear': ['settings'],
+  tabs: ['symbol-file'],
+  bell: ['notifications'],
+  bookmark: ['bookmark']
 }
 
 function lookupGlyph(
