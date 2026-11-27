@@ -46,6 +46,9 @@ export function LayoutCommandsBridge(): JSX.Element | null {
         title: def.title,
         category: 'Tabs',
         keybinding: def.keybinding,
+        // Ctrl+Tab también es Tab para el editor: consumir la tecla para que
+        // no inserte un tab/indente mientras cambiamos de pestaña.
+        preventDefault: true,
         run: () => {
           const all = tabsStore.getAll()
           const stripId =

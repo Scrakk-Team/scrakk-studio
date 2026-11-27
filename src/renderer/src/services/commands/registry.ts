@@ -21,6 +21,8 @@ export interface Command {
   icon?: string
   /** Combo preferido (se registra en shortcuts si no está tomado). */
   keybinding?: string
+  /** Que el atajo consuma la tecla (p. ej. Ctrl+Tab no debe insertar un tab). */
+  preventDefault?: boolean
   run: () => void | Promise<void>
 }
 
@@ -69,6 +71,7 @@ class CommandRegistryClass {
         handler: () => {
           void command.run()
         },
+        preventDefault: command.preventDefault,
         priority: 10
       })
     }

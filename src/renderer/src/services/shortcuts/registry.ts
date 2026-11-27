@@ -19,6 +19,22 @@ import type { ParsedCombo, ShortcutAction } from './types'
 /** Cuánto se espera la segunda parte de un chord (`Ctrl+K`, después `Ctrl+S`). */
 const CHORD_TIMEOUT_MS = 1200
 
+/**
+ * Eventos YA consumidos por un atajo. El listener va en fase CAPTURA (antes
+ * que el canvas de Innerta), así el editor puede preguntar si la tecla ya
+ * pertenece a un shortcut y NO entregarla al motor (p. ej. Ctrl+Tab insertaba
+ * un tab en el buffer mientras cambiaba de pestaña).
+ */
+const consumed = new WeakSet<KeyboardEvent>()
+
+export function isShortcutConsumed(event: KeyboardEvent): boolean {
+  return consumed.has(event)
+}
+
+function markConsumed(event: KeyboardEvent): void {
+  consumed.add(event)
+}
+
 class ShortcutRegistry {
   /** combo canónico (o chord `'a b'`) → acciones registradas (por prioridad). */
   private actions = new Map<string, ShortcutAction[]>()
@@ -132,11 +148,14 @@ class ShortcutRegistry {
         if (inInput && !action.allowInInput && modifiers === 0) {
           continue
         }
+        markConsumed(event)
         action.handler(event)
         if (action.preventDefault) event.preventDefault()
       }
     }
-    window.addEventListener('keydown', this.keydownHandler)
+    // CAPTURA: los atajos se resuelven ANTES de que el evento llegue al canvas
+    // del editor (fase target). Así el editor puede respetar el consumo.
+    window.addEventListener('keydown', this.keydownHandler, true)
   }
 }
 

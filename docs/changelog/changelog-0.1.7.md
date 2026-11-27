@@ -67,7 +67,11 @@ published are not edited. The file goes per version:
   the combos are reassignable in Settings → Shortcuts and present in the three
   keymap presets. The commands cycle the tabs of the active strip with
   wrap-around; the definitions and the neighbour math are pure data, with no
-  hardcoded handler in any component.
+  hardcoded handler in any component. Shortcuts are now resolved in the
+  **capture phase** and mark the keyboard event as consumed; Innerta checks
+  that flag and never delivers a consumed key to the engine, so `Ctrl+Tab`
+  changes tabs without inserting a tab/indent in the buffer. Commands can
+  declare `preventDefault` for exactly this.
 
 ### Icons (icon themes)
 - **Problems, Bookmarks and the workspace switcher now follow the active icon

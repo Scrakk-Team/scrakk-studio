@@ -3,6 +3,7 @@
 // Licencia completa en LICENSE (Apache License 2.0).
 
 import type { InnertaModule } from './InnertaEngine'
+import { isShortcutConsumed } from '@services/shortcuts'
 
 /**
  * Input del host → Innerta (WASM).
@@ -226,6 +227,9 @@ export function wireInnertaInput(
   }
 
   const onKeyDown = (e: KeyboardEvent): void => {
+    // El sistema de atajos corre en CAPTURA: si esta tecla ya fue consumida
+    // (p. ej. Ctrl+Tab), NO se entrega al motor — antes insertaba un tab.
+    if (isShortcutConsumed(e)) return
     const m = module()
     if (!m) return
 

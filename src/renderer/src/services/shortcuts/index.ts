@@ -12,7 +12,7 @@
  * Ejemplos de combos: 'shift+tab', 'mod+shift+p', 'f2', 'escape', 'mod+k'.
  */
 
-export { shortcuts } from './registry'
+export { shortcuts, isShortcutConsumed } from './registry'
 export { formatCombo } from './format'
 export { useShortcut } from './useShortcut'
 export { parseCombo, eventToCombo, isEditableTarget, IS_MAC } from './key'
