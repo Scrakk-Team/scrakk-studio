@@ -40,7 +40,13 @@ published are not edited. The file goes per version:
   dragged tab stays under the pointer when neighbours shift (no jumps). The
   editor host no longer unmounts on every tab change (`FileTabView` is keyed
   per strip) and the session is attached in a layout effect, so the native
-  buffer switched at pointerdown is visible in the same frame.
+  buffer switched at pointerdown is visible in the same frame. The native
+  core also activates the highlight itself (`tabs_set_active`) in that same
+  call, and repaints synchronously, so neither the tab nor the editor waits for
+  a store roundtrip or an animation frame. Tab widths are measured with the
+  theme's real `--text-sm`/`--font-sans` (so they follow the file name/title
+  length), header-title changes re-measure them, and identical snapshots are
+  not re-uploaded to WASM.
   Icons use the native explorer's pipeline
   (file-icon themes + ProductIcons rasterized to images). The core owns layout, hit-testing, hover, wheel scroll
   and same-strip drag reorder; `tabsStore` stays the source of truth. Snapshots

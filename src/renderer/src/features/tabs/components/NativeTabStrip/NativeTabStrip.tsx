@@ -23,7 +23,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { tabsStore } from '../../store'
 import type { TabSpec } from '../../types'
 import { isFileDirty, activateFileSessionNow } from '@features/editor/fileSession'
-import { getTabTitle, tabHeaderKey } from '../../tabHeaders'
+import { getTabTitle, subscribeTabHeaders, tabHeaderKey } from '../../tabHeaders'
 import { getFileIconUrl, subscribeToFileIcons } from '@services/fileIcons'
 import { resolveProductIcon, subscribeToProductIcons } from '@services/productIcons/registry'
 import { productIcon } from '@services/productIcons/components'
@@ -62,6 +62,13 @@ function cssVar(name: string, fallback: string): string {
 function pxVar(name: string, fallback: number): number {
   const value = Number.parseFloat(cssVar(name, `${fallback}px`))
   return Number.isFinite(value) ? value : fallback
+}
+
+/** Fuente EXACTA del TabStrip (--text-sm + --font-sans del tema activo). */
+function tabFont(): string {
+  const size = cssVar('--text-sm', '13px')
+  const family = cssVar('--font-sans', 'Inter, system-ui, sans-serif')
+  return `${size} ${family}`
 }
 
 function roundRect(
@@ -179,6 +186,7 @@ export function NativeTabStrip({
   const iconCacheRef = useRef(new Map<string, HTMLImageElement | null>())
   const draggingRef = useRef(false)
   const frameRef = useRef(0)
+  const signatureRef = useRef('')
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
@@ -201,7 +209,7 @@ export function NativeTabStrip({
     const strip = tabsStore.getStrip(stripId)
     const tabs = strip?.tabs ?? []
     const measure = document.createElement('canvas').getContext('2d')
-    if (measure) measure.font = pxVar('--text-sm', 12) + ' Inter, system-ui, sans-serif'
+    if (measure) measure.font = tabFont()
     const data: NativeTabData[] = tabs.map((tab) => {
       const label = labelOf(tab, stripId)
       return {
@@ -216,9 +224,15 @@ export function NativeTabStrip({
         labelWidth: measure ? measure.measureText(label).width : 0
       }
     })
+    // Evitar subir el snapshot al WASM cuando nada cambió (p. ej. un emit
+    // por activePath): sólo el highlight se activa en el core, sin rebuild.
+    const signature = data.map((d) => `${d.id}\u0000${d.label}\u0000${d.flags}\u0000${d.labelWidth}`).join('\u0001')
+    if (signature !== signatureRef.current) {
+      signatureRef.current = signature
+      ex.setTabs(data)
+    }
     dataRef.current = data
     tabsRef.current = tabs
-    ex.setTabs(data)
     const fixed = isTabWidthFixed() ? getTabWidth() : 0
     if (fixed > 0) ex.setFixedWidth(fixed)
     else ex.clearFixedWidth()
@@ -390,6 +404,7 @@ export function NativeTabStrip({
     schedulePaint()
     const unsubTabs = tabsStore.subscribe(() => { push(); schedulePaint() })
     const unsubWidth = subscribeToTabWidth(() => { push(); schedulePaint() })
+    const unsubHeaders = subscribeTabHeaders(() => { push(); schedulePaint() })
     const unsubIcons = subscribeToFileIcons(() => {
       iconCacheRef.current.clear()
       schedulePaint()
@@ -403,6 +418,7 @@ export function NativeTabStrip({
     return () => {
       unsubTabs()
       unsubWidth()
+      unsubHeaders()
       unsubIcons()
       unsubProduct()
       resize.disconnect()
@@ -436,7 +452,12 @@ export function NativeTabStrip({
           // Switch en el pointerdown, como el explorer: el motor C++ ya tiene
           // el buffer y se activa SIN await, antes de que React re-renderice.
           if (tab?.filePath) activateFileSessionNow(tab.filePath)
+          // El highlight se activa DENTRO del core nativo, en este mismo call
+          // (no esperamos a que el store re-emita ni a un frame de paint).
+          ex.setActive(ex.hitIndex())
           if (tab) onActivate(tab)
+          // Repintar en el MISMO evento: el rAF mete un frame de retraso.
+          paint()
           draggingRef.current = true
           ex.dragBegin(ex.hitIndex(), x, y)
           event.currentTarget.setPointerCapture(event.pointerId)
@@ -448,7 +469,7 @@ export function NativeTabStrip({
         const { x, y } = localPoint(event)
         if (draggingRef.current) ex.dragMove(x, y)
         else ex.hover(x, y)
-        schedulePaint()
+        paint()
       }}
       onPointerUp={(event) => {
         const ex = nativeRef.current
@@ -460,9 +481,11 @@ export function NativeTabStrip({
         ex.dragMove(x, y)
         if (ex.dragEnd() && ex.takeReorder()) {
           tabsStore.reorderTab(stripId, ex.reorderFrom(), ex.reorderTo())
+          paint()
           return
         }
         // La activación ya ocurrió en pointerdown; acá sólo termina el drag.
+        paint()
       }}
       onPointerLeave={() => {
         nativeRef.current?.hover(-1, -1)

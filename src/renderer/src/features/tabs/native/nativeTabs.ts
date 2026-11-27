@@ -16,6 +16,7 @@ interface NativeModule {
   _tabs_set_label_width(index: number, px: number): void
   _tabs_count(): number
   _tabs_active(): number
+  _tabs_set_active(index: number): void
   _tabs_id(index: number): number
   _tabs_label(index: number): number
   _tabs_flags(index: number): number
@@ -56,6 +57,7 @@ export interface NativeTabs {
   setLabelWidth(index: number, px: number): void
   count(): number
   active(): number
+  setActive(index: number): void
   id(index: number): string
   label(index: number): string
   flags(index: number): number
@@ -105,6 +107,7 @@ export async function createNativeTabs(): Promise<NativeTabs> {
     setLabelWidth: (index, px) => mod._tabs_set_label_width(index, px),
     count: () => mod._tabs_count(),
     active: () => mod._tabs_active(),
+    setActive: (i) => mod._tabs_set_active(i),
     id: (i) => mod.UTF8ToString(mod._tabs_id(i)),
     label: (i) => mod.UTF8ToString(mod._tabs_label(i)),
     flags: (i) => mod._tabs_flags(i),
