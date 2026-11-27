@@ -38,6 +38,8 @@
   "features.sin.opciones": "Sin opciones",
   "features.sin.visor.para.este.formato": "Sin visor para este formato",
   "features.tabs.abiertas": "Tabs abiertas",
+  "features.tab.siguiente": "Siguiente tab",
+  "features.tab.anterior": "Tab anterior",
   "features.preview.bytes.caducado": "Los datos de este archivo ya no están disponibles.",
   "features.preview.binario.no.disponible": "Este archivo binario no se puede ver por el momento.",
   "features.preview.binario.pronto": "Pronto habrá un visor para este formato.",

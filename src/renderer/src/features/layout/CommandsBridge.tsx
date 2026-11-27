@@ -15,7 +15,9 @@ import { commandRegistry } from '@services/commands'
 import { toggleHistoryView } from './panels/HistoryPanel/viewState'
 import { setSkillsViewOpen } from './panels/SkillsPanel/viewState'
 
-import { isTabsDocked, setTabsDocked } from '@features/tabs'
+import { isTabsDocked, setTabsDocked, tabsStore } from '@features/tabs'
+import { TAB_NAVIGATION, nextTabId } from '@features/tabs/tabNavigation'
+import { activateTabSmart } from './actions'
 import { activityButtonSlot } from '@features/activitybar/layout'
 import { t } from '@core/i18n'
 import { LAYOUT_TOGGLES } from './panelToggles'
@@ -34,6 +36,32 @@ export function LayoutCommandsBridge(): JSX.Element | null {
     )
     return () => unsubs.forEach((unsub) => unsub())
   }, [toggleSlotPanel])
+
+  // Cambio rápido de tab (Ctrl+Tab / Ctrl+Shift+Tab): comandos del registry,
+  // con atajo reasignable desde Ajustes → Atajos (nada de handlers hardcodeados).
+  useEffect(() => {
+    const unsubs = TAB_NAVIGATION.map((def) =>
+      commandRegistry.register({
+        id: def.id,
+        title: def.title,
+        category: 'Tabs',
+        keybinding: def.keybinding,
+        run: () => {
+          const all = tabsStore.getAll()
+          const stripId =
+            all.center && all.center.tabs.length > 1
+              ? 'center'
+              : Object.keys(all).find((id) => (all[id]?.tabs.length ?? 0) > 1)
+          if (!stripId) return
+          const next = nextTabId(tabsStore.getStrip(stripId), def.direction)
+          if (!next) return
+          const tab = tabsStore.getTab(next)
+          if (tab) activateTabSmart(stripId, tab)
+        }
+      })
+    )
+    return () => unsubs.forEach((unsub) => unsub())
+  }, [])
 
   // El historial ya no es un panel: es una vista DENTRO del chat. El comando
   // (y su atajo) abre el panel de chat y alterna esa vista — así el atajo

@@ -14243,6 +14243,22 @@
       "needsReview": false,
       "at": "2026-11-26T19:15:06.370Z",
       "approvedAt": "2026-11-26T19:15:06.370Z"
+    },
+    "features.tab.siguiente": {
+      "src": "3472f30b16d8c355",
+      "area": "features",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-27T17:11:05.304Z",
+      "approvedAt": "2026-11-27T17:11:05.304Z"
+    },
+    "features.tab.anterior": {
+      "src": "e24070fe0a96dd7e",
+      "area": "features",
+      "machine": false,
+      "needsReview": false,
+      "at": "2026-11-27T17:11:05.304Z",
+      "approvedAt": "2026-11-27T17:11:05.304Z"
     }
   },
   "version": 1

@@ -38,6 +38,8 @@
   "features.sin.opciones": "No options",
   "features.sin.visor.para.este.formato": "No viewer available for this format",
   "features.tabs.abiertas": "Open tabs",
+  "features.tab.siguiente": "Next tab",
+  "features.tab.anterior": "Previous tab",
   "features.preview.bytes.caducado": "This file data is no longer available.",
   "features.preview.binario.no.disponible": "This binary file cannot be previewed yet.",
   "features.preview.binario.pronto": "A viewer for this format is coming soon.",

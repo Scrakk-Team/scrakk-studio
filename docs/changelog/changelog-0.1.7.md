@@ -61,6 +61,14 @@ published are not edited. The file goes per version:
   movement never re-uploads the tab list (no lag). One WASM instance per strip.
   The module is shipped prebuilt; no build command is exposed publicly.
 
+### Shortcuts
+- **Quick tab switching with `Ctrl+Tab` / `Ctrl+Shift+Tab`.** Registered as
+  regular commands (`tabs.next`, `tabs.previous`) through `commandRegistry`, so
+  the combos are reassignable in Settings → Shortcuts and present in the three
+  keymap presets. The commands cycle the tabs of the active strip with
+  wrap-around; the definitions and the neighbour math are pure data, with no
+  hardcoded handler in any component.
+
 ### Icons (icon themes)
 - **Problems, Bookmarks and the workspace switcher now follow the active icon
   theme.** These panels kept their header glyphs frozen when an extension
